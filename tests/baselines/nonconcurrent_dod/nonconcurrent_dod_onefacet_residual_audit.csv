@@ -1,0 +1,7 @@
+"outcome_1","outcome_2","weight_1","weight_2","signed_multiplier_in_composite_variance","conditional_residual_covariance","estimated","reason","source_rows_are_theta_alpha_paired","inference_framework"
+"error_theta","correct_theta",1,-1,-2,0,FALSE,"constituents treated as nonconcurrent by analysis specification",TRUE,"modular_four_gamma_margins_all_residual_covariances_fixed_zero_v1"
+"error_theta","error_alpha",1,-1,-2,0,FALSE,"constituents treated as nonconcurrent by analysis specification",TRUE,"modular_four_gamma_margins_all_residual_covariances_fixed_zero_v1"
+"error_theta","correct_alpha",1,1,2,0,FALSE,"constituents treated as nonconcurrent by analysis specification",TRUE,"modular_four_gamma_margins_all_residual_covariances_fixed_zero_v1"
+"correct_theta","error_alpha",-1,-1,2,0,FALSE,"constituents treated as nonconcurrent by analysis specification",TRUE,"modular_four_gamma_margins_all_residual_covariances_fixed_zero_v1"
+"correct_theta","correct_alpha",-1,1,-2,0,FALSE,"constituents treated as nonconcurrent by analysis specification",TRUE,"modular_four_gamma_margins_all_residual_covariances_fixed_zero_v1"
+"error_alpha","correct_alpha",-1,1,-2,0,FALSE,"constituents treated as nonconcurrent by analysis specification",TRUE,"modular_four_gamma_margins_all_residual_covariances_fixed_zero_v1"

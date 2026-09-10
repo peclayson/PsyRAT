@@ -1,0 +1,117 @@
+cff-version: 1.2.0
+title: "PsyRAT: The Psychophysiologist's Reliability Analysis Toolbox"
+message: >-
+  If you use this toolbox, we recommend citing Rocha et al. (2026), the source
+  of the reliability formulas (listed first under references), together with
+  the GitHub release of the toolbox version you ran. The version string from
+  psyrat_defineversion (printed in the startup banner and written into every
+  exported table header and *_runconfig.json sidecar) identifies that release.
+type: software
+authors:
+  - family-names: Clayson
+    given-names: Peter E.
+    orcid: "https://orcid.org/0000-0003-4437-6598"
+version: 0.1.0-beta
+license: GPL-3.0-or-later
+repository-code: "https://github.com/peclayson/PsyRAT"
+abstract: >-
+  A MATLAB toolbox that uses generalizability theory to evaluate the
+  psychometric reliability of event-related potential (ERP) scores.
+  Variance components are estimated in a Bayesian framework via CmdStan.
+  The toolbox reports dependability (absolute-error) and generalizability
+  (relative-error) coefficients for designs with any number of events,
+  groups, or occasions; estimates the effect of trial count on dependability
+  and recommends a trial-count cutoff for inclusion; and estimates the
+  internal consistency of difference scores.
+keywords:
+  - generalizability theory
+  - reliability
+  - dependability
+  - event-related potentials
+  - ERP
+  - psychometrics
+  - psychophysiology
+  - Bayesian estimation
+  - Stan
+
+# No preferred-citation block on purpose: in CFF 1.2.0 that key tells citation
+# tooling (GitHub's "Cite this repository", cffconvert) to emit the named work
+# INSTEAD of the software, which defeats the recommendation in message. Rocha
+# et al. (2026) is listed first under references because it is the source of
+# the formulas the toolbox implements: its Tables 2, 3 and 6 give the one-facet
+# G/D/ICC/SEM, test-retest, and difference-score expressions.
+#
+# TO REVISIT: a dedicated PsyRAT software/methods publication is planned. When
+# it is released, add it here and reconsider a preferred-citation block then.
+references:
+  # The source of the reliability formulas (Tables 2, 3 and 6);
+  # PsyRATIndependentOracle states those tables in the paper's own symbols as
+  # the suite's external corroboration.
+  - type: article
+    title: >-
+      Beyond classical metrics: Generalizability theory across
+      psychophysiological modalities
+    authors:
+      - family-names: Rocha
+        given-names: Harold A.
+      - family-names: Holbrook
+        given-names: Amanda
+      - family-names: Hajcak
+        given-names: Greg
+      - family-names: Keil
+        given-names: Andreas
+      - family-names: Rast
+        given-names: Philippe
+      - family-names: Thayer
+        given-names: Julian F.
+      - family-names: Verona
+        given-names: Edelyn
+      - family-names: Vispoel
+        given-names: Walter P.
+      - family-names: Clayson
+        given-names: Peter E.
+    journal: "International Journal of Psychophysiology"
+    volume: 222
+    number: 113321
+    year: 2026
+    doi: "10.1016/j.ijpsycho.2026.113321"
+
+  # The location-scale / Bayesian variance-component basis for the estimation
+  # core. Accepted 9 December 2025; no volume or issue has been assigned, so it
+  # is cited in press rather than by year.
+  - type: article
+    title: >-
+      Enhancing generalizability theory with mixed-effects models for
+      heteroscedasticity in psychological measurement: A theoretical
+      introduction with an application from EEG data
+    authors:
+      - family-names: Rast
+        given-names: Philippe
+      - family-names: Clayson
+        given-names: Peter E.
+    journal: "British Journal of Mathematical and Statistical Psychology"
+    status: in-press
+    doi: "10.1111/bmsp.70026"
+
+  - type: article
+    title: >-
+      Using generalizability theory and the ERP Reliability Analysis (ERA)
+      Toolbox for assessing test-retest reliability of ERP scores part 1:
+      Algorithms, framework, and implementation
+    authors:
+      - family-names: Clayson
+        given-names: Peter E.
+      - family-names: Carbine
+        given-names: Kaylie A.
+      - family-names: Baldwin
+        given-names: Scott A.
+      - family-names: Olsen
+        given-names: Joseph A.
+      - family-names: Larson
+        given-names: Michael J.
+    journal: "International Journal of Psychophysiology"
+    volume: 166
+    start: 174
+    end: 187
+    year: 2021
+    doi: "10.1016/j.ijpsycho.2021.01.006"

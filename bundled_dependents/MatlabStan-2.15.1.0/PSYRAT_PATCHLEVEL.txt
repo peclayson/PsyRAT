@@ -1,0 +1,91 @@
+PsyRAT vendored-bundle stamp
+============================
+
+    upstream_version = 2.15.1.0
+    patch_level = 2
+
+Those two lines are the machine-readable payload. Everything below is for the
+next person to read; the parser ignores it.
+
+
+WHAT THIS IS
+------------
+PsyRAT vendors MatlabStan under bundled_dependents/ and applies LOCAL PATCHES to
+it. MatlabStan does not record its own release version anywhere in its files, so
+psyrat_checkversionsofdeps historically could not check it at all and returned a
+-1 "not useful" sentinel. This file closes that gap and adds the thing that
+actually matters for a patched bundle: a patch level.
+
+  upstream_version  the MatlabStan release this bundle is derived from. It is
+                    the folder name too, but the folder can be renamed, so the
+                    authority is this file.
+
+  patch_level       an integer that increments by one every time PsyRAT changes
+                    a file in this bundle in a way a user must receive. It is
+                    NOT a count of historical commits and should not be
+                    reverse-engineered into one; it starts at 1 with the commit
+                    that introduced this stamp.
+
+
+WHAT LEVEL 1 COVERS
+-------------------
+Five local patch sites, all predating this stamp (enumerated so the level is
+auditable; details in documentation/dependencies_support_matrix.md):
+
+  1. Within-chain threading (threads_per_chain): stan.m, StanModel.m.
+  2. CmdStan auto-discovery: +mstan/stan_home.m.
+  3. Permuted-extract indexing repair (S19): mcmc.m:180.
+  4. nansum -> sum(...,'omitnan') (B39): StanFit.m:272, :375.
+  5. prctile replacement in PSIS (B40): psis/psislw.m:38.
+
+
+WHAT LEVEL 2 COVERS
+-------------------
+One additional patch site (G43, 2026-08-29):
+
+  6. CmdStan home-glob version sort: +mstan/stan_home.m enumerates each
+     managed cmdstan-* location newest-parseable-version-first instead of in
+     dir()'s lexicographic order (under which cmdstan-2.38.0 beat
+     cmdstan-2.40.0), so a machine holding several managed installs resolves
+     the newest one.
+
+
+WHEN TO INCREMENT IT
+--------------------
+Increment patch_level here AND bump depvers.matlabstanpatch in
+subroutines/installation/psyrat_dependentsversions.m in the SAME commit. The two
+are compared against each other: this file says what the bundle IS, the other
+says what PsyRAT EXPECTS. If they disagree, the user is told their MatlabStan is
+out of date.
+
+Increment for a change that alters behavior a user depends on. Do not increment
+for a comment fix or a whitespace change - a spurious bump tells every existing
+user to reinstall for nothing.
+
+
+WHY IT IS NOT A .m FILE
+-----------------------
+Two copies of this bundle can be on the MATLAB path at once: the in-repo one
+(added by psyrat_start) and an installed one under the dependents working
+directory (added by psyrat_installdependents). Both are genpath'd and both are
+persisted by savepath.
+
+If the stamp were a .m file, a name lookup - which('psyrat_matlabstan_patchlevel')
+- would return whichever copy sits earlier on the path. The freshly-patched
+in-repo stamp could then answer on behalf of a stale installed copy, reporting
+"up to date" while the UNPATCHED files are the ones actually being loaded. That
+failure is silent and would defeat the entire point of stamping.
+
+Being a plain text file makes that mistake impossible to make by accident: there
+is no name lookup available, so the reader is forced to open it by absolute path
+next to the MatlabStan that is actually resolved. See
+subroutines/installation/psyrat_matlabstan_bundleinfo.m, which anchors on
+which('StanModel.m') and reads this file from that same directory.
+
+
+ABSENCE IS MEANINGFUL
+---------------------
+A MatlabStan directory with no PSYRAT_PATCHLEVEL.txt predates stamping and is
+therefore, by definition, unpatched. The reader reports it as out of date rather
+than as unknown. Do not "fix" a missing stamp by copying this file into an old
+install - reinstall the dependents instead, or the stamp will lie.

@@ -1,0 +1,8 @@
+"file","md5","detail"
+"R/common.R","e7f0ef212620dbd93755f33547bbdfa1","reference bundle source"
+"R/model_generation.R","faa7803c0d8999a9938dc05ad165fa1f","reference bundle source"
+"R/independence_stage.R","74945c2bbd17f0d3b71327b633e286c4","reference bundle source"
+"R/reliability.R","e8f06866c64192414bc28b5abe61dc9b","reference bundle source"
+"tests/simulation_helpers.R","0e9d3345ceec03f972dfb12c6caeba22","reference bundle source"
+"R_version",,"R version 4.4.2 (2024-10-31)"
+"RNG_kinds",,"Mersenne-Twister Inversion Rejection"

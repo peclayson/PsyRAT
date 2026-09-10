@@ -1,0 +1,102 @@
+functions {
+  real scaled_chi_square_lpdf(real y, real mu, real nu) {
+    if (y <= 0) {
+      return negative_infinity();
+    }
+    return log(nu) - log(mu) + chi_square_lpdf(y * nu / mu | nu);
+  }
+}
+data {
+int<lower=1> NOBS;  //number of observations
+int<lower=1> NSUB;  //number of subjects
+int<lower=1> NOCC;  //number of occasions
+int<lower=1> NTRL;  //number of trials
+int<lower=1> NTID;  // total unique for trial*id
+int<lower=1> NOID;  // total unique for occ*id
+int<lower=1> NTO;  // total unique for trial*occ
+array[NOBS] int<lower=1, upper=NSUB> id;  //id variable
+array[NOBS] int<lower=1, upper=NOCC> occ;  //occ variable
+array[NOBS] int<lower=1, upper=NTRL> trl;  //trl variable
+array[NOBS] int<lower=1, upper=NTID> trlxid;  //trlxid variable
+array[NOBS] int<lower=1, upper=NOID> occxid;  //occxid variable
+array[NOBS] int<lower=1, upper=NTO> trlxocc;  //trlxocc variable
+vector[NOBS] meas;  // response variable
+}
+parameters {
+real Intercept;  // log expected-score grand intercept (alpha)
+real Intercept_nu;  // log degrees-of-freedom grand intercept (beta)
+vector<lower=0>[2] gro_sds;  // person log-scale SDs: [mean (s_p), log-nu]
+matrix[2, NSUB] gro_effs_stndzd;  // standardized person effects
+cholesky_factor_corr[2] chol_corrmat;  // person (mean, log-nu) correlation
+real<lower=0> sig_occ;  // occasion main-effect SD on the log mean
+real<lower=0> sig_trl;  // trial main-effect SD on the log mean
+real<lower=0> sig_trlxid;  // trial x person SD on the log mean
+real<lower=0> sig_occxid;  // occasion x person SD on the log mean
+real<lower=0> sig_trlxocc;  // trial x occasion SD on the log mean
+vector[NOCC] occ_raw;  // standardized occasion main effects
+vector[NTRL] trl_raw;  // standardized trial main effects
+vector[NTID] trlxid_raw;  // standardized trial x person effects
+vector[NOID] occxid_raw;  // standardized occasion x person effects
+vector[NTO] trlxocc_raw;  // standardized trial x occasion effects
+}
+transformed parameters {
+matrix[NSUB, 2] gro_effs_actual;  // actual person effects
+vector[NSUB] ind_bs;  // person log-mean effect (u_p)
+vector[NSUB] ind_nu;  // person log-nu effect (v_p)
+vector[NOCC] occ_terms;  // occasion main effects
+vector[NTRL] trl_terms;  // trial main effects
+vector[NTID] trlxid_terms;  // trial x person effects
+vector[NOID] occxid_terms;  // occasion x person effects
+vector[NTO] trlxocc_terms;  // trial x occasion effects
+gro_effs_actual = (diag_pre_multiply(gro_sds, chol_corrmat) * gro_effs_stndzd)';
+ind_bs = gro_effs_actual[, 1];
+ind_nu = gro_effs_actual[, 2];
+occ_terms = sig_occ * occ_raw;
+trl_terms = sig_trl * trl_raw;
+trlxid_terms = sig_trlxid * trlxid_raw;
+occxid_terms = sig_occxid * occxid_raw;
+trlxocc_terms = sig_trlxocc * trlxocc_raw;
+}
+model {
+// log-linked mean: log mu = alpha + person + occasion + trial + interactions
+vector[NOBS] mu = Intercept + rep_vector(0, NOBS);
+// log-linked, person-varying dispersion: log nu = beta + person
+vector[NOBS] nu = Intercept_nu + rep_vector(0, NOBS);
+mu += ind_bs[id];
+mu += occ_terms[occ];
+mu += trl_terms[trl];
+mu += trlxid_terms[trlxid];
+mu += occxid_terms[occxid];
+mu += trlxocc_terms[trlxocc];
+mu = exp(mu);
+nu += ind_nu[id];
+nu = exp(nu);
+// priors including all constants
+target += normal_lpdf(Intercept | 1.70475, 0.5);
+target += normal_lpdf(Intercept_nu | 2.89037, 0.75);
+target += student_t_lpdf(gro_sds[1] | 3, 0, 0.35)
+  - 1 * student_t_lccdf(0 | 3, 0, 0.35);
+target += student_t_lpdf(gro_sds[2] | 3, 0, 1)
+  - 1 * student_t_lccdf(0 | 3, 0, 1);
+target += student_t_lpdf(sig_occ | 3, 0, 0.35)
+  - 1 * student_t_lccdf(0 | 3, 0, 0.35);
+target += student_t_lpdf(sig_trl | 3, 0, 0.35)
+  - 1 * student_t_lccdf(0 | 3, 0, 0.35);
+target += student_t_lpdf(sig_trlxid | 3, 0, 0.35)
+  - 1 * student_t_lccdf(0 | 3, 0, 0.35);
+target += student_t_lpdf(sig_occxid | 3, 0, 0.35)
+  - 1 * student_t_lccdf(0 | 3, 0, 0.35);
+target += student_t_lpdf(sig_trlxocc | 3, 0, 0.35)
+  - 1 * student_t_lccdf(0 | 3, 0, 0.35);
+target += std_normal_lpdf(to_vector(gro_effs_stndzd));
+target += lkj_corr_cholesky_lpdf(chol_corrmat | 1);
+target += std_normal_lpdf(occ_raw);
+target += std_normal_lpdf(trl_raw);
+target += std_normal_lpdf(trlxid_raw);
+target += std_normal_lpdf(occxid_raw);
+target += std_normal_lpdf(trlxocc_raw);
+// likelihood including all constants
+for (n in 1:NOBS) {
+  target += scaled_chi_square_lpdf(meas[n] | mu[n], nu[n]);
+}
+}

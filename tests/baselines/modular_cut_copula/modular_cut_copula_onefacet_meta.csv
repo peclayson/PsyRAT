@@ -1,0 +1,2 @@
+"facet","dimension","N","K","P","I","O","PI","PO","IO","mu_offset_1","mu_offset_2","log_sigma_offset_1","log_sigma_offset_2","n_draws","grid_points","prior_sd","pit_clip"
+"trial","one_dimension",30,1,6,5,,,,,1.52417148031857,1.56198495657247,0.425559191650457,0.463372667904361,3,20001,0.5,1e-12
