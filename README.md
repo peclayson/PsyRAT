@@ -82,7 +82,7 @@ Clayson, P. E., Baldwin, S. A., & Larson, M. J. (2021). [Evaluating the internal
 
 &nbsp;
 
-## Acknowledgements
+## Acknowledgments
 
 Development of PsyRAT was supported by the National Institute of Mental Health of the National Institutes of Health under award number R01MH128208. I am grateful to NIMH for its generous support of this work. The content is solely the responsibility of the author and does not necessarily represent the official views of the National Institutes of Health.
 
