@@ -54,6 +54,7 @@ classdef TestDiffRescorNativeHmcRecovery < PsyRATTestBase
 
             testCase.verifyEqual(rel.analysis, 'ic_diff');
             testCase.verifyEqual(rel.engine, 'hmc');
+            psyrat_test_record_native_diagnostics(testCase,rel);
 
             % ---- extracted draws (rescor layout) ----
             b = cell2mat(rel.out.b{1});            % draws x 2 (per-event mean)

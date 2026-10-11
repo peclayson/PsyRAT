@@ -5,8 +5,8 @@ function dataout = psyrat_loadfile(varargin)
 %
 %
 %Required Inputs:
-% psyrat_prefs - preferences from PsyRAT Toolbox
-% psyrat_data - data from PsyRAT Toolbox
+% psyrat_prefs - preferences from PsyRAT
+% psyrat_data - data from PsyRAT
 %       OR
 % file - location of file to be loaded and prepared for dependability
 %  analyses
@@ -63,7 +63,7 @@ function dataout = psyrat_loadfile(varargin)
 %  additionally requires a numeric weight column (n_i; located via
 %  weightcol).
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -421,7 +421,7 @@ end
 if ~isnumeric(dataout.meas(:))
     error('meas:notnumeric',... %Error code and associated error
     strcat('Error: The data in the measurement column is not numeric\n',...
-    'Was the wrong column specified as mesurement?\n\n',...
+    'Was the wrong column specified as measurement?\n\n',...
     'The column specified was',[' ' meascolname],'\n',...
     'Please specify a column with numeric data (ERP measurements)\n',...
     'See help psyrat_loadfile for more information\n'));
@@ -801,7 +801,7 @@ elseif ~isempty(timecolname) && isempty(eventcolname)
 end
 
 %turn all of the ids, groups, events, and occasions into strings. PsyRAT
-%toolbox will use this later.
+%will use this later.
 %
 %SECOND call to psyrat_normalize_label_columns in this function, and the two
 %differ only in the numeric opt-in. The first (above the which* filters)

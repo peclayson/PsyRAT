@@ -5,7 +5,7 @@ function ptintplot = psyrat_ptintervalplot(varargin)
 %
 %
 %Inputs
-% psyrat_data - PsyRAT Toolbox data structure array. Variance components should
+% psyrat_data - PsyRAT data structure array. Variance components should
 %  be included.
 % stat - three options:
 %  ICC - to plot ICC estimates
@@ -19,7 +19,7 @@ function ptintplot = psyrat_ptintervalplot(varargin)
 % ptintplot - figure handle for the plot
 % figure that displays a point estimate and its credible interval
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ if ~isempty(varargin)
     else
         error('varargin:psyrat_data',... %Error code and associated error
             strcat('WARNING: psyrat_data not specified \n\n',...
-            'Please input psyrat_data (PsyRAT Toolbox data structure array).\n',...
+            'Please input psyrat_data (PsyRAT data structure array).\n',...
             'See help psyrat_depvtrialsplot for more information \n'));
     end
     

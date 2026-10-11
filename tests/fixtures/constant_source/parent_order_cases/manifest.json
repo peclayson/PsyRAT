@@ -1,0 +1,98 @@
+{
+  "expectations": "Frozen independently from Stan block completion, assignment order, and matrix copying.",
+  "source": "https://mc-stan.org/docs/reference-manual/blocks.html",
+  "fixtures": [
+    {
+      "file": "alias_temporary_parent.stan",
+      "sha256": "f1d8f20fa151d1293d24f2a45caa963638d26e017458200ed125daad437d3a14",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]"
+      ],
+      "mathematical_reason": "GQ correlation constraints are checked after the block statements. Final R is identity, but the plain alias copied the preceding temporary matrix. Thus alias diagonal equals the sampled z (variance 1); at z=2 its value is 2 and final R is 1.",
+      "data": {},
+      "definitely_stochastic": [
+        "alias[1,1]"
+      ],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; algebra/source reasoning only"
+    },
+    {
+      "file": "alias_ready_parent_control.stan",
+      "sha256": "56cbe9bee033be93cdb5a38191bc4d6192a70c06f85f77c6ee1e038cfc6f5f18",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "The parent receives its sole complete unconditional assignment before the copy. Both final diagonals are exactly 1.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; algebra/source reasoning only"
+    },
+    {
+      "file": "alias_uninitialized_parent.stan",
+      "sha256": "bf37c63c87470725bba0ac7324f6cc00331ea958c14c97ca3132dcb9e3dcf092",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]"
+      ],
+      "mathematical_reason": "Final R is identity, but alias read its elements before the sole assignment. This is an uninitialized-read/source-proof negative, not a successful-fit claim.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; algebra/source reasoning only"
+    },
+    {
+      "file": "alias_ready_chain_control.stan",
+      "sha256": "c86af223417f2b97f298d111819e8c9166f435fa997fdf5f3f95d6ab0c5c440e",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]",
+        "second[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]",
+        "alias[1,1]",
+        "second[1,1]"
+      ],
+      "mathematical_reason": "A constrained parameter is available before GQ execution; each single-write plain alias is copied only after its parent has become ready. All three diagonals are 1.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; algebra/source reasoning only"
+    },
+    {
+      "file": "alias_reversed_chain.stan",
+      "sha256": "ecb3f2be0eb00d1cd7336cbfddda7aeb4232cc64aa55d210f9968079361b0fab",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]",
+        "second[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "The final first alias is a unit-diagonal principal block, but second reads it before initialization. Parent readiness cannot be granted retroactively to an earlier copy.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; algebra/source reasoning only"
+    }
+  ],
+  "fixture_creation_manifest": "audit/review-2026-09-13/science/parent_order_cases/manifest.json",
+  "fixture_creation_manifest_sha256": "c66375089485fe69df909d0f1a884c5fd750f3d16a35ba94269ca9b85c9eca77",
+  "creation_status_note": "Original per-fixture syntax/runtime fields describe fixture creation, before the separately recorded compiler check.",
+  "compiler_evidence": "audit/review-2026-09-13/logs/accepted-source-control-stanc.json"
+}

@@ -33,6 +33,43 @@ classdef TestPreflightDataGuards < PsyRATTestBase
             testCase.verifyTrue(localHasId(report.errors, 'meas:notfinite'), '-Inf too');
         end
 
+        function testMissingScoreIsLocated(testCase)
+            %Beta-tester feedback 2026-09-16 (G96): readtable imports NA, a
+            %lone '.', an empty field or a stray token in a score column as
+            %NaN, and the table-wide guard reported only "Input data include
+            %missing cells" -- true, unlocated, and read by the tester as the
+            %wrong diagnosis. The documented first sentence stays verbatim
+            %(the manual quotes it); the location is appended.
+            tbl = localCleanTable();
+            tbl.meas([3 7]) = NaN;
+            report = psyrat_preflight_validate('datatable', tbl);
+            testCase.verifyTrue(localHasId(report.errors, 'varargin:missingcells'));
+            msg = localMessage(report.errors, 'varargin:missingcells');
+            testCase.verifyTrue(startsWith(msg, ...
+                'Input data include missing cells, which CmdStan cannot process.'), ...
+                'the documented first sentence must stay verbatim');
+            testCase.verifyTrue(contains(msg, '''meas'''), 'the message must name the column');
+            testCase.verifyTrue(contains(msg, '2 missing'), 'the message must count the cells');
+            testCase.verifyTrue(contains(msg, 'row 3 of the prepared table'), ...
+                'the message must name the first row and say which table it counts');
+            testCase.verifyTrue(contains(msg, '(id ''s1'')'), ...
+                'the message must name the row''s id, which survives the loader''s row filters');
+        end
+
+        function testMissingCellstrLabelIsLocated(testCase)
+            %The loader's own located message exempts cellstr label columns,
+            %so an empty text label lands on this guard; it must be located
+            %the same way (the tester's "" token).
+            tbl = localCleanTable();
+            tbl.event{5} = '';
+            report = psyrat_preflight_validate('datatable', tbl);
+            testCase.verifyTrue(localHasId(report.errors, 'varargin:missingcells'));
+            msg = localMessage(report.errors, 'varargin:missingcells');
+            testCase.verifyTrue(contains(msg, '''event'''), 'the message must name the column');
+            testCase.verifyTrue(contains(msg, 'row 5 of the prepared table'), 'the message must name the first row');
+            testCase.verifyTrue(contains(msg, '(id ''s1'')'), 'the message must name the row''s id');
+        end
+
         function testReservedCharactersInLabelsAreRejected(testCase)
             tbl = localCleanTable();
             tbl.event{1} = 'Go, correct';

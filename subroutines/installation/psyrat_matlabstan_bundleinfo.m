@@ -26,7 +26,7 @@ function info = psyrat_matlabstan_bundleinfo(msdir)
 %                 1 - up to date
 %                 2 - newer than the version PsyRAT was tested against
 %                 3 - the bundled pinned copy with a would-be-old stamp
-%                     (G56d): the copy lies inside the PsyRAT toolbox tree,
+%                     (G56d): the copy lies inside the PsyRAT tree,
 %                     which the dependents-update flow can never replace
 %                     (psyrat_safe_rmdepdir refuses it by design), so the
 %                     every-launch update offer is suppressed and
@@ -47,7 +47,7 @@ function info = psyrat_matlabstan_bundleinfo(msdir)
 %
 %SEE ALSO psyrat_checkversionsofdeps, psyrat_dependentsversions
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -78,7 +78,7 @@ end
 info.dir = msdir;
 info.stampfile = fullfile(msdir,'PSYRAT_PATCHLEVEL.txt');
 
-%G56d. A copy living inside the PsyRAT toolbox tree is the vendored bundle:
+%G56d. A copy living inside the PsyRAT tree is the vendored bundle:
 %psyrat_safe_rmdepdir refuses to remove it by design, so the dependents-update
 %flow can never act on an "old" verdict for it. Before this check, a stale (or
 %missing) stamp on the bundle re-raised the launch update offer every session
@@ -141,7 +141,7 @@ if vercmp ~= 0
         %G56d: would-be-old, but it is the pinned bundle (see above).
         info.status = 3;
         info.detail = sprintf(['MatlabStan release %s is PsyRAT''s bundled ' ...
-            'pinned copy (PsyRAT expects %s; update the PsyRAT toolbox, ' ...
+            'pinned copy (PsyRAT expects %s; update PsyRAT, ' ...
             'not the dependents).'],info.version,depvers.matlabstan);
     end
     return;
@@ -156,7 +156,7 @@ switch info.status
             info.status = 3;
             info.detail = sprintf(['MatlabStan %s patch level %s is ' ...
                 'PsyRAT''s bundled pinned copy (PsyRAT expects patch level ' ...
-                '%s; update the PsyRAT toolbox, not the dependents).'], ...
+                '%s; update PsyRAT, not the dependents).'], ...
                 info.version,info.patchlevel,depvers.matlabstanpatch);
         else
             info.detail = sprintf(['MatlabStan %s patch level %s found; PsyRAT ' ...
@@ -256,7 +256,7 @@ end
 end
 
 function tf = local_intree(msdir)
-%LOCAL_INTREE True when msdir sits inside the PsyRAT toolbox tree.
+%LOCAL_INTREE True when msdir sits inside the PsyRAT tree.
 %   Same semantics as psyrat_safe_rmdepdir's boundary check, which is the
 %   remover this verdict must agree with: resolve the running toolbox root
 %   (which('psyrat_start'), falling back to this file's own location two

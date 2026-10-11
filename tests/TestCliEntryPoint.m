@@ -81,6 +81,31 @@ classdef TestCliEntryPoint < PsyRATTestBase
                 isstring(cfg.source_revision) || isempty(cfg.source_revision));
         end
 
+        function testRunconfigRecordsBootstrapRecord(testCase)
+            % Q3 (post-beta review PBA-05): the sidecar records the achieved
+            % bootstrap counts beside the requested count when the engine
+            % record carries them, and nothing extra otherwise.
+            tdir = localTempDir(testCase);
+            prefs = psyrat_defaults();
+            prefs.proc.bootstrap_reps = 1000;
+            data = struct();
+            data.proc.savepath = tdir;
+            data.proc.savename = 'boot.psyrat';
+            data.rel.analysis = 'ic';
+            data.rel.engine = 'fitlme';
+            data.rel.engine_meta = struct('bootstrap_reps', 1000, ...
+                'bootstrap_ok', 987, 'bootstrap_failed', 13);
+            cfg = jsondecode(fileread(psyrat_write_runconfig(data, prefs)));
+            testCase.verifyEqual(cfg.estimation.bootstrap_reps, 1000);
+            testCase.verifyEqual(cfg.estimation.engine_used, 'fitlme');
+            testCase.verifyEqual(cfg.estimation.bootstrap_ok, 987);
+            testCase.verifyEqual(cfg.estimation.bootstrap_failed, 13);
+            data.proc.savename = 'legacy.psyrat';
+            data.rel = rmfield(data.rel, 'engine_meta');
+            cfg2 = jsondecode(fileread(psyrat_write_runconfig(data, prefs)));
+            testCase.verifyFalse(isfield(cfg2.estimation, 'bootstrap_ok'));
+        end
+
         function testRunconfigRecordsFamily(testCase)
             % The observation-likelihood family is recorded in the sidecar so a
             % gamma run is not silently replayed as Gaussian.

@@ -21,7 +21,7 @@ function tf = psyrat_version_ge(a,b)
 %See also: psyrat_estimation_engines_available, psyrat_require_min_cmdstan,
 % psyrat_detect_cmdstan_version
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

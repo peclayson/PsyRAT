@@ -203,8 +203,8 @@ classdef TestMatlabStanPatchLevel < PsyRATTestBase
                 'A stale in-tree stamp must report the pinned verdict, not old.');
             testCase.verifyTrue(contains(info.detail, 'pinned'), ...
                 'The detail line must say the copy is the pinned bundle.');
-            testCase.verifyTrue(contains(info.detail, 'toolbox'), ...
-                'The detail line must point at a toolbox update instead.');
+            testCase.verifyTrue(contains(info.detail, 'update PsyRAT, not the dependents'), ...
+                'The detail line must point at a PsyRAT update instead.');
         end
 
         function testOlderReleaseInTreeReportsPinnedVerdict(testCase)

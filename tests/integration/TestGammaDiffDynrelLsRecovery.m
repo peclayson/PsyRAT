@@ -37,7 +37,7 @@ classdef TestGammaDiffDynrelLsRecovery < PsyRATTestBase
     % CmdStan-gated (skips Incomplete, not Failed, when CmdStan/MatlabStan absent).
     %
     % ---- THE DESIGN POINT, AND THE FOUR TRAPS IT AVOIDS ----
-    % Planted (see the offline sweep recorded in gamma_locationscale_rollout.md,
+    % Planted (see the offline sweep recorded in the location-scale rollout record,
     % increment 8b):
     %
     %   b           = [1.75  1.60]     per-event log-mean intercepts
@@ -177,7 +177,7 @@ T.cor_i       = 0.20;          % cross-event trial correlation
 % SIZED FOR THE PERSON BLOCK, NOT THE SLOPES. The first run of this test used
 % nsub = 160, ntrl = 20 and FAILED the surface assertion while recovering all
 % four dimension slopes essentially perfectly. The diagnosis (recorded in
-% gamma_locationscale_rollout.md, increment 8b) was that the arithmetic is right
+% the location-scale rollout record, increment 8b) was that the arithmetic is right
 % and the PERSON BLOCK was the weak link:
 %   - cor_p recovered 0.40 vs 0.45. LKJ(1) on a 4-D block puts a marginal prior
 %     on each correlation that shrinks toward 0, and 160 people did not overcome

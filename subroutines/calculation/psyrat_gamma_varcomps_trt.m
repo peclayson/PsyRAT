@@ -24,7 +24,7 @@ function vc = psyrat_gamma_varcomps_trt(alpha, s_p, s_o, s_t, s_po, s_pt, s_ot, 
 % SD. Note this design shares ONE nu across occasions and trials -- every facet
 % sits on the log mean -- so the model cannot represent an occasion whose absolute
 % error SD is unchanged while its mean shifts. See the full note in
-% PSYRAT_GAMMA_VARCOMPS and documentation/gamma_scale_submodel_decision.md.
+% PSYRAT_GAMMA_VARCOMPS and manual section 15.4.
 %
 % Because mu is on the log scale, the Stan/brms group-level SDs are NOT the
 % G-theory variance components. This function maps them to OBSERVED-score-scale
@@ -109,7 +109,7 @@ function vc = psyrat_gamma_varcomps_trt(alpha, s_p, s_o, s_t, s_po, s_pt, s_ot, 
 % See also PSYRAT_GAMMA_VARCOMPS, PSYRAT_GAMMA_VARCOMPS_TRT_LS,
 % PSYRAT_GAMMA_CROSSCOV, PSYRAT_REL_TRT.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

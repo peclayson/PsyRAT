@@ -5,7 +5,7 @@ function vartable = psyrat_variancet(varargin)
 %
 %
 %Inputs
-% psyrat_data - PsyRAT Toolbox data structure array.
+% psyrat_data - PsyRAT data structure array.
 % gui - 0 for off, 1 for on
 %
 %Outputs
@@ -13,7 +13,7 @@ function vartable = psyrat_variancet(varargin)
 %  within-person standard deviations
 % a gui will also be shown if desired
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -427,7 +427,16 @@ end
 if gui == 1
 
     %define parameters for figure size
-    figwidth = 800;
+    %F5 (2026-09-16): the window holds the column widths plus the 2 x 25 px
+    %margins, 20 px of grid slack and an 18 px vertical scrollbar (the ledger's
+    %rule plus the scrollbar a group x event design can need; psyrat_criterionfigures
+    %is the precedent). The ic layout has six columns (200 + 5 x 130 = 850), the
+    %others five (720), so the width follows the layout.
+    figwidth = 810;
+    if strcmp(psyrat_data.rel.analysis,'ic')
+        figwidth = 940;
+    end
+    figwidth = psyrat_fitfigwidth(figwidth);   %G104: capped at the display width (the table scrolls when capped)
     figheight = 400;
 
     %define space between rows and first row location
@@ -477,6 +486,7 @@ if gui == 1
         'name',name,...
         'numbertitle','off',...
         'resize','off');
+    movegui(var_gui,'onscreen');   %G104: slide the window inside the display, never off it
 
     if ~any(strcmp(psyrat_data.rel.analysis,{'ic_sserrvar','trt_sserrvar','ic_diff_sserrvar'}))
         %Print the name of the loaded dataset
@@ -504,8 +514,11 @@ if gui == 1
     %drive the on-screen headers from the table's own variable names so the
     %GUI, the CSV and the XLSX cannot drift apart (they were three independent
     %hand-maintained lists, and the sserr layout had already diverged).
-    set(t,'ColumnName',psyrat_variancet_displaynames( ...
-        vartable.Properties.VariableNames));
+    %G104: the long headers ('SEM (dependability)', 'Group SEM (...)') break
+    %onto two lines for the screen only (psyrat_uitable_headers); the CSV and
+    %XLSX keep the one-line display names
+    set(t,'ColumnName',psyrat_uitable_headers(psyrat_variancet_displaynames( ...
+        vartable.Properties.VariableNames)));
     if strcmp(psyrat_data.rel.analysis,'ic')
         set(t,'ColumnWidth',{200 130 130 130 130 130});
     else
@@ -584,6 +597,12 @@ vartable = varargin{4};
     'Comma-Separated Value File (.csv)'},...
     'Where would you like to save table?');
 
+%bail out if the user cancelled the save dialog (F3: every table Save site guards this
+%the same way; psyrat_criterionfigures and psyrat_savesscoeffs were the precedents)
+if isequal(savename,0) || isequal(savepath,0)
+    return;
+end
+
 [~,~,ext] = fileparts(fullfile(savepath,savename));
 
 %for test-retest, the SEM is tied to the selected occasion estimand, so
@@ -596,10 +615,10 @@ else
 end
 
 %save as either excel or csv file
-if strcmp(ext,'.xlsx')
+if strcmpi(ext,'.xlsx')   %F3: case-insensitive like every sibling save site
 
     filehead = {'Table Generated on'; datestr(clock);''};
-    filehead{end+1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+    filehead{end+1} = sprintf('PsyRAT v%s',psyrat_data.ver);
     if ~isempty(occlabel)
         filehead{end+1} = occlabel;
     end
@@ -617,16 +636,17 @@ if strcmp(ext,'.xlsx')
     xlsxtable.Properties.VariableNames = psyrat_variancet_displaynames( ...
         xlsxtable.Properties.VariableNames);
 
-    writecell(filehead,fullfile(savepath,savename));
-    writetable(xlsxtable,fullfile(savepath,savename),...
-        'Range',strcat('A',num2str(length(filehead))));
+    %the same header and table rows into a fresh workbook, checked cell by cell
+    %before it replaces the chosen file (G110)
+    psyrat_replace_workbook(fullfile(savepath,savename),filehead,xlsxtable,...
+        length(filehead));
 
-elseif strcmp(ext,'.csv')
+elseif strcmpi(ext,'.csv')
 
     fid = fopen(fullfile(savepath,savename),'w');
     fprintf(fid,'%s\n','Table Generated on');
     fprintf(fid,'%s\n',datestr(clock));
-    fprintf(fid,'PsyRAT Toolbox v%s\n',psyrat_data.ver);
+    fprintf(fid,'PsyRAT v%s\n',psyrat_data.ver);
     if ~isempty(occlabel)
         fprintf(fid,'%s\n',psyrat_quote_csv_header(occlabel));
     end
@@ -657,6 +677,15 @@ elseif strcmp(ext,'.csv')
 
     fclose(fid);
 
+else
+
+    %F3: a name that ends in neither .xlsx nor .csv (a typed extension the
+    %dialog's filter did not supply) used to fall through this chain silently,
+    %so nothing was written and nothing said so.
+    errordlg({sprintf('The file name "%s" does not end in .xlsx or .csv; nothing was saved.',savename);...
+        'How to fix: choose the Excel or CSV file type in the save dialog, or type a name ending in .xlsx or .csv, then save again.'},...
+        'Unsupported File Type','modal');
+
 end
 
 
@@ -681,25 +710,64 @@ if isequal(savename,0) || isequal(savepath,0)
     return;
 end
 
-%this helper writes a bespoke multi-section CSV (a per-subject loop, not a plain
-%table), so it is CSV-only; normalize the extension so a typed/forced .xlsx name
-%cannot produce invalid workbook bytes (F-CM-M4ssxlsx).
-[~,~,ext] = fileparts(savename);
-if ~strcmpi(ext,'.csv')
-    savename = [savename '.csv'];
+%G107: the subject-level difference analysis also writes its per-participant
+%DIFFERENCE rows (one section per group, after the event sections). Validate
+%every group's stored difference table now, after Cancel and before anything is
+%asked or written: a missing or malformed table stops the save with a message
+%naming the group and how to rebuild it, and event rows are never written in
+%its place.
+isdiff = strcmp(psyrat_data.rel.analysis,'ic_diff_sserrvar');
+if isdiff
+    try
+        [difftable, diffinfo] = psyrat_sscoeffs_diff_table(psyrat_data);
+    catch ME
+        if ~startsWith(ME.identifier,'psyrat:sscoeffsDiff')
+            rethrow(ME);
+        end
+        errordlg(ME.message,'Subject Coefficients Not Saved','modal');
+        return;
+    end
 end
 
-%save as csv file
-fid = fopen(fullfile(savepath,savename),'w');
+%this helper writes a bespoke multi-section CSV (a per-subject loop, not a plain
+%table), so it is CSV-only; a typed/forced .xlsx name still gets .csv appended so
+%it cannot produce invalid workbook bytes (F-CM-M4ssxlsx). G109: the appended name
+%was never shown in the save dialog, so an existing file of that name is replaced
+%only after the user confirms that exact file.
+[target, ok] = psyrat_export_destination(savepath,savename,'.csv');
+if ~ok
+    return;
+end
+
+%save as csv file, through a temporary file that is moved onto the target only
+%after it was written and closed without a reported error (G109): a failure
+%before that move does not touch any existing file
+[fid, stage] = psyrat_export_stage('open',target);
+if fid < 0
+    return;
+end
+stageguard = onCleanup(@() psyrat_export_stage('abort',fid,stage,target)); %#ok<NASGU>
 fprintf(fid,'%s\n','Table Generated on');
 fprintf(fid,'%s\n',datestr(clock));
-fprintf(fid,'PsyRAT Toolbox v%s\n',psyrat_data.ver);
+fprintf(fid,'PsyRAT v%s\n',psyrat_data.ver);
 fprintf(fid,' \n');
 fprintf(fid,'%s\n',psyrat_quote_csv_header(...
     sprintf('Dataset: %s',psyrat_data.rel.filename)));
 fprintf(fid,'%s\n',psyrat_quote_csv_header(...
     psyrat_iterline(psyrat_data.rel)));
 psyrat_fprintf_provenance(fid, psyrat_data);
+%G107: the difference analysis's admissibility note (one field per line) and the
+%run-level notes that say what the difference rows below are
+if isdiff
+    hdrlines = diffinfo.notes;
+    if isfield(psyrat_data.relsummary,'admissibility_note') && ...
+            ~isempty(psyrat_data.relsummary.admissibility_note)
+        hdrlines = [strsplit(char(psyrat_data.relsummary.admissibility_note),newline), hdrlines];
+    end
+    for k = 1:numel(hdrlines)
+        fprintf(fid,'%s\n',psyrat_quote_csv_header(hdrlines{k}));
+    end
+end
 fprintf(fid,'Reliability Cutoff: %0.4f\n',psyrat_data.relsummary.depcutoff);
 fprintf(fid,'%s\n','Subject-Specific Estimates');
 fprintf(fid,' \n');
@@ -753,8 +821,9 @@ for gloc=1:ngroups
         t_out = psyrat_data.relsummary.group(gloc).event(eloc).ssrel_table;
 
         %quote per the CSV convention (B19): the section label embeds
-        %runtime group/event names, which can carry commas
-        fprintf(fid,'%s\n',psyrat_quote_csv_header(label));
+        %runtime group/event names, which can carry commas, and (in an older
+        %result) line breaks, so the field rule that also quotes those is used
+        fprintf(fid,'%s\n',psyrat_csv_field(label));
 
         %the dep_* columns hold the selected coefficient (absolute phi_s or
         %relative G_s); label the export header to match the decision type.
@@ -786,9 +855,10 @@ for gloc=1:ngroups
 
 
         for ii = 1:height(t_out)
+            %G109: an ID holding a comma, quote or line break is quoted
             formatspec = '%s,%d,%d,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\n';
             fprintf(fid,formatspec,...
-                char(id{ii}),...
+                psyrat_csv_field(id{ii}),...
                 include(ii),...
                 trls(ii),...
                 dep_pt(ii),...
@@ -806,7 +876,52 @@ for gloc=1:ngroups
     end
 end
 
-fclose(fid);
+%G107: one difference section per group, after every event section: the stored
+%difference rows, whose flag is the one that decides retention. A typed
+%zero-row table states that it is empty instead of writing rows. The %0.3f
+%precision matches the event rows; tables.sscoeffs_diff from psyrat_report
+%carries full precision.
+if isdiff
+    diffheader = ['ID,Group,Score Type,Event A,Event B,Direction,Coefficient,', ...
+        'Difference Score Meets Reliability Cutoff,Reliability Cutoff,Cutoff Bound,', ...
+        'Trial Counts (Event A),Trial Counts (Event B),Coefficient Posterior Mean,', ...
+        'Coefficient Lower Limit,Coefficient Upper Limit,Interval,Interval Width,', ...
+        'ICC (n''=1; derived),ICC Lower Limit,ICC Upper Limit,SEM,SEM Lower Limit,', ...
+        'SEM Upper Limit,Relative Error Variance of the Mean Difference'];
+    for gloc = 1:numel(diffinfo.groups)
+        %the label and the empty status carry group names, so they are quoted
+        %as fields (a comma, quote or line break stays inside one field)
+        fprintf(fid,'%s\n',psyrat_csv_field(diffinfo.sectionLabels{gloc}));
+        if isempty(diffinfo.rows{gloc})
+            fprintf(fid,'%s\n',psyrat_csv_field(diffinfo.emptyStatus{gloc}));
+            continue;
+        end
+        fprintf(fid,'%s\n',diffheader);
+        for r = diffinfo.rows{gloc}
+            d = difftable(r,:);
+            %each field is formatted on its own and joined, because fprintf
+            %silently drops an empty argument (the ungrouped run's Group is
+            %''), which would shift every later field. Interval Width is the
+            %proportion (0.8 for an 80% interval).
+            fields = {psyrat_csv_field(d.id{1}), psyrat_csv_field(d.Group{1}), ...
+                d.ScoreType{1}, psyrat_csv_field(d.EventA{1}), ...
+                psyrat_csv_field(d.EventB{1}), psyrat_csv_field(d.Direction{1}), ...
+                d.Coefficient{1}, sprintf('%d',d.ind2include), ...
+                sprintf('%0.4f',d.Cutoff), psyrat_csv_field(d.CutoffBound{1}), ...
+                sprintf('%d',d.trls1), sprintf('%d',d.trls2), ...
+                sprintf('%0.3f',d.dep_pt), sprintf('%0.3f',d.dep_ll), ...
+                sprintf('%0.3f',d.dep_ul), psyrat_csv_field(d.IntervalKind{1}), ...
+                sprintf('%g',d.IntervalWidth), sprintf('%0.3f',d.icc_pt), ...
+                sprintf('%0.3f',d.icc_ll), sprintf('%0.3f',d.icc_ul), ...
+                sprintf('%0.3f',d.sem_pt), sprintf('%0.3f',d.sem_ll), ...
+                sprintf('%0.3f',d.sem_ul), sprintf('%0.3f',d.diff_rel_errvar)};
+            fprintf(fid,'%s\n',strjoin(fields,','));
+        end
+    end
+end
+
+%checked close, then the move onto the target (G109)
+psyrat_export_stage('commit',fid,stage,target);
 
 
 
@@ -923,7 +1038,9 @@ vartable.Properties.VariableNames = {'Label',...
     'bp','bo','bt','oxp','txp','txo','err'};
 
 %define parameters for figure size
-figwidth = 1000;
+%F5: 200 + 7 x 130 = 1110 px of columns + margins, grid slack and a scrollbar
+figwidth = 1200;
+figwidth = psyrat_fitfigwidth(figwidth);   %G104: capped at the display width (the table scrolls when capped)
 figheight = 400;
 
 %define space between rows and first row location
@@ -939,6 +1056,7 @@ varall_gui= psyrat_newfigure('unit','pix',...
     'name',name,...
     'numbertitle','off',...
     'resize','off');
+movegui(varall_gui,'onscreen');   %G104: slide the window inside the display, never off it
 
 %Print the name of the loaded dataset
 uicontrol(varall_gui,'Style','text','fontsize',16,...
@@ -951,10 +1069,11 @@ uicontrol(varall_gui,'Style','text','fontsize',16,...
 t = uitable('Parent',varall_gui,'Position',...
     [25 100 figwidth-50 figheight-175],...
     'Data',table2cell(vartable));
-set(t,'ColumnName',{'Label'...
+%G104: 'Within Person (Error)' breaks onto two lines for the screen
+set(t,'ColumnName',psyrat_uitable_headers({'Label'...
     'Between Person' 'Between Session' ['Between ' L.Unit] ...
     'Person x Session' ['Person x ' L.Unit] ['Session x ' L.Unit]...
-    'Within Person (Error)'});
+    'Within Person (Error)'}));
 set(t,'ColumnWidth',{200 130 130 130 130 130 130 130});
 set(t,'RowName',[]);
 
@@ -990,6 +1109,12 @@ L = psyrat_unitlabels(usplit);
     'Comma-Separated Value File (.csv)'},...
     'Where would you like to save table?');
 
+%bail out if the user cancelled the save dialog (F3: every table Save site guards this
+%the same way; psyrat_criterionfigures and psyrat_savesscoeffs were the precedents)
+if isequal(savename,0) || isequal(savepath,0)
+    return;
+end
+
 [~,~,ext] = fileparts(fullfile(savepath,savename));
 
 %for test-retest, the SEM is tied to the selected occasion estimand, so
@@ -1002,10 +1127,10 @@ else
 end
 
 %save as either excel or csv file
-if strcmp(ext,'.xlsx')
+if strcmpi(ext,'.xlsx')   %F3: case-insensitive like every sibling save site
 
     filehead = {'Table Generated on'; datestr(clock);''};
-    filehead{end+1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+    filehead{end+1} = sprintf('PsyRAT v%s',psyrat_data.ver);
     if ~isempty(occlabel)
         filehead{end+1} = occlabel;
     end
@@ -1026,16 +1151,17 @@ if strcmp(ext,'.xlsx')
         'Person x Session',['Person x ' L.Unit],['Session x ' L.Unit],...
         'Within Person (Error)'};
 
-    writecell(filehead,fullfile(savepath,savename));
-    writetable(xlsxtable,fullfile(savepath,savename),...
-        'Range',strcat('A',num2str(length(filehead))));
+    %the same header and table rows into a fresh workbook, checked cell by cell
+    %before it replaces the chosen file (G110)
+    psyrat_replace_workbook(fullfile(savepath,savename),filehead,xlsxtable,...
+        length(filehead));
 
-elseif strcmp(ext,'.csv')
+elseif strcmpi(ext,'.csv')
 
     fid = fopen(fullfile(savepath,savename),'w');
     fprintf(fid,'%s\n','Table Generated on');
     fprintf(fid,'%s\n',datestr(clock));
-    fprintf(fid,'PsyRAT Toolbox v%s\n',psyrat_data.ver);
+    fprintf(fid,'PsyRAT v%s\n',psyrat_data.ver);
     if ~isempty(occlabel)
         fprintf(fid,'%s\n',psyrat_quote_csv_header(occlabel));
     end
@@ -1062,6 +1188,15 @@ elseif strcmp(ext,'.csv')
     end
 
     fclose(fid);
+
+else
+
+    %F3: a name that ends in neither .xlsx nor .csv (a typed extension the
+    %dialog's filter did not supply) used to fall through this chain silently,
+    %so nothing was written and nothing said so.
+    errordlg({sprintf('The file name "%s" does not end in .xlsx or .csv; nothing was saved.',savename);...
+        'How to fix: choose the Excel or CSV file type in the save dialog, or type a name ending in .xlsx or .csv, then save again.'},...
+        'Unsupported File Type','modal');
 
 end
 
@@ -1224,7 +1359,10 @@ vartnames = {'Label',...
 vartable.Properties.VariableNames = vartnames;
 
 %define parameters for figure size
-figwidth = 1230;
+%F5: 200 + 7 x 140 = 1180 px of columns + margins, grid slack and a scrollbar
+%(the sum used to equal the table width exactly, which clips at the grid)
+figwidth = 1270;
+figwidth = psyrat_fitfigwidth(figwidth);   %G104: capped at the display width (the table scrolls when capped)
 figheight = 400;
 
 %define space between rows and first row location
@@ -1240,6 +1378,7 @@ varall_gui= psyrat_newfigure('unit','pix',...
     'name',name,...
     'numbertitle','off',...
     'resize','off');
+movegui(varall_gui,'onscreen');   %G104: slide the window inside the display, never off it
 
 %Print the name of the loaded dataset
 uicontrol(varall_gui,'Style','text','fontsize',16,...
@@ -1252,7 +1391,7 @@ uicontrol(varall_gui,'Style','text','fontsize',16,...
 t = uitable('Parent',varall_gui,'Position',...
     [25 100 figwidth-50 figheight-175],...
     'Data',table2cell(vartable));
-set(t,'ColumnName',vartnames);
+set(t,'ColumnName',psyrat_uitable_headers(vartnames));   %G104: two-line headers on screen; the CSV keeps vartnames
 set(t,'ColumnWidth',{200 140 140 140 140 140 140 140});
 set(t,'RowName',[]);
 
@@ -1285,18 +1424,25 @@ if isequal(savename,0) || isequal(savepath,0)
     return;
 end
 
-%this helper writes a bespoke CSV; normalize the extension so a typed/forced
-%.xlsx name cannot produce invalid workbook bytes (F-CM-M4ssxlsx class)
-[~,~,ext] = fileparts(savename);
-if ~strcmpi(ext,'.csv')
-    savename = [savename '.csv'];
+%this helper writes a bespoke CSV; a typed/forced .xlsx name still gets .csv
+%appended so it cannot produce invalid workbook bytes (F-CM-M4ssxlsx class).
+%G109: the appended name was never shown in the save dialog, so an existing file
+%of that name is replaced only after the user confirms that exact file.
+[target, ok] = psyrat_export_destination(savepath,savename,'.csv');
+if ~ok
+    return;
 end
 
-%save as csv file
-fid = fopen(fullfile(savepath,savename),'w');
+%save as csv file, through a temporary file that is moved onto the target only
+%after it was written and closed without a reported error (G109)
+[fid, stage] = psyrat_export_stage('open',target);
+if fid < 0
+    return;
+end
+stageguard = onCleanup(@() psyrat_export_stage('abort',fid,stage,target)); %#ok<NASGU>
 fprintf(fid,'%s\n','Table Generated on');
 fprintf(fid,'%s\n',datestr(clock));
-fprintf(fid,'PsyRAT Toolbox v%s\n',psyrat_data.ver);
+fprintf(fid,'PsyRAT v%s\n',psyrat_data.ver);
 fprintf(fid,' \n');
 fprintf(fid,'%s\n',psyrat_quote_csv_header(...
     sprintf('Dataset: %s',psyrat_data.rel.filename)));
@@ -1312,15 +1458,18 @@ fprintf(fid,'%s', strcat('Label,Between-Person Std Dev,BP Covariance Std Dev,',.
 fprintf(fid,' \n');
 
 for i = 1:height(vartable)
+    %G109: the Label cell carries runtime event names, so it is quoted as a
+    %field; the other cells are formatted numbers
     formatspec = '%s,%s,%s,%s,%s,%s,%s,%s\n';
-    fprintf(fid,formatspec,char(vartable{i,1}),...
+    fprintf(fid,formatspec,psyrat_csv_field(vartable{i,1}),...
         char(vartable{i,2}), char(vartable{i,3}),...
         char(vartable{i,4}), char(vartable{i,5}),...
         char(vartable{i,6}), char(vartable{i,7}),...
         char(vartable{i,8}));
 end
 
-fclose(fid);
+%checked close, then the move onto the target (G109)
+psyrat_export_stage('commit',fid,stage,target);
 
 
 end
@@ -1752,7 +1901,9 @@ end
 function names = psyrat_variancet_displaynames(names)
 %Convert table variable names to the human-readable headers shown in the GUI
 %and written to CSV/XLSX. Single source of truth for all three surfaces, which
-%were previously three independent hand-maintained lists.
+%were previously three independent hand-maintained lists. On screen,
+%psyrat_uitable_headers then breaks the long names onto two lines (G104); the
+%CSV and XLSX keep these one-line names.
 %
 %Order matters: the _Dep/_Gen expansion must run BEFORE underscores become
 %spaces, or the tokens are no longer matchable.

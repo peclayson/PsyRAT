@@ -11,7 +11,7 @@ classdef PsyRATCmdStanDependencySetup
     % any/all of the three, searched by name pattern, for a machine whose layout
     % none of the home-relative fallbacks below matches. It is the FIRST search
     % root for MatlabProcessManager and CmdStan, but for MatlabStan the bundled,
-    % patched copy in bundled_dependents/ is resolved ahead of it (CLAUDE.md: use
+    % patched copy in bundled_dependents/ is resolved ahead of it (project rule: use
     % the bundled MatlabStan, not upstream), so pointing PSYRAT_DEPENDENTS at a
     % different MatlabStan does not override the bundled one -- set
     % PSYRAT_TEST_MATLABSTAN_PATH for that.
@@ -91,7 +91,7 @@ classdef PsyRATCmdStanDependencySetup
                     });
             end
 
-            % The bundled, patched MatlabStan wins outright (CLAUDE.md: use it,
+            % The bundled, patched MatlabStan wins outright (project rule: use it,
             % not upstream), so it stays ahead of any discovered copy.
             if isempty(paths.matlabstan)
                 paths.matlabstan = localFirstExisting({

@@ -1,0 +1,123 @@
+{
+  "validation": "source-only fixtures; not compiled or sampled",
+  "fixtures": [
+    {
+      "file": "alias_valid.stan",
+      "type": "principal-block alias",
+      "probed_names": [
+        "alias[1,1]",
+        "alias[2,2]"
+      ],
+      "mathematically_constant_names": [
+        "alias[1,1]",
+        "alias[2,2]"
+      ],
+      "expected_bounded_rule_names": [
+        "alias[1,1]",
+        "alias[2,2]"
+      ],
+      "reason": "Valid principal-block initialization",
+      "sha256": "df51a77965dcbe4c00994f08324699ab3b1528730cf90f7c6bfcbea59141559f"
+    },
+    {
+      "file": "alias_element_reassigned.stan",
+      "type": "principal-block alias",
+      "probed_names": [
+        "alias[1,1]",
+        "alias[2,2]"
+      ],
+      "mathematically_constant_names": [
+        "alias[2,2]"
+      ],
+      "expected_bounded_rule_names": [],
+      "reason": "Reject entire unsupported reassigned plain alias conservatively",
+      "sha256": "e9a78f2a000575130fd6fd16f76b06ed295a8c94da267b8fcc521cead6aa64ec"
+    },
+    {
+      "file": "alias_compound_reassigned.stan",
+      "type": "principal-block alias",
+      "probed_names": [
+        "alias[1,1]",
+        "alias[2,2]"
+      ],
+      "mathematically_constant_names": [
+        "alias[2,2]"
+      ],
+      "expected_bounded_rule_names": [],
+      "reason": "Reject entire unsupported reassigned plain alias conservatively",
+      "sha256": "a531fdff122f7a5207ed5e196dbb1d18802ac9810065b3177fc466575606fdf1"
+    },
+    {
+      "file": "alias_nested_reassigned.stan",
+      "type": "principal-block alias",
+      "probed_names": [
+        "alias[1,1]",
+        "alias[2,2]"
+      ],
+      "mathematically_constant_names": [],
+      "expected_bounded_rule_names": [],
+      "reason": "Reject entire unsupported reassigned plain alias conservatively",
+      "sha256": "57d6470a7c4a470903d849c8d6df66f5232c4ac3e87ecbe088abd5d3216889ba"
+    },
+    {
+      "file": "zero_graph_valid.stan",
+      "type": "disabled case8 residual graph",
+      "data": {
+        "estimate_rescor": 0,
+        "NSUB": 2
+      },
+      "probed_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "reason": "A malformed zero graph should revoke the bounded graph exemption; retained mathematical zeros need no fallback empirical rule.",
+      "sha256": "0b8e1196d492ca922ab2af9e8c3590f09670255cd88985a9d5db7e01652c48bd"
+    },
+    {
+      "file": "zero_graph_nonzero_initialization.stan",
+      "type": "disabled case8 residual graph",
+      "data": {
+        "estimate_rescor": 0,
+        "NSUB": 2
+      },
+      "probed_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "reason": "A malformed zero graph should revoke the bounded graph exemption; retained mathematical zeros need no fallback empirical rule.",
+      "sha256": "3535d59ecde290648f85e615b8fb1ec66f55a93a3f10ebde58e28f83b65d72f2"
+    },
+    {
+      "file": "zero_graph_cov_reassigned.stan",
+      "type": "disabled case8 residual graph",
+      "data": {
+        "estimate_rescor": 0,
+        "NSUB": 2
+      },
+      "probed_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "reason": "A malformed zero graph should revoke the bounded graph exemption; retained mathematical zeros need no fallback empirical rule.",
+      "sha256": "ed7712ecdef0d070f6e46021205ef86f5e2948ecd9e5b271b78026e418c59100"
+    }
+  ]
+}

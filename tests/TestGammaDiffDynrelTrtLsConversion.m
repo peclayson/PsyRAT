@@ -273,7 +273,7 @@ classdef TestGammaDiffDynrelTrtLsConversion < PsyRATTestBase
             %which drops not only the residual covariance but also the
             %model-implied mean-surface cross term EY_A*EY_B*expm1(c_p)*expm1(c_i)
             %- a measured approximation the owner accepted on 2026-08-05
-            %(gamma_scale_submodel_decision.md section I.4). The two-facet path
+            %(scale-submodel decision record, section I.4). The two-facet path
             %cannot make that omission, because the same quantity arrives as the
             %person x trial covariance BLOCK rather than through wp_cov.
             %

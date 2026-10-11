@@ -81,6 +81,7 @@ classdef TestSubjDiffDynrelRhoNativeHmcRecovery < PsyRATTestBase
 
             testCase.verifyEqual(rel.analysis, 'ic_diff_dynrel_sserrvar_rho');
             testCase.verifyEqual(rel.engine, 'hmc');
+            psyrat_test_record_native_diagnostics(testCase,rel);
 
             % ---- extracted draws ----
             idvc = cell2mat(rel.out.id_varcov{1});

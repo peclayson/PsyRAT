@@ -23,8 +23,8 @@ rather than leaving you to find it in a file header.
 ## 15.1 Subject-level error variances
 
 Group-level internal consistency yields a single coefficient for a sample: the
-ratio of between-person variance to the precision with which those persons'
-scores were measured. That coefficient is a property of the group, and it can
+proportion of observed-score variance that is between-person variance rather
+than measurement error. That coefficient is a property of the group, and it can
 conceal wide differences among the individuals who compose it. A participant who
 contributes few artifact-free trials, or unusually variable ones, may hold a
 score far less precise than the sample estimate implies (Clayson, Brush, &
@@ -60,41 +60,66 @@ the dynamic designs of Section 15.2. They are not supported for non-dynamic
 difference scores in a test-retest workflow, and PsyRAT refuses that combination
 when you click Analyze, with a dialog naming difference scores and the
 occasion/time facet. Set Estimate subject-specific error variances to No, or
-drop the occasion column, if you meet that message.
+drop the occasion column, if you see that message. Under the gamma family the
+subject-level test-retest design (analysis 25) is Restricted: its variance
+components and pooled residual are not recovered at level with few occasions,
+although its generalizability and dependability stayed within about .03 and
+.06 of the truth in the reviewed captures, and a notice says so when you click
+Analyze ([Section 5.4](05_choosing-an-analysis.md)).
 
-![Subject-Level Dependability Estimates. One panel per stratum (here one per group, from a difference-score run); each marker is one participant's point estimate with its credible interval, ordered left to right by point estimate. The horizontal line is the group-level estimate at the mean retained trial count. Participants whose interval excludes that line are drawn in red.](images/fig_caterpillar.png)
+![Subject-Level Dependability Estimates. One panel per stratum (here one per group, from a difference-score run); each marker is one participant's point estimate with its credible interval, ordered left to right by point estimate. The horizontal line is the group's difference-score dependability from the group-level model, at the selected mean or median of its retained participants' trial counts in each event (of the full roster when none is retained). Participants whose interval excludes that line are drawn in red.](images/fig_caterpillar.png)
 
 The x axis is participants ordered by their own coefficient, lowest first, with
 the tick labels suppressed because the ordering rather than the identity is the
 point. The y axis runs from 0 to 1 and carries whichever coefficient you
-selected. The black horizontal line is the group-level estimate computed at the
-mean retained trial count. Markers in red are the participants whose credible
-interval lies entirely above or entirely below that line, which is the plot's way
+selected. The black horizontal line is the group-level estimate. On a
+difference-score run it is the difference-score coefficient from the group-level
+model, computed at the retained participants' trial counts in each event,
+summarized by the mean or the median, whichever the Measure of central
+tendency for overall reliability calculations preference selects. When nobody is retained,
+the full roster's counts stand in. A caption under the panels states which
+counts were used. On that run's intraclass correlation (ICC) plot, the line is
+the group-level
+difference-score ICC at one observation per event. Markers in red are the
+participants whose credible interval lies entirely above or entirely below that
+line, which is the plot's way
 of saying that the group number does not describe them (the remaining markers
-turn blue when at least one participant is flagged; a fully clean sample draws
-in a single default color). A well-behaved sample gives a gently rising band of
+turn blue when at least one participant is flagged; a sample with no flagged
+participant is drawn in a single default color). A well-behaved sample gives a gently rising band of
 markers straddling the line; a long red tail on the left is the result the
 analysis exists to find.
 
-Choosing Yes here also relabels the viewer, which is worth knowing before you go
-looking for a control that is no longer there. On the View Results Setup screen,
-Plot: Trials vs Reliability becomes Plot: Subject-Level Reliability, Plot: ICC
-Estimates becomes Plot: Subject-Level ICC Estimates, and Table: Trial Cutoffs at
-Reliability Threshold becomes Table: Subject-Level Reliability. The Criterion
-Score Outputs button is not offered, because the cut score coefficient is built
-from the group-level universe-score mean and has no per-participant form. Table:
-Overall Reliability Summary and Table: Sources of Variance are unchanged. On
-the difference-score variant the trial-cutoff table itself still opens, and
-this screen offers no control over it (the relabeled checkbox governs the
-subject-level table instead); [Chapter 9](09_viewing-results.md) describes what
-its rows report on that route.
+Setting Estimate subject-specific error variances to Yes also relabels the
+viewer, which is worth knowing before you go looking for a control that is no
+longer there. On the View Results Setup screen, Plot: Trials vs Reliability
+becomes Plot: Subject-Level Reliability, Plot: ICC Estimates becomes Plot:
+Subject-Level ICC Estimates, and Table: Trial Cutoffs at Reliability Threshold
+becomes Table: Subject-Level Reliability. The Criterion Score Outputs button
+is not offered, because the cut score coefficient is built from the
+group-level universe-score mean and has no per-participant form. Table:
+Overall Reliability Summary is unchanged. Table: Sources of Variance opens
+nothing of its own on this run, because its content appears in the
+subject-level table's window. On the difference-score variant the
+trial-cutoff table still opens whenever the Table: Trial Cutoffs at
+Reliability Threshold setting is on. It is on by default, and this screen
+cannot change it, because the relabeled checkbox governs the subject-level
+table instead; [Chapter 9](09_viewing-results.md) describes what its rows
+report on that route.
+
+The subject-level test-retest design (an Occasion ID column selected) opens
+the test-retest View Results Setup screen instead, and nothing is relabeled
+there. Use its Plot: Subject-Level Reliability, Plot: Subject-Level ICC, and
+Table: Subject-Level Reliability rows; the five group-level outputs are
+unchecked and disabled, because this design estimates no group-level
+coefficient for them to show ([Chapter 9](09_viewing-results.md), Section
+9.3).
 
 The subject-level table is where participant inclusion is decided. The window
-itself shows the group-level summary; the per-participant rows are written by
-its Save Subject Coefficients button, one row per participant with the
-coefficient, the intraclass correlation, the standard error of measurement,
-each with a credible interval, the retained trial count, the error variance,
-and a flag marking whether the participant meets the cutoff. The
+itself shows the group-level summary. Its Save Subject Coefficients button
+writes the per-participant rows: the coefficient, the ICC, and the standard
+error of measurement (SEM), each with a credible interval, followed by the
+retained trial count, the error variance, and a flag marking whether the
+participant meets the cutoff. The
 flag compares the participant's coefficient against the Reliability Cutoff you
 entered, using whichever bound the Estimate to use for trial cutoffs preference
 names: the lower limit of the credible interval, the point estimate, or the upper
@@ -102,6 +127,40 @@ limit. Selecting the lower limit is the conservative choice and the one I use,
 because it excludes a participant unless the data support inclusion; the point
 estimate is the more common convention in published work. Whichever you pick,
 report it, since the three bounds do not select the same people.
+
+On the difference-score variant (analysis 8), the file continues after the event
+sections with one section per group, labeled with the two event names, for
+example Difference Score (inc_err minus inc_cor), and with the group name and
+a hyphen in front on a grouped run (GroupA - Difference Score (inc_err minus
+inc_cor)). The score is the first fitted event minus the second, in the order
+the result lists its events, and its coefficient does not depend on that
+direction. Each row is one participant at their own trial count in each
+event, with four quantities. The first is the selected coefficient
+(dependability or generalizability) as a posterior mean with its equal-tailed
+credible interval (Interval Width is a proportion, .8 for an 80% interval).
+The second is the ICC at one observation per event with the selected error, a
+derived quantity rather than an entry of Rocha et al. (2026), Table 6. The
+third is the SEM, from the selected coefficient's error (absolute for
+dependability, relative for generalizability), and the fourth is the relative
+error variance of the mean difference. That last column stays relative whichever coefficient is selected, and it is labeled
+apart from the event rows' Error Variance, which is a single-trial residual
+variance. Its covariance term is divided by the harmonic mean of the two
+counts, the convention of the Table 6 note; when the counts differ, that
+divisor is an adopted convention rather than an exact result.
+
+The Difference Score Meets Reliability Cutoff column is the flag that decides
+retention and the Save IDs lists on this design. Each event row keeps its own
+flag, which compares that event's coefficient with the cutoff and decides
+nothing here. Flags compare unrounded values, while the file prints three
+decimals (the cutoff four), so a value printed at the cutoff can carry either
+flag. Excluded participants and NaN values keep their rows, the values are
+copied from the stored summary without recalculation, and the header above the
+sections says what each difference column means. From a script,
+`psyrat_report` returns the same rows unrounded as `.sscoeffs_diff`
+([Chapter 14](14_scripting.md)). A saved result gets these rows when you export
+it again. If its stored summary is missing or malformed, the export stops before
+writing anything, names the group, and asks you to summarize the saved draws
+again; no refit is needed.
 
 Excluding on a reliability criterion changes who remains in the sample, and in a
 clinical sample that change can be systematic: a cutoff of .80 applied to
@@ -131,8 +190,9 @@ Rast and Clayson (in press, p. 7, "we define a condition-specific
 generalizability coefficient") address this by giving the residual variance its
 own log-linear submodel, so that residual variance becomes a function of
 covariates. The coefficient defined on that model is the usual ratio of
-universe-score variance to universe-score variance plus residual variance divided
-by the number of replications, evaluated at each value of the covariate rather
+universe-score variance to the sum of universe-score variance and residual
+variance, where the residual variance is divided by the number of replications,
+evaluated at each value of the covariate rather
 than once for the sample. Because the covariate enters the residual variance
 smoothly, the coefficient becomes a continuous function rather than a set of
 isolated numbers. That coefficient appears as an unnumbered display in the source;
@@ -202,7 +262,8 @@ than tilt. Add a second dimension when you have a reason to expect the two to
 interact. Otherwise two separate one-dimension runs are easier to read and easier
 to sample.
 
-Four controls on the Dynamic Reliability: View Results screen shape the figure.
+Four controls on the Dynamic Reliability: View Results screen set what the
+figure draws, and an Estimand popup sets what it estimates.
 Coefficient switches between Generalizability G(z) and Dependability D(z).
 Credible interval (0-1) sets the band width, and Reference cutoff (blank = none)
 draws the threshold line. Trials n' (blank = per-group median) sets the
@@ -215,13 +276,42 @@ stratum.
 The Estimand popup chooses between Typical person (delta_p = 0), a participant
 with no residual deviation of their own, and Population average (lognormal),
 which averages over the person-level residual scale. The two differ whenever
-participants vary in residual variance, so say which one you report. The popup is
-disabled for the difference-score variants, which compute the typical-person
-surface only. A trial-by-occasion run adds two further controls. Reliability
-coefficient offers Equivalence (occasion fixed), Stability (trial fixed), or
-Equivalence + stability (both random) and defaults to the third. Occasions n'
-offers 1 occasion or Observed occasions and defaults to one, which is the
-coefficient for a score measured on a single occasion rather than a composite.
+participants vary in residual variance, so say which one you report. The popup
+is disabled for the difference-score variants. There the surface is fixed: the
+typical-person surface under the Gaussian family and for the difference of
+differences, and the surface averaged over the person dispersion (log-nu) or
+residual-SD (location-scale) distribution for the gamma two-event difference
+designs. The export header names which one.
+
+Under the gamma family (Section 15.4) the same popup carries two different
+choices, because a gamma surface has no delta_p to set to zero.
+Population-marginal surface (primary), the default, averages each posterior
+draw's observation variance before the coefficient is formed: over the joint
+person location and log-nu distribution under log-nu, and over the person log
+residual-SD distribution under location-scale. Typical-person surface (zero
+person effects), the companion, evaluates the observation variance at zero
+person effects (the log-mean and log-nu effects under log-nu; the log
+residual-SD effect under location-scale). Both surfaces retain the population
+mean components at each dimension value (the person and trial main effects for
+a one-facet run; the six main and two-way components for a trial-by-occasion
+run) plus the pooled person-by-trial term or highest-order remainder. The
+choice changes the curve, its caption, the residual row of the variance table,
+and every export header; it never changes the per-participant table, whose
+coefficients are a mixed target: the same population mean components at each
+person's own dimension value, with that person's own effects entering only the
+observation variance. The figure caption names the selected surface, and each
+export header records it as `surface_target`. The selection in the viewer is
+not written back to the `.psyrat` file: a new fit opens on the
+population-marginal surface, and to store a different choice in a result, run
+`psyrat_reprocess_gamma_result` with `'surface_target'`
+([Appendix C](appendix-c_reprocessing.md)). A result stored that way reopens
+on its stored choice.
+
+A trial-by-occasion run adds two further controls. Reliability coefficient
+offers Equivalence (occasion fixed), Stability (trial fixed), or Equivalence +
+stability (both random) and defaults to the third. Occasions n' offers 1
+occasion or Observed occasions and defaults to one, which is the coefficient
+for a score measured on a single occasion rather than a composite.
 
 Turning on Estimate subject-specific error variances adds a per-participant layer.
 Each participant's own conditional coefficient is computed at their own position
@@ -229,25 +319,32 @@ on the dimension, scattered over the population surface, and tabulated alongside
 it. The surface then serves as a reference against which individuals are read.
 
 Availability, as implemented: dynamic reliability runs on the one-facet design
-and, with an Occasion ID column, on the trial-by-occasion two-facet design; for
-single scores and for two-event difference scores; at the group level and the
-subject level; and for the four-event contrast of Section 15.3 in its
-person-specific form only. It cannot be combined with data splits. The gamma
+and, with an Occasion ID column, on the trial-by-occasion two-facet design. It
+covers single scores and two-event difference scores, at the group level and
+the subject level. It also covers the four-event contrast of Section 15.3, in
+its person-specific form only. It cannot be combined with data splits. The gamma
 family of Section 15.4 covers a subset of these, and [Chapter 16](16_analysis-reference.md)
-gives the cell-by-cell picture.
+gives the cell-by-cell picture. Under gamma the two non-difference
+trial-by-occasion designs (analyses 14 and 27) are Restricted, in both
+parameterizations: the variance components and pooled residual are not
+recovered at level with few occasions. The coefficients hold up better for
+analysis 14, staying within about .03 (generalizability) and .06
+(dependability) of the truth in the reviewed captures, but both are biased low
+for analysis 27, though participant ordering is kept. A notice says so when
+you click Analyze ([Section 5.4](05_choosing-an-analysis.md)).
 
 Sources: Rast and Clayson (in press), pp. 7 to 8, for the condition-specific
 generalizability and dependability coefficients and the log-linear scale submodel
 they are evaluated on.
 
-## 15.3 Difference-of-differences
+## 15.3 Difference-of-differences (DoD)
 
 An interaction contrast is a difference between two difference scores. A
 researcher comparing the congruency effect between two blocks, or an
 error-minus-correct difference between two tasks, is asking about the quantity
 (ERP_1 - ERP_2) - (ERP_3 - ERP_4), and the psychometric properties of that quantity are
 not those of any of its four constituents. Difference scores inherit the error of
-both terms while cancelling the shared variance that made each term reliable, and
+both terms while canceling the shared variance that made each term reliable, and
 a difference of differences applies that arithmetic twice.
 
 PsyRAT estimates the four constituent scores jointly and forms the contrast from
@@ -271,27 +368,29 @@ quantities, computed at one trial rather than at the trial counts you entered.
 | Estimate subject-specific error variances | No, unless Dimension 1 is also set |
 
 The contrast mapping is not optional and has no default that PsyRAT will guess
-for you. Click DoD Contrast... on the Specify Inputs screen and assign each of
-the four selected events to a slot: ERP_1 (first minuend), ERP_2 (first
-subtrahend), ERP_3 (second minuend), and ERP_4 (second subtrahend). Each event
-must appear once. Clicking Analyze without a valid mapping stops with a dialog
-telling you to configure the contrast first, and changing the event selection
-afterward clears the mapping so that a stale assignment cannot survive into a run.
-Set the events FIRST, then the mapping.
+for you. Set the events FIRST, then click DoD Contrast... on the Specify Inputs
+screen and assign each of the four selected events to a slot: ERP_1 (first
+minuend), ERP_2 (first subtrahend), ERP_3 (second minuend), and ERP_4 (second
+subtrahend). Each event must appear once. Changing the event selection
+afterward clears the mapping, so that a stale assignment cannot survive into a
+run, and clicking Analyze without a valid mapping stops with a dialog telling
+you to configure the contrast first.
 
 Coverage requirements differ between the two forms of this design, and the
 difference matters when you are deciding whom to drop. The group-level contrast
 requires exactly four event types in the data but does not require any individual
-participant to have all four, because its D-study divisors are group-level trial
-counts. The person-specific dynamic form of Section 15.2 does require every
+participant to have all four, because its decision-study (D-study;
+[Section 4.6](04_gtheory.md)) divisors are group-level trial counts. The person-specific dynamic form of Section 15.2 does require every
 participant to have trials in all four events, because each participant's own
 per-cell counts are that design's divisors and a missing cell leaves their
 coefficient undefined. PsyRAT checks that before fitting and names the
 participants who fail, which spares you a completed multi-hour run whose results
 cannot be viewed.
 
-Viewing a saved DoD run opens the DoD Reliability Setup screen rather than the
-usual View Results Setup. Choose the group, set Heatmap metric to Dependability
+Viewing a saved group-level DoD run opens the DoD Reliability Setup screen
+rather than the usual View Results Setup. A saved run of the person-specific
+dynamic form opens the Dynamic Reliability: View Results screen of Section
+15.2 instead. For the group-level run, choose the group, set Heatmap metric to Dependability
 or Generalizability, confirm the four event assignments, enter a trial count for
 each of ERP_1 through ERP_4, set Heatmap trial grid max, and click Generate DoD
 Outputs.
@@ -302,8 +401,13 @@ The contrast is printed at the top, then the coefficient table for the trial
 counts you entered, then two heatmaps. In the left heatmap the x axis is the
 trial count for ERP_1 and the y axis the trial count for ERP_2, with ERP_3 and
 ERP_4 held at their entered values; the right heatmap does the same for ERP_3 and
-ERP_4 with the first pair held fixed. Color is the selected coefficient, clipped
-to the 0 to 1 range. Read the captions beneath each panel, which name the counts
+ERP_4 with the first pair held fixed. Color is the selected coefficient
+computed at the posterior mean of the variance components (a plug-in
+estimate), on a fixed 0 to 1 scale. Cells with invalid components, invalid
+denominators, or coefficients outside that range are gray; the raw values are
+not clipped. Any warning printed with the summary table concerns that table's
+posterior draws, not the heatmaps. Read the captions
+beneath each panel, which name the counts
 held fixed, because the same contrast produces different surfaces at different
 fixed counts. What the pair of panels answers is where additional trials would buy
 the most reliability: a steep gradient along one axis is an argument for
@@ -315,18 +419,20 @@ defaults to the largest observed trial count in the selected group plus 25. They
 are computed at the posterior MEAN of the variance components rather than over
 the draws, which is why they render quickly while the summary table above them,
 which does use the draws, does not. Raising the grid maximum raises the cost
-quadratically, so a maximum of 400 is four times the work of one at 200. The
-exported variance-component table is small by comparison, nine rows per group
-covering the contrast variances and the four coefficients, and outputs are
-produced one group at a time, so a multi-group dataset means one pass through
-Generate DoD Outputs per group.
+quadratically, so a maximum of 200 is four times the work of one at 100; the
+viewer permits a maximum of 300. The variance-component table is small by
+comparison: nine rows per group covering the contrast variances and the four
+coefficients. Export DoD Var Components writes it for the selected group at
+that group's observed mean trial counts, not at the counts you entered, so a
+multi-group dataset means one export per group
+([Chapter 9](09_viewing-results.md)).
 
 Three estimand choices in this design are the toolbox's conventions rather than
 entries in any published table, and they should be reported as such. First, the
 four constituents are treated as measured on distinct trials, so all six pairwise
 residual covariances are fixed to exactly zero; the contrast's residual variance
 is the weighted sum of the four event residual variances. A concurrent variant
-does not exist and a request for one is refused rather than silently ignored.
+does not exist, and a request for one is refused rather than silently ignored.
 Second, the off-diagonal entries of the between-trial covariance block are scaled
 by the harmonic mean of the two trial counts involved, since the four events
 rarely share a trial count. Third, the intraclass correlations are
@@ -360,7 +466,7 @@ different.
 |---|---|
 | Observation likelihood family | Gamma |
 | Gamma scale parameterization | Automatic (recommended) |
-| Estimation engine: | Automatic (recommended); gamma runs on CmdStan whatever this says |
+| Estimation engine | Automatic (recommended) or CmdStan only; a forced native engine is refused under gamma |
 
 Every score in the measurement column must be strictly positive. PsyRAT checks
 this before estimation and stops on any value at or below zero, naming the
@@ -389,22 +495,26 @@ Automatic there too.
 > than it did before that date, and the two results are not comparable. Runs from
 > August 3, 2026 onward stamp the resolved setting into the saved result and into the
 > `*_runconfig.json` sidecar, so replaying one of those reproduces its own run.
-> A sidecar written before that date carries no gamma scale parameterization at
-> all, and replaying it takes the CURRENT default, silently. To reproduce an older
+> A sidecar written before August 3, 2026 carries no gamma scale
+> parameterization at all, and replaying it takes the CURRENT default, silently. To reproduce an older
 > gamma run, pass `'gammascale', 1` explicitly to `psyrat_run` (see
 > [Chapter 14](14_scripting.md)) or select Log-nu (relative dispersion / CV) in the
 > GUI. The exceptions are the location-scale-only designs, which reject an
 > explicit log-nu request: the subject-level dynamic difference score, the
 > subject-level dynamic concurrent difference scores of Section 15.5, and the
-> person-specific dynamic difference of differences. Only the static concurrent
-> difference designs still default to log-nu and are unaffected.
+> person-specific dynamic difference of differences. Two groups still default
+> to log-nu and are unaffected: the static concurrent difference designs, and
+> the group-level one-facet and test-retest designs (analyses 1 to 5), whose
+> coefficients the parameterization does not change.
 
 The provenance block below is the one written into the variance-table export
 of a gamma run of the dynamic one-facet design (Section 15.2) on
 `test_data/manual_power_concurrent.csv`, a simulated single-trial power dataset
-that ships with the toolbox. The lines are as the export wrote them; the CSV
-form wraps a line that contains a comma in quotation marks, and those are
-omitted here.
+that ships with the toolbox. The lines are as the export wrote them on
+2026-09-25 from that archived fit; the CSV form wraps a line that contains a
+comma in quotation marks, and those are omitted here. Above these lines the
+export also carries the interval width and the Estimand and summary-contract
+lines of Section 15.2.
 
 ```text
 Seed: 12345
@@ -417,12 +527,20 @@ Gamma mean-scale correlation (rho_p,sigma): median 0.376 - estimated and reporte
 Marginal residual correction factor F = exp(2*s_sd^2): median 1.098 (F = 1 is the homogeneous-residual plug-in)
 Gamma dynamic reliability (location-scale): every signal component carries exp(2*alpha(z)), but the residual also carries an amplitude-FREE term exp(2*log sigma(z) + 2*s_sd^2) that the signal side has no counterpart for, so BOTH the mean slope (b) and the residual-SD slope (b_sigma) move the conditional coefficient. The mean-slope cancellation that holds under the log-nu parameterization does not hold here; report both slope posteriors.
 Priors: PsyRAT defaults
-Converged: Yes
+Early-workflow Rhat/ESS check: passed
+Final-inference readiness: unassessed (quantity-specific MCSE and uncertainty calibration required)
+Diagnostic source/precision: unrecorded; re-diagnose saved chains
 Divergent transitions: 0
 ```
 
+The third of those diagnostic lines is what an archived result fitted before
+the diagnostics record existed prints; a fit made under this release prints
+instead one line per fit naming the source of its diagnostics and the
+precision they were read at.
+
 Read the header of any exported table to confirm what actually ran. The seed,
-engine, prior line, and convergence verdict appear on every export; the family
+engine, prior line, and the check verdict with its readiness and
+diagnostic-source lines appear on every export; the family
 line appears for non-Gaussian runs, and a scale line appears when
 location-scale was resolved (a run resolved to log-nu carries no scale line,
 so consult the sidecar's design block for that case). The header is the record
@@ -437,25 +555,59 @@ residual has two parts: the participant's own conditional variance, which the
 model evaluates at their own mean and dispersion effects, and the person-by-trial
 term of the mean surface, which the model carries once for the population. PsyRAT
 pools the population form of that second term into every participant's residual
-rather than rescaling it by the participant's own mean effect (audit item S20,
-owner ruling, September 2026). The choice keeps the per-participant residual on
+rather than rescaling it by the participant's own mean effect, a toolbox
+convention. The choice keeps the per-participant residual on
 the same footing as the group residual, which carries the same term, at a known
 price: the pooled term understates the residual, and so overstates the
 coefficient, for a participant whose mean effect lies above the population
 value, and does the reverse below it. The export header of a run that pools
-records the convention in a line marked POOLED, so it travels with the numbers
-(the two-facet subject-level design carries the person-by-trial term as its own
-component and pools nothing); report it when you report per-participant gamma
-coefficients.
+records the convention in a line marked POOLED, so it travels with the numbers.
 
-Status: gamma is shipped and supported, on CmdStan only, for a subset of the
-designs in this chapter. The native MATLAB engines are family-blind, so the
+The two-facet subject-level designs (test-retest analysis 25 and its dynamic
+form 27) carry the person-by-trial and person-by-occasion terms as their own
+components and pool the highest-order person-by-occasion-by-trial remainder of
+the mean surface instead (a toolbox convention; it is the same term the group
+residual carries by subtraction). In every gamma subject-level design the
+per-participant residual is a mixed target. The population mean components are
+retained at the participant's own dimension value in the dynamic designs, and
+at the population intercept in the static ones. The participant's own effects
+enter only the observation variance.
+
+Which scheme a saved result was produced under is decided by its stored
+`gamma_target` marker (`gamma_target_version` 2 names the pooled scheme), not
+by when it was saved. A two-facet result (analysis 25 or 27) without the marker is summarized and labeled
+under the earlier observation-only scheme rather than silently pooled; its
+header says so in a line marked LEGACY, followed by a line that lists the
+target identifiers the design implies (surface target, reference target,
+subject target, remainder scheme, parameterization, count source, surface
+count source), labeled as unstamped. Under that scheme the remainder is
+omitted, so per-participant coefficients can be larger than under the pooled
+scheme; a zero remainder makes the two coincide and serves as an equality
+check. To relabel such a file under the pooled scheme, reprocess it as
+described in [Appendix C](appendix-c_reprocessing.md). Report the scheme named
+in the header when you report per-participant gamma coefficients.
+
+Status: gamma is shipped, on CmdStan only, for a subset of the designs in
+this chapter, and most of that subset is Supported. The exceptions carry the
+labels of Section 5.4. Three two-facet designs with an occasion facet
+(analyses 14, 25, and 27) are Restricted under gamma in both parameterizations,
+because with few occasion levels their variance components and pooled residual
+are not recovered at level as posterior means; generalizability and
+dependability stay within about .03 and .06 of the truth for analyses 14 and
+25, but both are biased low for analysis 27. The Analyze notice, the viewer,
+the saved figures, and every export header repeat that finding. The concurrent difference designs of
+Section 15.5 with a per-participant dispersion (analyses 7, 8, and 10 with
+`dispersion` 1) are Experimental, the same designs with one global dispersion
+(7 and 10) are Tractability checked, and analysis 20 is Development-only. The
+native MATLAB engines are family-blind, so the
 toolbox pins every gamma run to CmdStan rather than risk fitting a gamma request
 as a Gaussian model; a gamma run fails on a machine without CmdStan instead of
 falling back. Gamma is permanently unavailable for the split designs, because a
 split score is the mean of several items and the scaled chi-square mean-variance
-relationship does not hold on a mean. It is also unavailable for some of the
-two-facet dynamic difference designs, where the work is simply unfinished.
+relationship does not hold on a mean. It is also unavailable for analyses 15
+to 18, 21, and 22 (the group-level and per-participant-correlation concurrent
+designs and the two-facet dynamic difference designs other than analysis 20),
+where the work is simply unfinished.
 [Chapter 16](16_analysis-reference.md) lists the combinations, and a request for
 one that is not implemented is refused before sampling starts, with a message
 naming the design.
@@ -483,19 +635,25 @@ parameter that should be zero and spends sampling effort on it.
 |---|---|
 | Estimate internal consistency of difference scores | Yes: 2-event difference |
 | Estimate residual covariance for co-occurring events | Yes |
-| Residual correlation: | Population (shared), or Per-subject |
+| Residual correlation | Population (shared), or Per-subject |
 | Estimate subject-specific error variances | No, or Yes |
 | Dimension 1 (dynamic) | (none), or a covariate column |
 
 Set Estimate residual covariance for co-occurring events to Yes only when the two
-events were scored from the same trials. If you set it to No the within-person
-residual covariance is fixed to zero, which is the correct model for events
-measured on separate trials and the default. A four-event contrast (Section 15.3)
+events were scored from the same trials. No, the default, fixes the
+within-person residual covariance at zero, which is the correct model for
+events measured on separate trials. A four-event contrast (Section 15.3)
 rejects a request for residual covariance outright rather than ignoring it.
 
-Residual correlation: on the Specify Inputs screen chooses between one residual
-correlation shared across participants and a separate residual correlation per
-participant. It has an effect on two designs, the one-facet and two-facet
+Under the gamma family, a residual-covariance run also needs the Statistics and
+Machine Learning Toolbox, even though CmdStan does the sampling: the results
+are read through a Gaussian copula that calls `normcdf` and `gaminv`. Without
+it, preflight refuses the run before anything is compiled
+([Chapter 16](16_analysis-reference.md)).
+
+The Residual correlation popup on the Specify Inputs screen chooses between
+one residual correlation shared across participants and a separate residual
+correlation per participant. It has an effect on two designs, the one-facet and two-facet
 subject-level concurrent dynamic differences, which require four things at
 once: difference scores on, subject-specific error variances on, residual
 covariance on, and a Dimension 1 column selected (the two-facet form also
@@ -507,35 +665,36 @@ estimate. Population (shared) is the default and the one to use unless each
 participant contributes enough paired trials to identify a correlation on their
 own.
 
-The window below is from a run of that two-stage design under the gamma family
-on `test_data/manual_power_concurrent.csv`, a simulated dataset that ships with
+The window below is from a run of the one-facet subject-level concurrent
+dynamic difference under the gamma family, which is fitted in two stages
+(described at the end of this section), on
+`test_data/manual_power_concurrent.csv`, a simulated dataset that ships with
 the toolbox: theta-band and alpha-band power scored from the same trials, with
 one questionnaire-style score per participant as the dimension.
 
-![The Dynamic reliability variance components window for a modular cut posterior run, with the on-screen disclosure beneath the table.](images/viewer_dynrel_varcomp_note.png)
+![The Dynamic reliability: variance components window for a two-stage (modular cut posterior) run, with the on-screen disclosure beneath the table.](images/viewer_dynrel_varcomp_note.png)
 
 The variance-component window lists one row per component with its name, its
 symbol, a point estimate, and a credible interval. The coupling appears as
 Residual correlation (events), symbol rho_e,12, alongside the residual covariance
 it implies at the mean of the dimension. The per-subject variant reports the
-population-average correlation in that row and adds SD(rho_e,s) for the spread
-across participants. A run fitted by the two-stage procedure described below
-renames the row Copula residual correlation (events), symbol rho_e,12(copula),
-omits the implied-covariance row, and a note sits beneath the table saying what
-that means; the exported header carries the full provenance the note points at.
-Read the correlation against the residual standard deviations in the same table
-rather than on its own, since a
-large correlation between two small residuals moves the coefficient very little.
-The per-subject variant reports SD(rho_e,s), the between-person spread of the
-correlation, rather than a single value.
+population-average correlation in that row and adds a Between-person SD of
+residual correlation row, symbol SD(rho_e,s), for the spread across
+participants. A run fitted by the two-stage procedure described below renames
+the row Copula residual correlation (events), symbol rho_e,12(copula), and
+omits the implied-covariance row. A note beneath the table says what that
+means, and the exported header carries the full provenance the note points at.
+Read the correlation against the residual standard deviations in the same
+table rather than on its own, since a large correlation between two small
+residuals moves the coefficient very little.
 
 Two disclosures belong on this page.
 
-> EXPERIMENTAL. Convergence for this design has not been validated in this
-> release; exported tables carry an EXPERIMENTAL flag in their headers.
+> EXPERIMENTAL. Convergence of the concurrent difference designs under the
+> gamma family with per-participant residual dispersion has not been validated
+> in this release; exported tables carry an EXPERIMENTAL flag in their headers.
 
-That admonition applies to the concurrent difference designs under the gamma
-family when the residual dispersion is modeled per participant. The per-person
+The per-person
 dispersion term gives the posterior a geometry the sampler handles poorly. The one
 check run against this design did not reach acceptable convergence diagnostics,
 and it did not improve when the simulated sample and trial counts were raised.
@@ -554,18 +713,18 @@ The second disclosure concerns how the coupling is estimated for the subject-lev
 dynamic concurrent designs under the gamma family. Those runs are fitted in two
 stages: the first fits the per-event models with no coupling term at all, and the
 second estimates the residual correlation conditionally on the draws the first
-retained. Nothing from the second stage feeds back into the first. The consequence
-is specific. The residual correlation is estimated conditionally on the
-retained first-stage draws, so it inherits their uncertainty, but the copula
+retained. Nothing from the second stage feeds back into the first. The
+correlation therefore inherits the first stage's uncertainty, but the copula
 stage cannot inform the margins in return: the margins' posteriors are those
 of an uncoupled fit, and no interval in the table is a full joint-posterior
-credible interval. The recorded provenance also notes that the correlation is
-known to attenuate at moderate designs, so read its point estimate as
-conservative. The viewer prints a short note beneath the variance-component
-table and points at the exported header for the full statement. The two-facet member
-of the pair has no completed external reference fit behind it, unlike its
-one-facet sibling, so treat its results as provisional and check them against a
-one-facet run on the same data where that is possible.
+credible interval. Read its point estimate as conservative; the export header
+does not carry this point. The viewer prints a short note beneath the
+variance-component table and points at the exported header for the full
+statement. The two-facet member of the pair (analysis 20) is Development-only
+under gamma (Section 5.4): no completed external reference fit stands behind
+it, unlike its one-facet sibling, and nothing on screen or in its export says
+so. Do not report from it. Use it only to compare against a one-facet run on
+the same data.
 
 Sources: Rocha et al. (2026), Table 6, for the two-event difference-score
 coefficients; the residual-coupling parameterizations, the two-stage procedure,
@@ -576,9 +735,9 @@ and the status flags are the toolbox's conventions.
 Bayesian variance-component estimation needs priors, and PsyRAT supplies a set of
 weakly informative ones so that a first run needs no decisions about them. Those
 defaults for the Gaussian family are weakly informative ON THE MICROVOLT
-SCALE. They are not scale-free. The shipped between-person prior is a
-half-Cauchy with scale 40, generous for standard deviations of a few
-microvolts but informative for a quantity measured in thousands of units, and
+SCALE. They are not scale-free. The single-occasion model's between-person
+prior, for example, is a half-Cauchy with scale 40 (the test-retest model's is
+10), generous for standard deviations of a few microvolts but informative for a quantity measured in thousands of units, and
 informative in the wrong direction for one measured in thousandths. (The gamma
 family's priors live on log scales of their own, and the dynamic-reliability
 slope priors on the standardized-predictor scale; the microvolt caution
@@ -620,15 +779,21 @@ so replaying the sidecar reproduces the same model.
 
 With the defaults untouched, the generated Stan model is byte-identical to the
 hard-coded models of earlier releases, so leaving them alone changes nothing
-about your results. What is exposed is the population-level scales: the intercepts and means
-and the variance-component standard deviations. The structural priors of the
-non-centered reparameterization are not exposed, and the Gaussian-family LKJ
-correlation priors are fixed (the Gaussian difference model's
-residual-correlation location and scale are exposed, and the four-event
+about your results. What is exposed are the population-level scales: the
+intercepts and means and the variance-component standard deviations. The
+Gaussian non-difference subject-level and dynamic models (Sections 15.1 and
+15.2), in their one-facet and test-retest forms, are the exception: their
+population intercept, between-person, and log-residual priors are fixed, and
+only the trial main-effect SD (`priors.sserr.sig_trl`, `priors.dynrel.sig_trl`),
+the dimension slopes (`priors.dynrel.b`, `priors.dynrel.b_sigma`), and, on the
+test-retest forms, the `priors.trt` facet SDs can be changed. The structural
+priors of the non-centered reparameterization are not exposed. The
+Gaussian-family LKJ correlation shapes are fixed, except that the four-event
 difference of differences exposes its correlation-prior shape as
 `priors.dod.lkj` alongside its cell-mean, cell-residual, person, and trial
-scales, which until this release were fixed inside the model). The gamma family
-exposes its two correlation-prior shapes.
+scales, which were fixed inside the model in earlier releases; separately, the
+Gaussian difference model exposes its residual-correlation location and scale.
+The gamma family exposes its two correlation-prior shapes.
 
 ![The MATLAB Command Window during a run with Verbose Stan output enabled, showing the LKJ warmup rejection lines and the RDump deprecation notice.](images/console_lkj_messages.png)
 

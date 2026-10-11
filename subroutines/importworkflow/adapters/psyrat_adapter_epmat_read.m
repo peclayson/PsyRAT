@@ -1,7 +1,7 @@
 function out = psyrat_adapter_epmat_read(filepath,varargin)
 %Read EP Toolkit exported MATLAB struct into canonical contribution struct.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

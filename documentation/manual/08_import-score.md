@@ -14,11 +14,9 @@ your own table whenever you have one. Most labs already score components in
 EEGLAB, ERPLAB, or a local script, and there is no advantage to re-measuring
 the same waveforms here.
 
-Use the import workflow when the scores do not exist yet. You have epoched
+Use the import workflow when the scores do not exist yet: you have epoched
 single-trial files, you know the component window and the channels, and you
-would rather not write the export loop yourself. The workflow reads the
-waveforms, applies one measurement rule to every trial, and builds the table
-for you.
+would rather not write the export loop yourself.
 
 The workflow does not replace preprocessing. Filtering, re-referencing,
 artifact rejection, epoching, and baseline correction all happen upstream in
@@ -26,16 +24,18 @@ your usual pipeline. Single trials that arrive here are assumed to be already
 baseline-adjusted, and the scorer performs no baseline correction of its own.
 (There is deliberately no baseline field on the scoring form. If your epochs
 are not baseline-corrected, correct them before importing, or the amplitudes
-you get will carry whatever offset the raw epoch had.) Artifact rejection has
-to be carried out, not only marked: the importer reads every epoch in a file
-and scores all of them, and it does not read EEGLAB's rejection marks
-(`EEG.reject`) or ERPLAB's artifact flags, so an epoch that was flagged but not
-removed is scored and enters the reliability estimate. Remove rejected epochs
-from the dataset before importing.
+you get will carry whatever offset the raw epoch had.)
+
+Remove rejected epochs from the dataset before importing; marking them is not
+enough. The importer scores every epoch in a file and does not read EEGLAB's
+rejection marks (`EEG.reject`) or ERPLAB's artifact flags. Otherwise, an epoch
+that was flagged but not removed is scored and enters the reliability
+estimate.
 
 ### Projects
 
-Work in this screen lives in a project, saved as a `.psyratproj` file. A
+Work on the Import + Score ERP screen lives in a project, saved as a
+`.psyratproj` file. A
 project holds the imported sources (recorded by path and content hash), the
 canonical single-trial data assembled from them, the trial metadata table, your
 scoring specifications, every scoring run's per-trial results, and an audit log
@@ -64,10 +64,11 @@ is titled PsyRAT: Import + Score ERP.
 The heading reads PsyRAT: Import + Score ERP (single-trial authoritative
 workflow), and one line under it states the safety policy that governs the
 whole screen (Section 8.2). The large listbox on the left is the status log.
-Every action appends a timestamped line, newest at the bottom, and the box
-scrolls to the newest line on its own. Read it after every click; it is where
-the toolbox reports what it detected, what it warned about, and what it
-counted.
+Most actions append a timestamped line, newest at the bottom, and the box
+scrolls to the newest line on its own (Browse Trials and Cells / Events Help
+write nothing, and an error that stops a button goes to a dialog instead).
+Read it after every import, spec, scoring run, and export; it is where the
+toolbox reports what it detected, what it warned about, and what it counted.
 
 The buttons on the right run the workflow from top to bottom:
 
@@ -105,13 +106,13 @@ partition.
 
 ### The three adapters
 
-Three readers are registered, and the file extension decides which one runs.
+Three adapters are registered, and the file extension decides which one runs.
 
 EEGLAB `.set` is the format that supports the full workflow. A dataset whose
 data array is three-dimensional with more than one epoch is read as
-single-trial data: trials, channels, and samples, with the time axis taken from
-`EEG.times` (or reconstructed from `EEG.srate` and `EEG.xmin` when `times` is
-absent) and channel labels taken from `EEG.chanlocs`. A `.set` file that was
+single-trial data (trials by channels by samples), with the time axis taken
+from `EEG.times` (or reconstructed from `EEG.srate` and `EEG.xmin` when
+`EEG.times` is absent) and channel labels taken from `EEG.chanlocs`. A `.set` file that was
 never epoched, or that holds a single epoch, contributes averaged reference
 data instead and warns that it cannot be used for scoring or handoff. Reading
 a `.set` requires EEGLAB on the MATLAB path; without `pop_loadset` the import
@@ -127,8 +128,8 @@ ERPset was averaged from.
 EP Toolkit `.mat` and `.ept` files are read from the `EPdata` struct (or from
 the first struct in the file carrying a `data` field alongside `chanNames` or
 `timeNames`). The file is treated as single-trial when its `dataType` field
-says `single_trial`, and otherwise whenever it holds more than one
-wave-by-participant slice. That second condition is a heuristic, so check the
+says `single_trial`, and otherwise whenever its cell and subject dimensions
+together hold more than one waveform. That second condition is a heuristic, so check the
 trial count reported in the status log against what you expect. Extra factor,
 reliability, or frequency dimensions are not read; only the first slice of each
 is used, and a warning says so.
@@ -145,15 +146,16 @@ report.
 Confidence is driven by the extension and, for `.mat` and `.ept` files, by the
 variables inside. A `.set` scores .95 for EEGLAB and a `.erp` scores .95 for
 ERPLAB. A file containing a variable named `EPdata` scores .98 for the EP
-reader, other variable names suggesting EP content score .45, and a generic
-`.mat` file scores .15 (.05 when its variable list cannot be read at all). The
+adapter, any other variable whose name contains the letters ep (case aside)
+scores .45, and a generic `.mat` file scores .15 (.05 when its variable list
+cannot be read at all). The
 status log prints the winner in the form
 `Detected format: EEGLAB (confidence 0.95)`. Import stops with an
 unsupported-format error only when no adapter scores above zero.
 
-That floor of .15 has a consequence worth knowing. Since the EEGLAB and ERPLAB
-adapters both score zero on a `.mat` file, any `.mat` you select is routed to
-the EP reader, even one that has nothing to do with EP Toolkit. It will fail
+Because the EP adapter always scores a `.mat` file above zero, and the EEGLAB
+and ERPLAB adapters both score zero on one, any `.mat` you select is routed to
+the EP adapter, even one that has nothing to do with EP Toolkit. It will fail
 there with a message about not locating an EP Toolkit-like struct, which is
 correct but arrives one step later than you might expect.
 
@@ -166,8 +168,9 @@ multi-participant dataset possible. A merge is refused unless the incoming
 file matches the existing data on time axis, sampling rate, and channel labels.
 
 A file that fails is reported and skipped rather than aborting the batch. The
-log ends with a line counting successes and failures, and adds a note naming a
-time-axis, sampling-rate, or channel mismatch as the usual cause. A skipped
+log ends with a line counting successes and failures; when any file failed, it
+adds a note naming a time-axis, sampling-rate, or channel mismatch as the usual
+cause. A skipped
 file leaves the project exactly as it was, so nothing partial is carried
 forward.
 
@@ -191,7 +194,7 @@ labels.
 
 From an EP Toolkit source, `subject_id` comes from `subNames` and the event
 (cell) label from `cellNames`; no group or occasion is assigned. After each
-import batch the status log summarizes what it found, counting the unique event
+import batch the status log summarizes what the import found, counting the unique event
 (cell) labels across all trials and previewing up to five of them.
 
 ## 8.3 The seven scoring methods
@@ -251,18 +254,21 @@ present, in this order:
   several.
 - Polarity (positive/negative/both): which direction of deflection counts.
 
-Three methods add one field each. local_peak_amplitude adds Neighborhood
-samples (local peak), defaulting to 3, which sets how many samples on each side
-a candidate must beat; a window holding fewer than twice that many samples plus
-one can contain no local peak at all, and every trial is then excluded.
-centroid_latency adds Centroid weight mode
-(positive_only/negative_only/absolute), defaulting to absolute.
-fractional_area_latency adds Area fraction (0-1; fractional area latency),
-defaulting to 0.5.
+Three methods add one field each:
+
+- Neighborhood samples (local peak): local_peak_amplitude only. How many
+  samples on each side a candidate peak must match or exceed (match or fall
+  below, for negative polarity). Default 3. A window holding fewer than twice
+  that many samples plus one can contain no local peak at all, and every trial
+  is then excluded.
+- Centroid weight mode (positive_only/negative_only/absolute):
+  centroid_latency only. Default absolute.
+- Area fraction (0-1; fractional area latency): fractional_area_latency only.
+  Default 0.5.
 
 The channel selector takes numeric indices or channel labels, separated by
 commas. A single entry such as `FCz` or `1` scores that channel. Several
-entries such as `FCz,Cz,Fz` define a region of interest, and each channel is
+entries such as `FCz,Cz,Fz` define a region of interest (ROI), and each channel is
 scored separately before the per-channel scores are averaged into the trial's
 score (latencies are averaged the same way). A label that matches no channel in
 the data stops the scoring run with an error naming the label, so check your
@@ -282,9 +288,10 @@ available time axis stops the run with a message printing both the requested
 window and the axis. Ties within a window resolve to the earliest sample. When
 absolute_peak_amplitude or peak_latency places the extremum on the first or
 last sample of the window, a warning counts the affected trials and suggests
-the window is too narrow, which is usually right (the other peak and latency
-methods do not emit this warning). That warning goes to the MATLAB Command
-Window, not to the status log, so look there after a peak-based run.
+that the window may be too narrow, and it usually is (the other peak and
+latency methods do not emit this warning). That warning goes to the MATLAB
+Command Window, not to the status log, so look there after an
+absolute_peak_amplitude or peak_latency run.
 
 Polarity has no effect on time_window_mean_amplitude. The mean is taken over
 the signed samples in the window whatever you enter in that field, so a
@@ -319,8 +326,8 @@ Check the event labels in that summary before going on. They become the event
 facet, and a label that looks wrong here will look exactly as wrong three
 screens later.
 
-**4. Define the spec.** Click Add Scoring Spec. The picker titled Select
-scoring method: lists the seven methods; select time_window_mean_amplitude
+**4. Define the spec.** Click Add Scoring Spec. The picker whose prompt reads
+Select scoring method: lists the seven methods; select time_window_mean_amplitude
 (third in the list) and click OK. The Scoring Spec form then opens with five
 fields. Fill them in as:
 
@@ -330,11 +337,11 @@ fields. Fill them in as:
 - Channel selector (index/label; comma-separated ROI allowed): `FCz`
 - Polarity (positive/negative/both): `negative`
 
-Click OK. The log reports `Added scoring spec:` followed by the generated spec
-id (a `spec_` prefix and a hexadecimal token) and the method name. If your
-montage labels the frontocentral site differently, enter that label instead;
-the selector is matched against the channel labels in the file, case
-insensitively.
+If your montage labels the frontocentral site differently, enter that label
+instead; the selector is matched against the channel labels in the file
+without regard to case. Click OK. The log reports `Added scoring spec:`
+followed by the generated spec id (a `spec_` prefix and a hexadecimal token)
+and the method name.
 
 **5. Run the scoring.** Click Run Scoring. With one spec defined there is no
 picker, and the spec runs directly. The log reports the run as
@@ -344,8 +351,9 @@ Scoring run completed: N included, M excluded. Excluded trials are omitted from 
 ```
 
 The capture shows 398 included and 0 excluded. Time-window mean amplitude
-excludes a trial only when the window holds no finite samples, so a nonzero exclusion count here points at bad epochs rather
-than at a bad window.
+excludes a trial only when its window mean is not finite (every sample missing,
+or an infinite sample), so a nonzero exclusion count here points at bad epochs
+rather than at a bad window.
 
 **6. Inspect trials.** Click Browse Trials.
 
@@ -359,15 +367,17 @@ black. The shaded band marks the scoring window, which is the fastest way to
 confirm that the window you typed sits where you meant it to.
 
 Check the channels named in the title. A channel label that matches nothing in
-the data falls back to the first channel here without complaint, so an
-unexpected channel in the title means the label in your spec did not match.
+the data is dropped here without complaint, and when no label matches at all
+the browser falls back to the first channel, so a missing or unexpected channel
+in the title means a label in your spec did not match.
 (Run Scoring is stricter and stops with an error naming the label, which is why
 you are unlikely to see this after a successful run.)
 
 Four controls move between trials. Trial # is an edit box: type a number, press
 Enter, and the browser jumps there (out-of-range numbers clamp to the ends).
-Prev and Next step one trial. The slider under them drags through the whole
-set, one trial per arrow click and up to fifty per page click. The arrow keys
+Prev and Next step one trial. The slider beside them drags through the whole
+set: a click on either slider arrow moves one trial, and a click in the slider
+track moves up to fifty. The arrow keys
 step too: right and down move forward, left and up move back.
 
 Three text lines sit under the axes. The first repeats the trial position as
@@ -378,8 +388,8 @@ subject=<subject_id> | event(cell)=<event_id> | occasion=<occasion_id> | group=<
 ```
 
 An empty field prints its label with nothing after it, which is what you will
-see for occasion and group in a single-session import. A third line reports the
-score: `Score: value=<v> | status=ok` for a method with no latency, `Score:
+see for occasion and group in a single-session import. The third line reports
+the score: `Score: value=<v> | status=ok` for a method with no latency, `Score:
 value=<v> | latency=<t> ms | status=ok` when a latency was measured, and
 `Score: EXCLUDED | status=failed | reason=<why>` for a trial that failed. For
 the first trial of the capture that line reads `Score: value=3.41604 |
@@ -393,10 +403,12 @@ opened, with nothing to mark them as stale. (Before any scoring run at all,
 every trial instead reads `Score: not available (run scoring to see
 trial-level results). [trial index N]`.)
 
-**7. Export and save.** Click Export Handoff Table, then Save Project. Success!
-The project on disk now contains the imported waveforms, the ERN spec, the
-per-trial scores, and the audit trail, and the workspace contains a table ready
-for [Chapter 7](07_processing.md).
+**7. Export and save.** Click Export Handoff Table, then Save Project (on a
+new project the save dialog asks where). Success! The project on disk now
+contains the imported waveforms, the ERN spec, the per-trial scores, and the
+audit trail, and the workspace contains `psyrat_import_proc_table`. Write it
+to a file before you open Process New Data, which reads files rather than
+workspace variables (Section 8.5 shows the one line it takes).
 
 ## 8.5 Export Handoff Table
 
@@ -418,9 +430,9 @@ Two variables are assigned in the base workspace:
 - `psyrat_import_proc_table`: the process-data table itself.
 - `psyrat_import_handoff_meta`: the accompanying metadata.
 
-The metadata record the project, spec, and run identifiers, the UTC timestamp,
-the number of input, included, and excluded trials, a tally of exclusion reasons
-with their counts, and the full preflight report. The status log prints the
+The metadata record the project, spec, and run identifiers; the UTC timestamp;
+the numbers of input, included, and excluded trials; a tally of exclusion
+reasons with their counts; and the full preflight report. The status log prints the
 included and excluded counts and then the name of the table variable. It does
 not print the metadata variable name, and it does not print preflight warnings;
 those live in `psyrat_import_handoff_meta.preflight.warnings` and are worth
@@ -455,9 +467,9 @@ blocking error there stops the export with that error's own message.
 
 Note what the table does not contain. There is no items-per-split (`n_i`)
 column, so the data-splits analyses in [Chapter 13](13_tutorial-splits.md) need
-a table you build yourself. There is also nothing in the export that groups
-trials, so if your design has a group facet it has to come from the source
-files (`EEG.group`), not from this screen.
+a table you build yourself. There is also no control on this screen for
+assigning participants to groups, so if your design has a group facet it has to
+come from the source files (`EEG.group`).
 
 ### Continuing into Process New Data
 
@@ -477,47 +489,58 @@ no intermediate file:
 
 ```matlab
 psyrat_data = psyrat_run('data', psyrat_import_proc_table, ...
+    'eventcol', 'event', ...
     'savepath', '/path/with_no_spaces', 'savename', 'ern_study.psyrat');
 ```
 
+Name the facet columns yourself: `psyrat_run` does not detect them, and
+without `eventcol` every event (cell) label in the handoff table is pooled into
+one condition; `groupcol` and `timecol` work the same way.
 [Chapter 14](14_scripting.md) covers the rest of the arguments.
 
-### Cells / Events Help
+## 8.6 Cells / Events Help
 
 The Cells / Events Help button opens a reference panel explaining where event
 (cell) labels come from, since that is the field people most often need to
 check. It states that `event(cell)` is the trial-level condition label stored
-in the canonical trial table's `event_id`; that EEGLAB imports take it from the
+in the canonical trial table's `event_id`. EEGLAB imports take it from the
 time-locking event of each epoch (falling back to the first listed event when
-no latency is available); that EP Toolkit imports take it from the EP cell
-names; and that ERPLAB `.erp` imports are averaged and reference-only, with no
+no latency is available), and EP Toolkit imports take it from the EP cell
+names; ERPLAB `.erp` imports are averaged and reference-only, with no
 single-trial event cells to score. It closes by listing the handoff mapping
 (`subject_id` to `id`, `event_id` to `event`, `occasion_id` to `time`,
 `group_id` to `group`) and restating the safety policy.
 
-### Limits
+## 8.7 Limits
 
 Scoring operates on single-trial data, and only on single-trial data. Averaged
 ERP input, which is every `.erp` file plus any `.set` or EP file the adapter
 reads as averaged, is stored for reference and flagged, and Run Scoring refuses
 a project that holds nothing else. Browse Trials refuses it too, naming a
 single-trial import as the fix. One nuance about the flag: every single-trial
-import also stores a derived average for reference, so the averaged-data
-notice appears on ordinary imports as well; on its own it is not a sign that
-scoring will be refused.
+import also stores a derived average for reference, so the project's
+averaged-data flag is set on ordinary imports as well. It is recorded in the
+project file and does not appear in the status log, and on its own it is not a
+sign that scoring will be refused.
 
-Two smaller limits follow from how sources are merged. Files must agree on time
-axis, sampling rate, and channel labels to join one project, so datasets
+Three smaller limits follow from how sources are merged. Files must agree on
+time axis, sampling rate, and channel labels to join one project, so datasets
 epoched with different windows have to be re-epoched before they can be
-analyzed together. And because `subject_id` falls back to the file name, a
-batch of `.set` files without an `EEG.subject` field will be identified by
-their file names, which is fine as long as the file names are unique and
-meaningful. Occasions have the same shape without the fallback: `occasion_id`
-comes from `EEG.session`, and when that field is empty every file lands in one
-occasion, so two sessions imported from files without `EEG.session` produce a
+analyzed together.
+
+Because `subject_id` falls back to the file name, a batch of `.set` files
+without an `EEG.subject` field will be identified by their file names, which is
+fine as long as the file names are unique and meaningful. One EEGLAB file gives
+you one participant (an EP Toolkit file can hold several), and one participant
+is not a reliability study; import every participant's file into the same
+project before exporting.
+
+Occasions have the same shape without the fallback: `occasion_id` comes from
+`EEG.session`, and when that field is empty every file lands in one occasion,
+so two sessions imported from files without `EEG.session` produce a
 single-occasion table and a single-session analysis rather than a test-retest
 one. Set `EEG.session` before importing when you intend a test-retest design.
-One file gives you one participant, and one participant is not a
-reliability study; import every participant's file into the same project before
-exporting. If an import or a scoring run fails,
-[Chapter 18](18_troubleshooting.md) lists the messages by symptom.
+
+If an import fails, the FAILED line in the status log carries the reason
+(Section 8.2); if a scoring run or an export fails, the error dialog names the
+label, window, or data problem (Sections 8.3 and 8.5).

@@ -36,7 +36,7 @@ classdef TestInstallationAndWorkflowValidation < PsyRATTestBase
 
             txt = evalc('psyrat_printversions');
             testCase.verifyNotEmpty(strfind(txt, 'Matlab version')); %#ok<STREMP>
-            testCase.verifyNotEmpty(strfind(txt, 'PsyRAT Toolbox version')); %#ok<STREMP>
+            testCase.verifyNotEmpty(strfind(txt, 'PsyRAT version:')); %#ok<STREMP>
             testCase.verifyNotEmpty(strfind(txt, 'CmdStan version')); %#ok<STREMP>
         end
 

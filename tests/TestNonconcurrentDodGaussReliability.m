@@ -7,7 +7,7 @@ classdef TestNonconcurrentDodGaussReliability < matlab.unittest.TestCase
     % Reliability.
     %
     % NO FROZEN FIXTURE LANE EXISTS FOR THIS ARM, and none can be minted: the
-    % reference bundle is gamma end to end (SCIENTIFIC_FORMULA_AUDIT.md
+    % reference bundle is gamma end to end (development formula audit,
     % section 26, owner ruling 3). The replacement evidence ladder here:
     %  - CONSTANT-DRAW CLOSED FORMS transcribed longhand (scalar sums, a
     %    different route from production's matrix quadratic forms through the

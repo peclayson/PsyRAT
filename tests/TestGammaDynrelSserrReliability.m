@@ -25,7 +25,11 @@ classdef TestGammaDynrelSserrReliability < matlab.unittest.TestCase
     %
     % with V_w the WITHIN-person log-mean variance (the trial main effect for
     % analysis 26; the five crossed facets for analysis 27), excluding the person
-    % main effect because u_s is conditioned on rather than integrated out.
+    % main effect because u_s is conditioned on rather than integrated out. For
+    % analysis 27 the pooled population term is the highest-order (person x
+    % occasion x trial) mean-surface remainder R(z_s) rather than pi_mean (Q8
+    % owner ruling 2026-09-13); the person x trial and person x occasion
+    % components stay separate with their own divisors.
     %
     % testComponentsMoveWithZ is the test that actually pins the estimand DECISION:
     % it fails if a future change reverts to holding sigma_p2/sigma_i2 at a shared
@@ -48,6 +52,20 @@ classdef TestGammaDynrelSserrReliability < matlab.unittest.TestCase
 
             pm = exp(2*alpha) .* K;
 
+        end
+
+        function R = remainderClosedForm(alpha, s_p, s_o, s_t, s_po, s_pt, s_ot)
+            %Closed-form POPULATION highest-order (person x occasion x trial)
+            %mean-surface remainder of the two-facet log-linked mean, by
+            %inclusion-exclusion over the shared-index sets (Q8 memo eq. 2),
+            %written independently of psyrat_gamma_mean_remainder_trt so the
+            %two-facet tests do not restate the production helper.
+            vp = s_p^2; vo = s_o^2; vt = s_t^2;
+            vpo = s_po^2; vpt = s_pt^2; vot = s_ot^2;
+            V = vp + vo + vt + vpo + vpt + vot;
+            B = exp(2*alpha + V);
+            R = B * (exp(V) - exp(vp + vo + vpo) - exp(vp + vt + vpt) ...
+                - exp(vo + vt + vot) + exp(vp) + exp(vo) + exp(vt) - 1);
         end
 
         function d = rep(v, n)
@@ -300,8 +318,12 @@ classdef TestGammaDynrelSserrReliability < matlab.unittest.TestCase
             % DECISIVE for analysis 27. Each participant's coefficient must equal a
             % direct psyrat_rel_trt call built from the six observed-scale
             % components evaluated at THAT participant's z, with their own
-            % conditional residual. V_w sums the five crossed log-mean variances
-            % and excludes the person main effect.
+            % residual R(z) + C_s (Q8 ruling 2026-09-13): the POPULATION
+            % highest-order mean-surface remainder at their z plus their own
+            % conditional observation variance. V_w sums the five crossed
+            % log-mean variances and excludes the person main effect. R is
+            % written out here by inclusion-exclusion, independently of the
+            % production helper, so a helper regression cannot hide.
             nd = 30;
             alpha0 = log(5.0); b = 0.20; lognu0 = log(18); b_nu = -0.25;
             sig_p = 0.40; s_o = 0.22; s_t = 0.18; s_po = 0.14; s_pt = 0.12; s_ot = 0.09;
@@ -332,7 +354,9 @@ classdef TestGammaDynrelSserrReliability < matlab.unittest.TestCase
                 lognu_z = lognu0 + b_nu * z(k);
                 vc = psyrat_gamma_varcomps_trt(alpha_z, sig_p, s_o, s_t, s_po, ...
                     s_pt, s_ot, exp(lognu_z), 0, 0);
-                errSs = sqrt(2 * exp(2*(alpha_z + u(k)) + 2*V_w - (lognu_z + v(k))));
+                R_z = TestGammaDynrelSserrReliability.remainderClosedForm( ...
+                    alpha_z, sig_p, s_o, s_t, s_po, s_pt, s_ot);
+                errSs = sqrt(R_z + 2 * exp(2*(alpha_z + u(k)) + 2*V_w - (lognu_z + v(k))));
 
                 args = {'reltype', reltype, ...
                     'bp', sqrt(vc.sigma_p2), 'bo', sqrt(vc.sigma_o2), ...
@@ -385,7 +409,9 @@ classdef TestGammaDynrelSserrReliability < matlab.unittest.TestCase
             % GUARD on V_w. If sig_p^2 leaked into the within-person term (the most
             % likely porting error from the marginal converter), every coefficient
             % would change. Compare against the correct closed form and against the
-            % mutant, and require the calculator to match the former only.
+            % mutant, and require the calculator to match the former only. Both
+            % forms carry the same population remainder R (Q8 ruling), so the
+            % contrast isolates the observation term's V_w.
             nd = 20;
             alpha0 = log(5.0); lognu0 = log(18);
             sig_p = 0.50;                              % deliberately large
@@ -413,11 +439,13 @@ classdef TestGammaDynrelSserrReliability < matlab.unittest.TestCase
 
             V_correct = s_o^2 + s_t^2 + s_po^2 + s_pt^2 + s_ot^2;
             V_mutant  = V_correct + sig_p^2;           % person facet leaked in
+            R0 = TestGammaDynrelSserrReliability.remainderClosedForm( ...
+                alpha0, sig_p, s_o, s_t, s_po, s_pt, s_ot);
 
             [~, G_correct, ~] = psyrat_rel_trt(args{:}, ...
-                'err', sqrt(2*exp(2*alpha0 + 2*V_correct - lognu0)));
+                'err', sqrt(R0 + 2*exp(2*alpha0 + 2*V_correct - lognu0)));
             [~, G_mutant, ~] = psyrat_rel_trt(args{:}, ...
-                'err', sqrt(2*exp(2*alpha0 + 2*V_mutant - lognu0)));
+                'err', sqrt(R0 + 2*exp(2*alpha0 + 2*V_mutant - lognu0)));
 
             testCase.verifyEqual(gen.dep_pt(1), G_correct, 'RelTol', 1e-12);
             testCase.verifyNotEqual(gen.dep_pt(1), G_mutant);

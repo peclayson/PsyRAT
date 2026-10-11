@@ -75,6 +75,7 @@ classdef TestDynrelNativeHmcRecovery < PsyRATTestBase
             % ---- provenance + routing ----
             testCase.verifyEqual(rel.analysis, 'ic_dynrel');
             testCase.verifyEqual(rel.engine, 'hmc');
+            psyrat_test_record_native_diagnostics(testCase,rel);
 
             % ---- extracted draws in the CmdStan-shaped layout ----
             gro = cell2mat(rel.out.gro_sds{1});      % draws x 2

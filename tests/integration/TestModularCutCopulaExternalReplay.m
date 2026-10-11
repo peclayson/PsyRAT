@@ -16,7 +16,7 @@ classdef TestModularCutCopulaExternalReplay < PsyRATTestBase
     % reference's OWN outputs on disk. Both sides therefore consume the SAME
     % posterior draws, so any disagreement is arithmetic, not Monte Carlo -
     % the same design the 8c external validation used
-    % (documentation/gamma_locationscale_rollout.md, increment 8c).
+    % (the location-scale rollout record, increment 8c).
     %
     % It validates the ONE-FACET path only. The bundle's two-facet runs were
     % prepared but never sampled (zero draw rows, no completion manifest), so

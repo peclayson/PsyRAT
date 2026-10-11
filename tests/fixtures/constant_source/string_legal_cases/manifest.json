@@ -1,0 +1,62 @@
+{
+  "expectations": "Frozen from parameter correlation constraints and complete direct alias assignment.",
+  "lexical_authority": "https://raw.githubusercontent.com/stan-dev/stanc3/v2.39.0/src/frontend/lexer.mll",
+  "lexical_rule": "A double quote opens or closes the string. Interior characters exclude quote, CR and LF; backslash is literal.",
+  "fixtures": [
+    {
+      "file": "string_comment_braces.stan",
+      "sha256": "6f8b698f84d6d2faf4dd81b3bed34b61922237dc5e4989f6be6ac038a9193e41",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "Comment delimiters and braces inside an ordinary string are literal text. They do not change the following complete alias assignment. Both diagonals are 1.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "predicted legal by exact v2.39.0 lexer; awaiting primary stanc check",
+      "runtime_status": "not sampled"
+    },
+    {
+      "file": "string_one_backslash.stan",
+      "sha256": "2d8b069f201c6f527fb522622e51db95f4815317ac6c4329e3cf1490f57b1585",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "The one literal backslash immediately precedes the closing quote. It does not escape that quote in Stan; the following alias assignment remains executable code. Both diagonals are 1.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "predicted legal by exact v2.39.0 lexer; awaiting primary stanc check",
+      "runtime_status": "not sampled"
+    },
+    {
+      "file": "string_two_backslashes.stan",
+      "sha256": "afeed024e186f111f0f730c522f74849f03ab2019f04ae2975bc4b22db12ee06",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "Both backslashes are literal characters before the closing quote. Stan has no C-style string-escape interpretation, and the following alias assignment is code. Both diagonals are 1.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "predicted legal by exact v2.39.0 lexer; awaiting primary stanc check",
+      "runtime_status": "not sampled"
+    }
+  ],
+  "fixture_creation_manifest": "audit/review-2026-09-13/science/string_legal_cases/manifest.json",
+  "fixture_creation_manifest_sha256": "72051b34a4e88bb7a0fa96fdf336d8d84aeb2f04ba477c6f53d7ed4099ba3703",
+  "creation_status_note": "Original per-fixture syntax/runtime fields describe fixture creation, before the separately recorded compiler check.",
+  "compiler_evidence": "audit/review-2026-09-13/logs/accepted-source-control-stanc.json"
+}

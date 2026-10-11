@@ -220,6 +220,11 @@ switch mode
             'mode must be ''single'' or ''diff''.');
 end
 
+%Assess the selected source fit, retaining its diagnostic source metadata.
+%This does not assess Monte Carlo error of the new derived coefficients.
+if isfield(rel_out,'nchains'); rel_out=psyrat_checkconv(rel_out); end
+rel_out.out.conv.ndivergent=psyrat_total_divergences(rel_out.out.conv.data);
+
 psyrat_data_out = psyrat_data;
 psyrat_data_out.rel = rel_out;
 if isfield(psyrat_data_out,'relsummary')

@@ -6,14 +6,14 @@ function inctrltable = psyrat_trt_relcutofft(varargin)
 %
 %
 %Inputs
-% psyrat_data - PsyRAT Toolbox data structure array. 
+% psyrat_data - PsyRAT data structure array. 
 % gui - 0 for off, 1 for on
 %
 %Outputs
 % inctrltable - table displaying the trial cutoff information
 %  a gui will also be shown if desired
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ if ~isempty(varargin)
     else 
         error('varargin:psyrat_data',... %Error code and associated error
             strcat('WARNING: psyrat_data not specified \n\n',... 
-            'Please input psyrat_data (PsyRAT Toolbox data structure array).\n',...
+            'Please input psyrat_data (PsyRAT data structure array).\n',...
             'See help psyrat_depvtrialsplot for more information \n'));
     end
     
@@ -135,6 +135,10 @@ for gloc=1:ngroups
             psyrat_data.relsummary.group(gloc).event(eloc).relcutoff.m,...
             psyrat_data.relsummary.group(gloc).event(eloc).relcutoff.ll,...
             psyrat_data.relsummary.group(gloc).event(eloc).relcutoff.ul);
+        if isfield(psyrat_data.relsummary.group(gloc).event(eloc),'cutoff_extrapolated') && ...
+                psyrat_data.relsummary.group(gloc).event(eloc).cutoff_extrapolated
+            rel{end} = [rel{end} ' (projection beyond observed data)'];
+        end
         
     end 
 end
@@ -164,7 +168,14 @@ inctrltable.Properties.VariableNames = {'Label',L.CutoffVar,...
 if gui == 1
 
     %define parameters for figure size
-    figwidth = 500;
+    %Fixed cutoff width keeps trial/split headers whole; leave grid and
+    %vertical-scrollbar slack beyond the three columns (G115).
+    figwidth = 600;
+    coefficient_width = 170;
+    if any(contains(rel,'projection beyond observed data'))
+        figwidth = 900;
+        coefficient_width = 480;
+    end
     figheight = 400;
 
     %define space between rows and first row location
@@ -203,7 +214,7 @@ if gui == 1
         [25 100 figwidth-50 figheight-175],...
         'Data',table2cell(inctrltable));
     set(t,'ColumnName',{'Label' L.Cutoff rel_name});
-    set(t,'ColumnWidth',{200 'auto' 170});
+    set(t,'ColumnWidth',{200 120 coefficient_width});
     set(t,'RowName',[]);
 
     %Create a save button that will take save the table
@@ -239,6 +250,12 @@ L = psyrat_unitlabels(usplit);
     'Comma-Separated Value File (.csv)'},...
     'Where would you like to save table?');
 
+%bail out if the user cancelled the save dialog (F3: every table Save site guards this
+%the same way; psyrat_criterionfigures and psyrat_savesscoeffs were the precedents)
+if isequal(savename,0) || isequal(savepath,0)
+    return;
+end
+
 [~,~,ext] = fileparts(fullfile(savepath,savename));
 
 switch psyrat_data.relsummary.gcoeff_name
@@ -249,10 +266,10 @@ switch psyrat_data.relsummary.gcoeff_name
 end
 
 %save as either excel or csv file
-if strcmp(ext,'.xlsx')
+if strcmpi(ext,'.xlsx')   %F3: case-insensitive like every sibling save site
     
     filehead = {'Table Generated on'; datestr(clock);''}; 
-    filehead{end+1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+    filehead{end+1} = sprintf('PsyRAT v%s',psyrat_data.ver);
     filehead{end+1} = '';
     filehead{end+1} = sprintf('Dataset: %s',psyrat_data.rel.filename);
     filehead{end+1} = sprintf('%s Cutoff: %0.4f',...
@@ -266,16 +283,17 @@ if strcmp(ext,'.xlsx')
     filehead{end+1}='';
     filehead{end+1}='';
 
-    writecell(filehead,fullfile(savepath,savename));
-    writetable(incltrltable,fullfile(savepath,savename),...
-        'Range',strcat('A',num2str(length(filehead))));
+    %the same header and table rows into a fresh workbook, checked cell by cell
+    %before it replaces the chosen file (G110)
+    psyrat_replace_workbook(fullfile(savepath,savename),filehead,incltrltable,...
+        length(filehead));
     
-elseif strcmp(ext,'.csv')
+elseif strcmpi(ext,'.csv')
     
     fid = fopen(fullfile(savepath,savename),'w');
     fprintf(fid,'%s\n','Table Generated on');
     fprintf(fid,'%s\n',datestr(clock));
-    fprintf(fid,'PsyRAT Toolbox v%s\n',psyrat_data.ver);
+    fprintf(fid,'PsyRAT v%s\n',psyrat_data.ver);
     fprintf(fid,' \n');
     %quote the runtime-content header lines per the CSV convention (B19,
     %psyrat_quote_csv_header): the filename and threshold text can carry
@@ -320,6 +338,15 @@ elseif strcmp(ext,'.csv')
     
     fclose(fid);
     
+else
+
+    %F3: a name that ends in neither .xlsx nor .csv (a typed extension the
+    %dialog's filter did not supply) used to fall through this chain silently,
+    %so nothing was written and nothing said so.
+    errordlg({sprintf('The file name "%s" does not end in .xlsx or .csv; nothing was saved.',savename);...
+        'How to fix: choose the Excel or CSV file type in the save dialog, or type a name ending in .xlsx or .csv, then save again.'},...
+        'Unsupported File Type','modal');
+
 end
 
 

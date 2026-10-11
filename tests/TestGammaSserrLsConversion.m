@@ -21,9 +21,9 @@ classdef TestGammaSserrLsConversion < matlab.unittest.TestCase
     %green. What it establishes is that the algebra the extractors rest on is what
     %this repo believes it is.
     %
-    %See documentation/gamma_scale_submodel_decision.md section H and finding S16.
+    %See the scale-submodel decision record, section H, and finding S16.
 
-    % Copyright (C) 2016-2025 Peter E. Clayson
+    % Copyright (C) 2016-2026 Peter E. Clayson
     %
     %     This program is free software: you can redistribute it and/or modify
     %     it under the terms of the GNU General Public License as published by
@@ -116,9 +116,10 @@ classdef TestGammaSserrLsConversion < matlab.unittest.TestCase
             % psyrat_ssrel forms wp = exp(wp_pop + wp_ss)^2. Since S17-FIX the
             % analysis-6 extractor manufactures that encoding from the pooled
             % residual (0.5*log of pi_mean plus the conditional variance), as
-            % the log-nu path always did for its own residual; the two-facet
-            % analysis-25 extractor still passes the fitted Intercept_sigma and
-            % ind_sd straight through.
+            % the log-nu path always did for its own residual; since the Q8
+            % ruling (2026-09-13) the two-facet analysis-25 extractor
+            % manufactures the same encoding from R plus the conditional
+            % variance instead of passing Intercept_sigma and ind_sd through.
             %
             % WHAT REMAINS HERE, AND WHAT WAS REMOVED. This method used to assert
             % the PASS-THROUGH as well - "there is no arithmetic between the fitted
@@ -298,7 +299,9 @@ classdef TestGammaSserrLsConversion < matlab.unittest.TestCase
             % Analysis 6 pools (S17-FIX): the remainder over the pooled
             % typical-subject reference, with ind_sd inside the conditional term
             % and pi_mean built from POPULATION quantities. Analysis 25 (two
-            % facets, no pooling analog) keeps the pure pass-through. Any term
+            % facets) pools its own population term since the Q8 ruling
+            % (2026-09-13): the highest-order mean-surface remainder R from
+            % psyrat_gamma_mean_remainder_trt, in the same encoding. Any term
             % in ind_bs fails both patterns.
             extractors = { ...
                 'psyrat_gamma_extract_sserr_ls', ...
@@ -308,8 +311,11 @@ classdef TestGammaSserrLsConversion < matlab.unittest.TestCase
                 ['must assign the S17-FIX pooled remainder ind_sdlog = ' ...
                  '0.5.*log(pi_mean + exp(2.*(logsig(:) + ind_sd))) - pop_sdlog']; ...
                 'psyrat_gamma_extract_trt_sserr_ls', ...
-                '^\s*ind_sdlog\s*=\s*ind_sd\s*;\s*(%.*)?$', ...
-                'must assign ind_sdlog = ind_sd and nothing else'};
+                ['^\s*ind_sdlog\s*=\s*0\.5\.\*log\(R\s*\+\s*exp\(' ...
+                 '2\.\*\(logsig\(:\)\s*\+\s*ind_sd\)\)\)\s*-\s*pop_sdlog' ...
+                 '\s*;\s*(%.*)?$'], ...
+                ['must assign the Q8 pooled remainder ind_sdlog = ' ...
+                 '0.5.*log(R + exp(2.*(logsig(:) + ind_sd))) - pop_sdlog']};
 
             for k = 1:size(extractors,1)
                 body = localFunctionBody(testCase, src, extractors{k,1});
@@ -338,9 +344,10 @@ classdef TestGammaSserrLsConversion < matlab.unittest.TestCase
 
                 % S16 x S17-FIX interaction guard: NO residual-channel line may
                 % reference ind_bs, including the pooled term's ingredients. The
-                % pooled pi_mean must stay population-built.
+                % pooled pi_mean (analysis 6) and R (analysis 25) must stay
+                % population-built.
                 residualLines = ~cellfun(@isempty, regexp(bodyLines, ...
-                    '^\s*(pi_mean|pop_sdlog|ind_sdlog)\s*=', 'once'));
+                    '^\s*(pi_mean|R|pop_sdlog|ind_sdlog)\s*=', 'once'));
                 touchesIndBs = ~cellfun(@isempty, ...
                     regexp(bodyLines, '\<ind_bs\>', 'once'));
                 testCase.verifyEqual(nnz(residualLines & touchesIndBs), 0, ...

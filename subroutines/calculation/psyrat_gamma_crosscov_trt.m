@@ -47,7 +47,7 @@ function cov = psyrat_gamma_crosscov_trt(alpha_x, s_p_x, s_o_x, s_t_x, ...
 %
 % See also PSYRAT_GAMMA_CROSSCOV, PSYRAT_GAMMA_VARCOMPS_TRT, PSYRAT_DIFFREL_TRT.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

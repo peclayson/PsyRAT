@@ -10,7 +10,7 @@ function [ll,pt,ul] = psyrat_cutscore_dep(varargin)
 %psyrat_formula_prompt. The only remaining callers of this file are
 %tests/TestCalculationFunctions.m and tests/TestCalculationAccuracyOracle.m,
 %so agreement between this function and PsyRATAccuracyOracle says nothing about
-%any shipped number (recorded at SCIENTIFIC_FORMULA_AUDIT.md, "Oracle agrees
+%any shipped number (recorded in the development formula audit, "Oracle agrees
 %with Rocha", superseded 2026-07-25). Retained rather than deleted by owner
 %decision. Note for any future deletion sweep: the equally dead sibling
 %psyrat_dep is the target of eight production error messages that read "See
@@ -53,7 +53,7 @@ function [ll,pt,ul] = psyrat_cutscore_dep(varargin)
 % pt - the point estimate
 % ul - upper limit of the credible interval specified by CI
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

@@ -13,8 +13,8 @@ function [gen,dep] = psyrat_ssrel_dynrel_trt_gamma(varargin)
 %pieces the other designs establish separately:
 %
 %  - from analysis 25 (psyrat_gamma_extract_trt_sserr): the multi-facet
-%    conditional residual, whose within-person mean term sums the FIVE crossed
-%    log-mean variances and excludes the person main effect;
+%    residual R + C_s, whose conditional part's within-person mean term sums
+%    the FIVE crossed log-mean variances and excludes the person main effect;
 %  - from analysis 26 (psyrat_ssrel_dynrel_gamma): evaluation at each
 %    participant's own z, with every observed-scale component recomputed there.
 %
@@ -23,7 +23,18 @@ function [gen,dep] = psyrat_ssrel_dynrel_trt_gamma(varargin)
 %  alpha(z_s) = alpha0 + b . x(z_s)        lognu(z_s) = lognu0 + b_nu . x(z_s)
 %  sigma_p2/o2/t2/pt2/po2/ot2 at z_s   <- psyrat_gamma_varcomps_trt
 %  V_w = s_o^2 + s_t^2 + s_po^2 + s_pt^2 + s_ot^2
-%  sigma_pot,e^2(s,z_s) = 2*exp( 2*(alpha(z_s) + u_s) + 2*V_w - (lognu(z_s) + v_s) )
+%  R(z_s)                              <- psyrat_gamma_mean_remainder_trt
+%  sigma_pot,e^2(s,z_s) = R(z_s)
+%                       + 2*exp( 2*(alpha(z_s) + u_s) + 2*V_w - (lognu(z_s) + v_s) )
+%
+%R is the POPULATION highest-order (person x occasion x trial) mean-surface
+%remainder at z_s (Q8/PBA-08 owner ruling 2026-09-13, gamma_target_version 2),
+%the two-facet counterpart of the one-facet pi_mean pooled by S17/S20 in
+%psyrat_ssrel_dynrel_gamma. It is built from alpha(z_s) and the six log-mean SDs
+%only; the participant's own effects enter the observation term alone. The
+%residual is therefore a deliberately MIXED target (population mean structure at
+%own z, person-conditional dispersion), not a fully person-conditioned
+%decomposition, and R must not be added twice.
 %
 %WHY psyrat_ssrel_trt IS CALLED PER PARTICIPANT. psyrat_ssrel_trt already
 %supports per-subject txp/oxp/err, but it binds bp, bo, bt and txo ONCE, outside
@@ -58,7 +69,7 @@ function [gen,dep] = psyrat_ssrel_dynrel_trt_gamma(varargin)
 % (a) the between-person numerator is evaluated at alpha(z_s), NOT at
 %     alpha(z_s) + u_s - conditioning on a participant says where they sit, not
 %     how spread the population is;
-% (b) the residual drops the person facet variance sig_p^2 because u_s is
+% (b) the conditional observation term excludes the person facet variance sig_p^2 because u_s is
 %     conditioned on rather than integrated out, and is EXACT under the ID-only
 %     nu structure;
 % (c) (s_v, cov_pv) are passed to the converter as ZERO, which is what turns
@@ -91,6 +102,14 @@ function [gen,dep] = psyrat_ssrel_dynrel_trt_gamma(varargin)
 % reltype     - 1 = equivalence, 2 = stability, 3 = equivalence-and-stability
 % nocc        - occasion count n'_o used for the coefficient
 % CI          - credible interval width in decimal format (.95 = 95%)
+%
+%Optional Inputs
+% remainder_scheme - 'population_highest_order_plus_person_observation_v2'
+%               (default: residual R + C_s) or 'legacy_observation_only_v1'
+%               (pre-Q8 residual C_s only; psyrat_dynrel_summary passes this for
+%               an analysis-27 result saved without a gamma_target stamp, so
+%               old results are not silently reinterpreted). Anything else
+%               errors ('dynrel:badremainderscheme').
 %
 %Outputs
 % gen - psyrat_ssrel_trt output table for generalizability (gcoeff = 2), one row
@@ -129,10 +148,28 @@ ndim    = psyrat_req(varargin,'ndim','Please input ndim (1 or 2).');
 reltype = psyrat_req(varargin,'reltype','Please input reltype (1, 2, or 3).');
 nocc    = psyrat_req(varargin,'nocc','Please input nocc (occasion count).');
 ciperc  = psyrat_req(varargin,'CI','Please input CI.');
+%remainder scheme: the Q8 v2 residual R + C_s (default for every direct call)
+%or the pre-Q8 observation-only residual C_s, which psyrat_dynrel_summary
+%requests for an analysis-27 result saved without a gamma_target stamp so an
+%old file does not silently acquire R when re-summarized. Validated below.
+scheme  = psyrat_opt(varargin,'remainder_scheme',...
+    'population_highest_order_plus_person_observation_v2');
 
 if ~any(ndim == [1 2])
     error('varargin:ndim','WARNING: ndim must be 1 or 2.\n');
 end
+if ~(ischar(scheme) || (isstring(scheme) && isscalar(scheme))) || ...
+        ~any(strcmp(char(scheme),{'population_highest_order_plus_person_observation_v2',...
+        'legacy_observation_only_v1'}))
+    error('dynrel:badremainderscheme',...
+        ['Unknown remainder_scheme for psyrat_ssrel_dynrel_trt_gamma. Valid values ' ...
+        'are ''population_highest_order_plus_person_observation_v2'' (default; ' ...
+        'residual R + C_s) and ''legacy_observation_only_v1'' (pre-Q8 residual ' ...
+        'C_s only, for unstamped saved results). How to fix: pass one of those ' ...
+        'two strings or omit the option.']);
+end
+scheme = char(scheme);
+uselegacy = strcmp(scheme,'legacy_observation_only_v1');
 
 %column vectors of draws
 alpha0 = alpha0(:);
@@ -200,9 +237,24 @@ for c = 1:nsub
     vc = psyrat_gamma_varcomps_trt(alpha_z, sig_p, s_o, s_t, s_po, s_pt, s_ot, ...
         nu_z, 0, 0);
 
-    %per-participant CONDITIONAL residual at their own z and their own (u,v)
-    sig_pot_e2 = 2 .* exp(2.*(alpha_z + ind_bs(:,col)) + 2.*V_w ...
+    %Q8 (owner ruling 2026-09-13, gamma_target_version 2): the per-participant
+    %residual is E_s = R(z_s) + C_s, the POPULATION highest-order (person x
+    %occasion x trial) mean-surface remainder at this participant's z plus
+    %their own conditional observation variance at their own (u_s, v_s). R is
+    %built from alpha(z_s) and the six log-mean SDs only - never from
+    %ind_bs/ind_nu - exactly as psyrat_ssrel_dynrel_gamma pools the one-facet
+    %pi_mean (S20). Same helper as the static analysis-25 extractor.
+    if uselegacy
+        R_z = zeros(size(alpha_z));          % pre-Q8 scheme: no remainder
+    else
+        R_z = psyrat_gamma_mean_remainder_trt(alpha_z, sig_p, s_o, s_t, ...
+            s_po, s_pt, s_ot);               % [ndraws x 1]
+    end
+
+    %per-participant CONDITIONAL observation variance at their own z and (u,v)
+    sig_pot_c2 = 2 .* exp(2.*(alpha_z + ind_bs(:,col)) + 2.*V_w ...
         - (lognu_z + ind_nu(:,col)));        % [ndraws x 1]
+    sig_pot_e2 = R_z + sig_pot_c2;           % [ndraws x 1]
     err_ss = sqrt(sig_pot_e2);
 
     row = idtable(c,:);

@@ -38,7 +38,7 @@ function diffplot = psyrat_trt_diffvtrialsplot(varargin)
 %
 %
 %Inputs
-% psyrat_data - PsyRAT Toolbox data structure array. Variance components should
+% psyrat_data - PsyRAT data structure array. Variance components should
 %  be included, and psyrat_relsummary must already have been run (this function
 %  reads relsummary.group(g).diffcomp).
 % trials - range of trials to plot: [min max]
@@ -64,7 +64,7 @@ function diffplot = psyrat_trt_diffvtrialsplot(varargin)
 %  reliability and the number of trials retained per condition, stratified by
 %  group
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -101,7 +101,7 @@ if ~isempty(varargin)
     else
         error('varargin:psyrat_data',... %Error code and associated error
             strcat('WARNING: psyrat_data not specified \n\n',...
-            'Please input psyrat_data (PsyRAT Toolbox data structure array).\n',...
+            'Please input psyrat_data (PsyRAT data structure array).\n',...
             'See help psyrat_trt_diffvtrialsplot for more information \n'));
     end
 

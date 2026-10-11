@@ -27,7 +27,7 @@ classdef TestRelsummaryNoneIdSentinel < PsyRATTestBase
     %"~(ischar(x) && strcmp(x,'none'))" alone (:3140) sends state 2 to the GOOD
     %arm. The shipped predicate "iscell(x) && ~isempty(x)" is correct on all
     %four: the good arm is taken only for a genuine non-empty cellstr of ids.
-    %B29 in PSYRAT_AUDIT_FINDINGS.md.
+    %Finding B29.
 
     methods (Test)
 

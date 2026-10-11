@@ -31,7 +31,7 @@ function vc = psyrat_gamma_varcomps_trt_ls(alpha, s_p, s_o, s_t, s_po, s_pt, ...
 % so moves when the two events differ in AMPLITUDE even at identical residual
 % precision. Here the residual is decoupled from the mean surface entirely, so
 % the per-event log_sigma difference is a pure absolute residual-SD contrast.
-% See documentation/gamma_scale_submodel_decision.md section H (owner ruling H).
+% See manual section 15.4 and owner ruling H.
 %
 % The log-nu sibling is NOT invalid -- it is a coherent constant-CV
 % (proportional-error) model. The difference is what the scale parameter means:
@@ -65,11 +65,14 @@ function vc = psyrat_gamma_varcomps_trt_ls(alpha, s_p, s_o, s_t, s_po, s_pt, ...
 % RELATION TO THE SUBJECT-LEVEL TWO-FACET PATH. Analysis 25 under gammascale = 2
 % (psyrat_gamma_extract_trt_sserr_ls) reuses PSYRAT_GAMMA_VARCOMPS_TRT unchanged,
 % with NaN dispersion arguments, because it reads only the six signal components
-% -- which are parameterization-invariant -- and gets its residual straight from
-% the fitted per-person log-SD. This file exists because the GROUP-level two-facet
-% difference (analysis 10) additionally consumes sigma_res2, which is NOT
-% parameterization-invariant. The two facts are consistent; do not "simplify" one
-% into the other.
+% -- which are parameterization-invariant -- and builds its residual as
+% R + exp(2*(log sigma + w_p)) (Q8 ruling 2026-09-13): the population
+% highest-order mean-surface remainder R from PSYRAT_GAMMA_MEAN_REMAINDER_TRT
+% (the same term this file's sigma_res2 carries by subtraction) plus the
+% participant's own observation variance from the fitted per-person log-SD.
+% This file exists because the GROUP-level two-facet difference (analysis 10)
+% additionally consumes sigma_res2, which is NOT parameterization-invariant.
+% The two facts are consistent; do not "simplify" one into the other.
 %
 % Inputs (scalars or equal-length column vectors of posterior draws; scalars
 % broadcast against vectors), all mean-submodel inputs on the log expected-score
@@ -125,7 +128,7 @@ function vc = psyrat_gamma_varcomps_trt_ls(alpha, s_p, s_o, s_t, s_po, s_pt, ...
 % See also PSYRAT_GAMMA_VARCOMPS_LS, PSYRAT_GAMMA_VARCOMPS_TRT,
 % PSYRAT_GAMMA_CROSSCOV_TRT, PSYRAT_REL_TRT.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

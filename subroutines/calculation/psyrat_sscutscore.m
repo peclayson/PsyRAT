@@ -49,10 +49,10 @@ function idtable = psyrat_sscutscore(varargin)
 %(F7) and oracle-tested, and its natural future surface, per-subject
 %criterion (cut-score) classification for the sserr family alongside the
 %group-level psyrat_criterionfigures path, would be a scoped feature
-%increment of its own. See SCIENTIFIC_FORMULA_AUDIT.md (F6a) and the SS-CUT
-%row of SCIENTIFIC_FORMULA_TRACEABILITY_TABLE.md.
+%increment of its own. See development formula-audit item F6a and the SS-CUT
+%row of the development traceability table (neither is shipped).
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

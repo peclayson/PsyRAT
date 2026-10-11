@@ -1,36 +1,7 @@
 classdef TestReportCutoffNote < PsyRATTestBase
-    %G1 regression pins (owner ruling 2026-09-05, pulled forward from the
-    %2026-08-24 council's post-release wave 1). psyrat_relsummary records two
-    %D-study failures per cell without an error: no trial count in the
-    %projected range reached the threshold (trlcutoff = -1 and the coefficient
-    %slots = -1, "Cutoff not calculable"), or the cutoff it found exceeds every
-    %participant's observed count (the cutoff is kept and the coefficient slots
-    %are overwritten with -1, "Extrapolation beyond data"). The GUI raises a
-    %dialog for each from relerr; the headless report had neither the dialog
-    %nor relerr, so an exported .cutoff table carried bare -1 cells with no
-    %explanation. psyrat_report now returns report.cutoff_note and writes it
-    %into every exported header.
-    %
-    %Fixtures are copies of TestUnreachableCutoffSentinel's G54 fixtures (three
-    %participants, five trials each, sig_u about 2 against sig_e about 5), so
-    %the sentinel arithmetic is the one that test already pins: at 0.9999 no
-    %count up to max + 1000 reaches the threshold; at 0.30 the point estimate
-    %crosses by the third trial. The extrapolation state cannot be reached on
-    %the no-group, no-event route: sing case 1 has no bad-ids fallback, so
-    %when nobody meets a found cutoff its trial-count table is empty and the
-    %trlcutoff > trlinfo.max test is vacuously false (refutation wave,
-    %2026-09-05). Cases 2-4 fall back to the excluded participants' counts, so
-    %the extrapolation test uses TestRelsummaryStrictIntersection's mixed
-    %two-group x two-event fixture, whose 'err' event needs well over a hundred
-    %trials at .60 (the exact cutoff differs by group) against 6 to 30 observed
-    %while 'cor' clears the cutoff. Every test
-    %asserts the fixture is in the state it claims before reading the note, so
-    %a fixture drift fails loudly rather than letting an assertion pass for
-    %the wrong reason.
-    %
-    %RED against the pre-G1 code: the note field does not exist, so the two
-    %sentinel tests and the header test fail; the clean-run test passes on both
-    %builds (positive control: the note must be able to be empty).
+    %G1/G88: distinguish a failed cutoff search from a valid extrapolation.
+    %The latter retains its coefficient and original observed-count support.
+    %The not-calculable and clean fixtures preserve the existing controls.
 
     methods (Test)
 
@@ -63,7 +34,7 @@ classdef TestReportCutoffNote < PsyRATTestBase
                 'depcentmeas', 1, 'gcoeff', 1, 'CI', 0.95);
             %fixture guards: every cutoff was found (no -1 trlcutoff), the two
             %'err' cells extrapolate (cutoff beyond the observed counts, the
-            %coefficient slots overwritten with -1) and the two 'cor' cells
+            %numeric projected coefficients retained) and the two 'cor' cells
             %stay clean, so the note must name exactly the former
             testCase.assertEqual(relerr.trlcutoff, 0, 'every cutoff must have been found');
             testCase.assertEqual(relerr.trlmax, 1, 'fixture must be in the extrapolated state');
@@ -74,10 +45,11 @@ classdef TestReportCutoffNote < PsyRATTestBase
                 corloc = find(strcmp({g.event.name}, 'cor'), 1);
                 testCase.assertNotEmpty(errloc);
                 testCase.assertNotEmpty(corloc);
-                testCase.assertGreaterThan(g.event(errloc).trlcutoff, g.event(errloc).trlinfo.max, ...
+                testCase.assertGreaterThan(g.event(errloc).trlcutoff, g.event(errloc).observed_trlinfo.max, ...
                     'the err cutoff must exceed every observed count');
-                testCase.assertEqual(g.event(errloc).rel.m, -1, ...
-                    'the err coefficient slot must carry the -1 sentinel');
+                testCase.assertGreaterThan(g.event(errloc).rel.m, 0, ...
+                    'the valid projected coefficient must be preserved');
+                testCase.assertTrue(g.event(errloc).cutoff_extrapolated);
                 testCase.assertGreaterThan(g.event(corloc).rel.m, 0, ...
                     'the cor cell must stay clean');
                 errcut(gloc) = g.event(errloc).trlcutoff;

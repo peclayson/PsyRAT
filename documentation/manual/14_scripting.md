@@ -1,7 +1,7 @@
 # 14. Scripting with psyrat_run
 
 Almost everything the Process New Data screens do can also be done from a
-script; Sections 14.3 and 14.6 name the exceptions. `psyrat_run` is the
+script; Sections 14.3 and 14.7 name the exceptions. `psyrat_run` is the
 command-line entry point. It accepts the same settings the
 GUI collects, in the same units, with the same defaults, and it validates them
 against the same rules.
@@ -37,8 +37,15 @@ own, and it removes none either.
 
 Before scripting, get the toolbox on the MATLAB path by running `psyrat_start`
 once in the session. That adds the toolbox root, `subroutines/`, and
-`bundled_dependents/`. Do not use `addpath(genpath(...))` on the whole toolbox
-folder. Otherwise, stale copies sitting in tooling or artifact folders can
+`bundled_dependents/` and saves the path, so later sessions find the toolbox
+without it; where the saved path cannot be written, as on some shared or
+cluster installs, it warns, and you will need to run it again in each session.
+It also opens the home screen and
+runs the dependency and release checks, so on a machine with no display add
+the same three locations yourself instead: `addpath(root)`, then
+`addpath(genpath(fullfile(root,'subroutines')))` and
+`addpath(genpath(fullfile(root,'bundled_dependents')))`. Do not use
+`addpath(genpath(...))` on the whole toolbox folder. Otherwise, stale copies sitting in tooling or artifact folders can
 shadow the real files, and you will be running code you cannot locate.
 
 One more thing to know before the first call: `psyrat_run` analyzes one
@@ -54,8 +61,9 @@ variables.
 
 ```matlab
 % Locate the toolbox root from a file that lives in it, rather than hardcoding
-% a path. which() reports where MATLAB actually found psyrat_run, so this also
-% fails loudly if the toolbox is not on the path yet.
+% a path. which() reports where MATLAB actually found psyrat_run; it returns
+% '' when the toolbox is not on the path, and the failure then arrives at the
+% psyrat_run call below rather than here.
 psyratroot = fileparts(which('psyrat_run'));
 datafile   = fullfile(psyratroot,'test_data','manual_ern_singlesession.csv');
 
@@ -109,18 +117,19 @@ S = load(fullfile(outdir,'manual_ern.psyrat'), '-mat');
 psyrat_data = S.psyrat_data;
 ```
 
-Budget for the first call to cost more than the ones after it. Every generated
-model is compiled once before it can be sampled, and a run that fits four events
-compiles four models ([Chapter 3](03_installation.md) records the measured
-compile time). Sampling time after that scales with the data and the iteration
+Budget for every call to include compile time. Each generated model is
+compiled before it is sampled, and because the toolbox names every model
+uniquely, a later call compiles again rather than reusing the binary; a run
+that fits its events in separate models compiles one per event
+([Chapter 3](03_installation.md) records the measured compile time). Sampling time after that scales with the data and the iteration
 counts. The `psyrat_relsummary` and `psyrat_report` steps below add seconds
 rather than minutes, because neither one samples.
 
 Two variations on the input are worth having before the first real dataset.
 Passing `data` with a table already in the workspace replaces `file`; supply
 exactly one of the two, never both. This is the route to take when the scores
-are built or filtered in MATLAB rather than read from disk, and it is how the
-import and scoring screens hand their result to an analysis
+are built or filtered in MATLAB rather than read from disk, and it is the shortest route from the `psyrat_import_proc_table` that the
+import and scoring screens leave in the workspace to an analysis
 ([Chapter 8](08_import-score.md)).
 
 ```matlab
@@ -139,28 +148,34 @@ in this chapter stay one-facet. On a repeated-measures file the change is
 
 Estimation stops at the variance components. Two more calls turn those into the
 tables the results viewer shows, and both run headlessly. `psyrat_relsummary`
-is the compute layer: it runs the D-study and applies the trial-count cutoff,
-which determines the participants and conditions that clear the threshold. The
-estimand choices are made there, not later.
+is the compute layer for the one-facet and test-retest families: it runs the
+decision study (D-study) and applies the trial-count cutoff, which determines the participants
+and conditions that clear the threshold, and the estimand choices for those
+families are made there, not later. Data splits, dynamic reliability, and
+difference of differences skip it: `psyrat_report` computes their coefficients
+itself, and its own options (`reltype`, `nocc`, `obs`, `marginal`,
+`surface_target`, `CI`) choose their estimands.
 
 `psyrat_report` then assembles the result into MATLAB tables and, when given
-an `outdir`, writes them to disk. It never re-estimates and never re-runs the
-D-study; nothing it does opens a window. Every exported table carries a header
-recording the seed, the analysis, the engine, the priors preference, the convergence verdict, and the
-divergent transition count, so a saved table can be read on its own. Tables
-built from a summary also record the credible-interval width the summary was
-built at; the families that never build one (data splits, dynamic reliability,
-difference-of-differences) carry no width line. `psyrat_report` computes its
-own tables at that same stored width unless you pass `'CI'` explicitly; an
-explicit width that differs from the stored one is disclosed by an extra header
-note naming both.
+an `outdir` (created if it does not exist), writes them to disk. It never
+re-estimates and never re-runs the D-study; nothing it does opens a window.
+Every exported table carries a header recording the seed, the analysis, the
+engine, the priors preference, the early-workflow check verdict with the
+readiness and diagnostic-source lines, and the divergent transition count, so
+a saved table can be read on its own. Tables built from a summary also record
+the interval width the summary was built at; the families that never build one
+(data splits, dynamic reliability, difference-of-differences) get a width line
+naming the width this report applied, labeled Credible interval, or Bootstrap
+interval on a native fitlme run. `psyrat_report` computes its own tables at the
+stored width unless you pass `'CI'` explicitly; an explicit width that differs
+from the stored one is disclosed by an extra header note naming both.
 
 ```matlab
 % Step 1: the D-study. 'analysis' is a dispatch key (see the table below), not
 % the name of the analysis that was estimated.
 [psyrat_data, relerr] = psyrat_relsummary('psyrat_data', psyrat_data, ...
     'analysis',    'sing', ... % one-facet route
-    'depcutoff',   .80, ...    % dependability threshold for the trial cutoff
+    'depcutoff',   .70, ...    % Tutorial 1's Reliability Cutoff (Section 10.5); the GUI default is .80
     'meascutoff',  2, ...      % 1 lower CI limit, 2 point estimate, 3 upper
     'depcentmeas', 1, ...      % 1 mean, 2 median, for the overall estimate
     'gcoeff',      1);         % 1 dependability, 2 generalizability
@@ -173,11 +188,13 @@ note naming both.
 if relerr.nogooddata == 1
     error('The summary aborted, so there is nothing to report.');
 end
-if isempty(psyrat_data.relsummary.group(1).goodids)
-    warning('No participant cleared the threshold; the tables report a zeroed group.');
+emptygrp = arrayfun(@(g) isempty(g.goodids), psyrat_data.relsummary.group);
+if any(emptygrp)
+    warning('%d group(s) retained no participant; the tables show dashes for them.', nnz(emptygrp));
 end
 
-% Step 2: assemble and export. Omit 'outdir' to get the tables back without
+% Step 2: assemble and export. psyrat_report creates 'outdir' if it does not
+% exist (psyrat_run does not). Omit 'outdir' to get the tables back without
 % writing any files.
 report = psyrat_report(psyrat_data, ...
     'outdir', fullfile(outdir,'tables'), ...
@@ -186,19 +203,59 @@ report = psyrat_report(psyrat_data, ...
 disp(report.tables.overall);    % also .cutoff and .curve for this family
 ```
 
+At .80, the GUI default, the same call reproduces Section 10.8 instead, where
+no participant in either group is retained.
+
 A summary can also finish without aborting and still have no cutoff to report.
-When no trial count in the projected range reaches the threshold, or when the
-count it finds lies beyond every participant's observed trials, the affected
-row of the cutoff table prints `-1` in place of the cutoff and the coefficient.
-The GUI raises a dialog for each case (Cutoff not calculable, Extrapolation
-beyond data); a script sees no dialog, so `psyrat_report` returns the
-explanation in `report.cutoff_note` and writes the same sentence into the
-header of every table it exports. Read that note before quoting a cutoff; it is
-empty for a clean run.
+When no trial count in the projected range reaches the threshold, the event's
+cutoff and coefficient cells print `-1`. When the cutoff lies beyond the
+largest trial count observed for that group and event, the coefficient stays
+numeric and carries the label "(projection beyond observed data)". The GUI
+raises a dialog for each condition (Cutoff not calculable, Extrapolation beyond
+data); a script sees no dialog, so `psyrat_report` returns the explanation in
+`report.cutoff_note` and writes the same sentence into the header of every
+table it exports. Read that note before quoting a cutoff; it is empty for a
+clean run. A summary made by an earlier version can still hold `-1` where a
+projection now belongs; rerun `psyrat_relsummary` on the saved result to
+rebuild it from the fitted draws.
+
+The design-maturity notice reaches a script the same way. Under the gamma
+family, analyses 14, 25, and 27 (location-scale and log-nu alike) are Restricted
+([Section 5.4](05_choosing-an-analysis.md#54-what-is-supported-and-what-carries-a-caveat)):
+with few occasions, their variance
+components and pooled residual, reported as posterior means, are not recovered
+at level. In the simulated datasets reviewed for this release, the
+generalizability and dependability coefficients stayed within about .03 and
+.06 of the true values for analyses 14 and 25; for analysis 27, both were
+biased downward in the converged fits. These describe particular datasets and are not
+bounds. The GUI says so at Analyze and in the results viewer, but `psyrat_run`
+and `psyrat_relsummary` print nothing about it. `psyrat_report` carries it as
+the `Design maturity: RESTRICTED` line in `report.provenance` and in the header
+of every table it writes, so check for that line before you report estimates
+from those designs.
+
+Each group in the summary carries three ID lists. `observedids` holds every
+participant observed in the required events, `goodids` holds the participants
+retained under the all-events rule of Section 9.1 (the cutoff met in every
+required event; on the subject-level difference design, the difference-score
+flag described below decides instead), and `badids` is the observed set minus
+the retained one. The original trial counts of every cell are in
+`event.observed_trlinfo`, and `event.cutoff_extrapolated` flags a cutoff
+beyond them independently of the coefficient's value.
+
+When the retained set is empty, the overall table shows dashes in the
+coefficient and trial-summary cells and numeric included and excluded counts.
+The values are still kept in the summary, tagged in `event.summary_population`,
+and `report.retention_note` says which cells are full-sample references. The
+difference-score coefficient of a group that retained nobody is evaluated at
+the full sample's trial counts and labeled a full-sample reference. The GUI's
+Save IDs export and criterion outputs follow the same conventions
+([Chapter 9](09_viewing-results.md)).
 
 A `.psyrat` file saved by the GUI carries no record of how it will be
-summarized later, so `psyrat_relsummary` treats it as interactive and can raise
-the threshold-failure dialog when no participant clears the cutoff. Inside a
+summarized later, so `psyrat_relsummary` treats it as interactive; in the cases
+where the summary still aborts (most designs now return in full with n Included
+0), it can then raise the threshold-failure dialog. Inside a
 batch loop, pass `'interactive', false` to `psyrat_relsummary`; the condition
 is still reported through `relerr.nogooddata`, and files written by `psyrat_run`
 already carry the headless flag.
@@ -214,8 +271,8 @@ The mapping:
 |---|---|---|---|---|
 | `ic` (or field absent) | one-facet | `sing` | `depcutoff`, `meascutoff`, `depcentmeas` | `gcoeff` (1) |
 | `ic_sserrvar` | one-facet, subject-level | `sing_sserr` | `depcutoff`, `meascutoff`, `depcentmeas` | `gcoeff` (1) |
-| `ic_diff` | one-facet difference | `sing_diff` | `depcutoff`, `meascutoff`, `depcentmeas` | `gcoeff` (1), `diffgcoeff` (1) |
-| `ic_diff_sserrvar` | one-facet difference, subject-level | `sing_diff_sserr` | `depcutoff`, `meascutoff`, `depcentmeas` | `gcoeff` (1), `diffgcoeff` (1) |
+| `ic_diff` | one-facet difference | `sing_diff` | `depcutoff`, `meascutoff`, `depcentmeas` | `diffgcoeff` (1) |
+| `ic_diff_sserrvar` | one-facet difference, subject-level | `sing_diff_sserr` | `depcutoff`, `meascutoff`, `depcentmeas` | `diffgcoeff` (1) |
 | `trt` | test-retest | `trt` | `gcoeff`, `reltype`, `relcutoff`, `meascutoff`, `relcentmeas` | `noccmode` (1), `nocc` |
 | `trt_sserrvar` | test-retest, subject-level | `trt_sserr` | `reltype`, `depcutoff`, `meascutoff` | `gcoeff` (1), `noccmode` (1), `nocc` |
 | `trt_diff` | test-retest difference | `trt_diff` | `gcoeff`, `reltype`, `relcutoff`, `meascutoff`, `relcentmeas` | `diffgcoeff` (1), `noccmode` (1), `nocc` |
@@ -228,14 +285,16 @@ calls go wrong, and four of the entries there are worth spelling out.
 
 `depcutoff` and `relcutoff` carry the same GUI input under two names, and each
 branch accepts only its own spelling. Pass the wrong one and the branch errors
-saying the argument was not specified, which reads like a missing argument
-rather than a misspelled one. The subject-level test-retest route is the odd
-case: it is a two-facet design that still takes `depcutoff` and `meascutoff`,
-because it inherits the subject-level participant-inclusion contract instead of
-the test-retest one.
+saying the argument was not specified (on the one-facet routes the message
+calls it `depvalue`), which reads like a missing argument rather than a
+misspelled one. The subject-level test-retest route is the odd case: it is a
+two-facet design that takes `depcutoff` rather than `relcutoff`, because it
+inherits the subject-level participant-inclusion contract instead of the
+test-retest one.
 
 `gcoeff` is required on the `trt` and `trt_diff` routes and defaults to 1
-(dependability) everywhere else. `depcentmeas` is required by all four `sing*`
+(dependability) everywhere else; on the two `sing_diff*` routes it is
+overwritten by `diffgcoeff`, so pass `diffgcoeff` there. `depcentmeas` is required by all four `sing*`
 routes, including `sing_sserr`, where the function's own help notes that its
 value is never used. Omitting it there still errors. `CI` (default `.95`) is
 accepted by every route.
@@ -243,17 +302,45 @@ accepted by every route.
 The last three families never reach `psyrat_relsummary` at all.
 Difference-of-differences, nonparallel data splits, and dynamic reliability read
 `psyrat_data.rel` directly, so for those you call `psyrat_report` immediately
-after `psyrat_run`. There is no branch in `psyrat_relsummary` for those strings.
-Passing one is not merely unnecessary: it falls through the dispatch. Parallel
+after `psyrat_run`. There is no branch in `psyrat_relsummary` for those strings. If you pass one,
+`psyrat_relsummary` stops with an unrecognized-analysis-key error that lists
+the dispatch mapping and sends you to `psyrat_report`. Parallel
 splits are the exception inside the exception, because they reuse the one-facet
 and test-retest models and therefore carry `rel.analysis` of `ic` or `trt` and
 follow the ordinary two-step path above ([Chapter 13](13_tutorial-splits.md)).
 
 Which tables come back depends on the family. The one-facet and test-retest
 families return `.cutoff`, `.overall`, and `.curve`, with `.diffcurve` added for
-`trt_diff`. The subject-level family returns `.variance` and `.sscoeffs`.
+`trt_diff`. The subject-level family returns `.variance` and `.sscoeffs`. The
+subject-level difference design (`ic_diff_sserrvar`) also returns
+`.sscoeffs_diff`, one row per participant in each group, with the
+difference-score coefficient and its interval, the ICC at one observation per
+event, the SEM, the relative error variance of the mean difference, the trial
+count in each event, and the flag that decides retention. The rows are the stored values, unrounded
+([Chapter 15](15_advanced-designs.md) says what each column means). Excluded
+participants and participants whose values are NaN keep their rows. A group whose stored difference table has no
+rows contributes none, and the header of the written file states that the
+group's table is empty. `.sscoeffs` still holds the per-event rows, and their
+flags compare each event's own coefficient with the cutoff, so on this design
+they do not decide who is retained. If a stored difference table is missing or
+malformed,
+`psyrat_report` stops before it writes anything and names the group. Run
+`psyrat_relsummary` again on the same result (no refit is needed), then repeat
+the report. A saved result whose stored summary is intact needs only the report.
 
-Data splits return `.coefficients` and `.varcomp`. Dynamic reliability returns
+Data splits return `.coefficients` and `.varcomp`. The multi-occasion
+nonparallel design (analysis 24) also returns `report.splits_design` and
+`report.design_note`: by default each participant's score equally weights that
+participant's available occasion means, and the universe-score and error
+variances are averaged over participants before the coefficients are formed.
+Numeric `obs` or `nocc` options request a balanced reference-design projection
+instead, even when they match the observed counts, and the exports say which
+mode produced them; the coefficient and component exports also carry the
+observed counts and a JSON block of design metadata (participant identities,
+row weights, split indices and incidence factors), and scalar counts are
+labeled as reference counts. Analysis 23 returns no design fields
+([Chapter 13](13_tutorial-splits.md), Section 13.6, states the qualifications).
+Dynamic reliability returns
 `.surface` and `.varcomp`, plus `.ssrel` for the subject-level variants, and
 difference-of-differences returns `.dod_observed` and `.dod_varcomp`.
 
@@ -263,7 +350,10 @@ surface issued the call (leave `whichevents` out and the script fits all four
 events, and the retention counts change with the events processed).
 A GUI run and a `psyrat_run` call at identical settings produce
 bit-identical posterior draws, because both surfaces call the same
-estimation function.
+estimation function. The exception is within-chain parallelization: with it
+on, the threaded models partition their work with `reduce_sum`, and their
+draws are not bit-reproducible even between two runs from the same surface
+([Chapter 18](18_troubleshooting.md)).
 
 ## 14.3 Running headless
 
@@ -306,7 +396,8 @@ for k = 1:numel(meascols)
             'seed',     12345);
     catch ME
         % Non-convergence after the automatic reruns arrives here, as does any
-        % data-validation rejection. Keep going; report the whole set below.
+        % data-validation rejection or a savename the folder cannot hold. Keep
+        % going; report the whole set below.
         failed{end+1} = thiscol; %#ok<AGROW>
         fprintf('Skipped %s: %s\n', thiscol, ME.message);
     end
@@ -344,35 +435,44 @@ records the full prior set the run actually fit: a partial override passed to
 is what the sidecar stores, so a replay reproduces the same model (see
 [Chapter 15](15_advanced-designs.md) for setting priors).
 
-The two sampler overrides are recorded for a specific reason, though not quite
-the same reason. `adapt_delta` sets the dual-averaging target during warmup, so
+The sidecar records both sampler overrides, for related but different reasons.
+`adapt_delta` sets the dual-averaging target during warmup, so
 raising it changes the step size the sampler settles on and therefore changes
-the draws at a fixed seed. `max_treedepth` is a cap on the NUTS trajectory
-rather than an adaptation setting, so it changes the draws only when the cap
+the draws at a fixed seed. `max_treedepth` is a cap on the trajectory of the
+No-U-Turn Sampler (NUTS) rather than an adaptation setting, so it changes the draws only when the cap
 actually binds; when trajectories end on the U-turn criterion below the cap,
 raising it changes nothing. Either way, neither is a cosmetic setting that can
 be left out of a replay and reconstructed later, which is why the sidecar
-restores both rather than reverting to the defaults. It also records the
-provenance a reader needs to judge whether a replay is really a replication: the
-PsyRAT and MATLAB versions, the CmdStan version detected on the machine that ran
-it, the source filename with content hashes of both the file and the loaded
-table, and the row count that entered estimation. The engine appears twice, as
-the preference that was requested and as the engine that actually ran.
+restores both rather than reverting to the defaults.
+
+The sidecar also records the provenance a reader needs to judge whether a
+replay is really a replication: the PsyRAT and MATLAB versions, the CmdStan
+version detected on the machine that ran it, the source filename with content
+hashes of both the file and the table as read, and that table's row count
+(before any `whichevents`, `whichgroups`, or `whichtimes` restriction is
+applied). The engine appears twice, as the preference that was requested and
+as the engine that actually ran.
 
 A separate viewer block records the settings that select which coefficient the
-output was reported under: `gcoeff`, `reltype`, `diffgcoeff`, `noccmode` and
+output was reported under: `gcoeff`, `reltype`, `diffgcoeff`, `noccmode`, and
 `nocc`, and the two viewer cutoffs. That block is record-only. `psyrat_run`
-exposes no options for it, so a replay reads past it. It is there for the
+exposes no options for it, so a replay reads past it, and for a `psyrat_run`
+result it holds the toolbox defaults, because the D-study settings are chosen
+later in the `psyrat_relsummary` call and never written back. It is there for the
 methods section and for anyone reconstructing what a saved table's numbers
 actually were.
 
-Replaying adds one argument, the sidecar path; the data source and output
-location are still required:
+Replaying adds one argument, the sidecar path. The data source is still
+required, because the sidecar records the file's name and hash rather than the
+data. The output location is filled in from the sidecar like every other
+option, and `psyrat_run` saves over an existing file, so pass a new `savename`
+unless you mean to replace the original output:
 
 ```matlab
-% Settings come from the sidecar. The data source and the output location are
-% still supplied normally, so a recorded configuration can be pointed at new
-% data without editing the JSON.
+% Settings come from the sidecar. The data source is still supplied normally,
+% so a recorded configuration can be pointed at new data without editing the
+% JSON. savepath and savename would otherwise be filled from the sidecar too,
+% and the replay would overwrite the original output.
 psyrat_run('config', fullfile(outdir,'manual_ern_runconfig.json'), ...
     'file',     datafile, ...
     'savepath', outdir, ...
@@ -381,49 +481,55 @@ psyrat_run('config', fullfile(outdir,'manual_ern_runconfig.json'), ...
 
 Any option passed explicitly beats the recorded value, so one configuration can
 be reused across datasets, or its iteration counts raised while everything else
-stays fixed. The precedence is worth stating the other way round too: an option
+stays fixed. The precedence runs the other way as well: an option
 you do not pass is filled in from the sidecar, including options you may have
 forgotten it recorded.
 
-Two differences make a replay something less than a replication, and both raise
-a warning rather than stopping the run. If the CmdStan version detected here
-differs from the recorded one, or if no CmdStan can be detected at all, the
-warning names both versions. NUTS draws are not guaranteed identical across
-CmdStan versions at a fixed seed, so treat a version mismatch as a reason to
-re-estimate rather than to compare numbers across the two runs. The second
-warning fires when the recorded `engine_used` is not what the restored
-preference will select here. A replay restores the engine preference, never the
-engine that ran, and under the default automatic preference the cascade is
-re-derived from the engines installed on this machine (Section 14.5).
+Three differences make a replay something less than a replication. The first
+two raise a warning rather than stopping the run. If the CmdStan version detected here
+differs from the recorded one, the warning names both versions; if no CmdStan
+can be detected at all, it names the recorded one. Neither fires when the
+sidecar recorded no CmdStan version. NUTS draws are not guaranteed identical
+across CmdStan versions at a fixed seed, so treat a version mismatch as a
+reason to re-estimate rather than to compare numbers across the two runs. The
+second warning fires when the recorded run used a native engine under the
+automatic preference, or when an engine you force differs from the one
+recorded. A replay restores the engine preference, never the engine that ran,
+and under the default automatic preference the cascade is re-derived from the
+engines installed on this machine (Section 14.5). The third raises no warning
+at all: a run made with within-chain parallelization cannot be replayed bit
+for bit, because its draws are not reproducible even between two runs at the
+same settings (Section 14.2).
 
-CAUTION. Gamma-family sidecars written before August 3, 2026 need one argument
-on replay. The `gammascale` setting picks one of two parameterizations of the Gamma dispersion submodel. The
-two are different estimands, and their variance components are not comparable.
-On the designs that support it, the default changed on August 7, 2026, from
-log-nu dispersion (1) to log residual SD (2).
-
-Runs from August 3, 2026 onward pin the resolved value into the sidecar, so
-replaying one of those reproduces its own estimand. A sidecar written before
-that date carries no `gammascale` field, and the replay falls through to
-whichever default the running toolbox has. Pass `'gammascale', 1` explicitly
-when replaying one. Otherwise you will silently fit a different model from the
-one the sidecar describes, and two sets of numbers that are not comparable will
-look as though they are.
-
-Five designs reject an explicit 1 because they are location-scale only: the
-subject-level one-facet dynamic difference (analysis 13), the subject-level
-dynamic concurrent differences at one and two facets (19 and 20), and the
-person-specific dynamic difference of differences at one and two facets (28
-and 29). None of it touches Gaussian runs.
-[Chapter 15](15_advanced-designs.md) covers the gamma family and what each
-parameterization means.
+> CAUTION. Gamma-family sidecars written before August 3, 2026 need one
+> argument on replay. The `gammascale` setting picks one of two
+> parameterizations of the gamma dispersion submodel. The two are different
+> estimands, and their variance components are not comparable. On the designs
+> that support it, the default changed on August 7, 2026, from log-nu
+> dispersion (1) to log residual SD (2).
+>
+> Runs from August 3, 2026 onward pin the resolved value into the sidecar, so
+> replaying one of those reproduces its own estimand. A sidecar written before
+> that date carries no `gammascale` field, and the replay falls through to
+> whichever default the running toolbox has. Pass `'gammascale', 1` explicitly
+> when replaying one. Otherwise you will silently fit a different model from
+> the one the sidecar describes, and two sets of numbers that are not
+> comparable will look as though they are.
+>
+> Five designs reject an explicit 1 because they are location-scale only: the
+> subject-level one-facet dynamic difference (analysis 13), the subject-level
+> dynamic concurrent differences at one and two facets (19 and 20), and the
+> person-specific dynamic difference of differences at one and two facets (28
+> and 29). None of it touches Gaussian runs.
+> [Chapter 15](15_advanced-designs.md) covers the gamma family and what each
+> parameterization means.
 
 ## 14.5 Choosing an engine when scripting
 
 The `engine` option accepts `auto`, `cmdstan`, `fitlme`, or `hmc` (equivalently
 0, 1, 2, or 3), and defaults to `auto`. Automatic tries CmdStan first, then the
-native HMC engine, then the native fitlme engine, considering only engines
-installed on this machine and warning loudly whenever it falls back off CmdStan.
+native Hamiltonian Monte Carlo (HMC) engine, then the native fitlme engine, considering only engines
+installed on this machine and warning loudly whenever it falls back from CmdStan.
 When CmdStan is present and new enough, the cascade takes it silently and the
 run is exactly the CmdStan run. A CmdStan below the supported minimum is the one
 case that neither runs nor falls back: `auto` stops with an error telling you to
@@ -439,9 +545,12 @@ before reaching for the option at all:
 | One-facet internal consistency, with or without group and event facets | fitlme only |
 | Nonparallel data splits, single-occasion and test-retest | fitlme only |
 | Plain test-retest | HMC and fitlme, cascade prefers HMC |
-| Subject-level error variance | HMC only |
-| Dynamic/conditional reliability | HMC only |
-| Difference scores, difference-of-differences, and their two-facet and dynamic variants | HMC only |
+| Subject-level error variance, one facet (analyses 6 and 8) | HMC only |
+| Subject-level test-retest (analysis 25) | none: CmdStan only |
+| Dynamic/conditional reliability, group level and the subject-level difference variants | HMC only |
+| Subject-level dynamic reliability without difference scores (analyses 26 and 27) | none: CmdStan only |
+| Difference scores, the difference of differences (analysis 9), and their two-facet and dynamic variants | HMC only |
+| Person-specific dynamic difference of differences (analyses 28 and 29) | none: CmdStan only |
 
 Plain test-retest is the one design both native engines can fit, and the cascade
 prefers HMC there because it is the more faithful fit and because fitlme is weak
@@ -484,11 +593,11 @@ insist on automatic differentiation and get an error rather than a silent
 fallback when the toolbox is missing. The CmdStan and fitlme engines ignore the
 option entirely.
 
-No worked HMC example is printed here, and the omission is deliberate rather
-than an oversight: the native sampler is far slower per draw than CmdStan, so at
+No worked HMC example is printed here, because the native sampler is far
+slower per draw than CmdStan: at
 the default four chains and 5,000 warmup and 5,000 sampling iterations a forced
 HMC run is not a demonstration anyone would sit through. Budget for it on real
-data, and prefer CmdStan wherever it is installed.
+data.
 
 A native-engine result feeds `psyrat_relsummary` and `psyrat_report` through the
 same two-step chain and returns the same tables. The exported provenance header
@@ -516,7 +625,9 @@ buttons all act on the selection.
   and a runnable command template beneath it.
 - Run Formula: opens a small input form, runs the selected formula on the values
   entered, and replaces the panel text with the result.
-- Copy Command: copies the current usage command to the system clipboard.
+- Copy Command: copies the most recent command to the system clipboard, the
+  usage template after Show Usage or the call with your values after Run
+  Formula.
 
 An optional argument narrows the list to one family, which is faster than
 scrolling when you know what you are after:
@@ -527,17 +638,20 @@ psyrat_formula_guide('analysis','trt')      % test-retest rows only
 ```
 
 The accepted values are `all` (the default), `sing`, `sing_diff`, `sing_sserr`,
-`trt`, `dynrel`, and `splits`. Cut score formulas take the criterion as `cut`.
+`trt`, `dynrel`, and `splits`. In the cut-score rows, the criterion score is
+the argument named `cut`.
 
-That leaves one thing a script cannot do. Criterion-score (cut score)
-reliability has no headless entry point: its outputs are built by a function
-that draws a figure and a table unconditionally, and `psyrat_report` has no
-criterion branch. Cut score results currently require the GUI
-([Chapter 9](09_viewing-results.md)). Trace plots stay in the GUI for the same
-reason, and `psyrat_run` never renders them on either interactive setting.
-Everything else in this manual can be produced from a script.
+## 14.7 What a script cannot do
 
-## 14.7 Option reference
+Criterion-score (cut-score) reliability has no headless entry point: its
+outputs are built by a function that draws a figure and a table
+unconditionally, and `psyrat_report` has no criterion branch. Cut-score
+results currently require the GUI ([Chapter 9](09_viewing-results.md)). Trace
+plots also stay in the GUI: `psyrat_run` pins the trace-plot preference off, so
+it never renders them on either interactive setting (Section 14.3). Everything
+else in this manual can be produced from a script.
+
+## 14.8 Option reference
 
 `help psyrat_run` prints the authoritative list with the full reasoning behind
 each entry, and the design flags in particular carry caveats no table can hold.
@@ -550,8 +664,8 @@ selects, and what it does when left out.
 |---|---|---|
 | `file` | path to a long-format data file | (one source required) |
 | `data` | long-format table in the workspace | (one source required) |
-| `savepath` | existing output dir; no whitespace | (required) |
-| `savename` | output filename; no whitespace | (required) |
+| `savepath` | existing output dir; no whitespace | (required, or from `config`) |
+| `savename` | output filename; no whitespace; refused before the fit, with `psyrat_data:savename`, when the save folder cannot hold it, its `_runconfig.json` sidecar or its `_error.txt` report, or already holds a folder of that name | (required, or from `config`) |
 | `config` | sidecar to replay; see Section 14.4 | `''` |
 
 **Column mapping.** The empty default means the facet is absent, not that the
@@ -575,14 +689,14 @@ toolbox will guess at it.
 | `chains` | CmdStan chains; integer, 3 or higher | `4` |
 | `warmup` | warmup iterations per chain | `5000` |
 | `sampling` | post-warmup sampling iterations per chain | `5000` |
-| `seed` | RNG seed; fix it and report it | `12345` |
+| `seed` | random-number seed; fix it and report it | `12345` |
 | `adapt_delta` | NUTS target acceptance rate (`delta=`) | `[]` (model's tuned value) |
-| `max_treedepth` | NUTS tree-depth cap (`max_depth=`) | `[]` (CmdStan's 10) |
+| `max_treedepth` | NUTS tree-depth cap (`max_depth=`) | `[]` (the model's default: CmdStan's 10, or 12 on the gamma designs with residual covariance) |
 | `verbose` | 1 quiet, 2 print CmdStan iterations | `2` |
 | `withinchain` | 1 off, 2 within-chain parallelization | `1` |
 | `priors` | prior structure (see below) | `psyrat_default_priors` |
 | `engine` | `auto`/`cmdstan`/`fitlme`/`hmc` (Section 14.5) | `auto` |
-| `bootstrap_reps` | bootstrap resamples; fitlme only | `1000` |
+| `bootstrap_reps` | bootstrap resamples requested; fitlme only. Failed refits are dropped and the achieved count is disclosed in the export header and the runconfig sidecar; the run is refused below 90% successes (and below 200 when 200 or more were requested) | `1000` |
 | `hmc_gradient` | `auto`/`ad`/`numer`; native HMC only | `auto` |
 | `family` | `gaussian` or `gamma` | `gaussian` |
 
@@ -608,13 +722,13 @@ not a tuning mistake but a different analysis.
 |---|---|---|
 | `ssubjrel` | subject-level reliability: 1 off, 2 on | `1` |
 | `diffest` | difference scores: 1 off, 2 two-event, 3 difference-of-differences | `1` |
-| `dodmap` | 1x4 cell of event labels, ERP_1 to ERP_4 order | `{}` |
+| `dodmap` | 1x4 cell of event labels in (ERP_1 - ERP_2) - (ERP_3 - ERP_4) order ([Chapter 7](07_processing.md)) | `{}` |
 | `diffrescor` / `diffwpcov` | one setting, two names: residual covariance for co-occurring events, 1 off, 2 on | `1` |
-| `dynrel` | dynamic/conditional reliability: 1 off, 2 on | `1`, or 2 via `dim1col` |
+| `dynrel` | dynamic/conditional reliability: 1 off, 2 on | `1`, or `2` via `dim1col` |
 | `splits` | splits: 1 single-trial, 2 parallel, 3 nonparallel | `1` |
 | `ssrescor` | residual correlation: 1 population, 2 per-subject | `1` |
 | `dispersion` | copula dispersion: 1 per-person log-nu, 2 global | `[]` (per design) |
-| `gammascale` | Gamma dispersion: 1 log-nu, 2 log residual SD | `[]` (per design) |
+| `gammascale` | gamma dispersion: 1 log-nu, 2 log residual SD | `[]` (per design) |
 
 Six of those rows carry a condition the table cannot hold, and each one is a
 real trap rather than a refinement.
@@ -627,7 +741,8 @@ the one that switches the analysis on.
 
 `dodmap` is required when `diffest = 3`, and `splits` values 2 and 3 both
 require `weightcol`. `ssubjrel` also answers to `sserrvar`, a legacy alias kept
-for older scripts.
+for older scripts. On a replay, pass `ssubjrel` itself: the sidecar restores
+`ssubjrel`, and that restored value takes precedence over the alias.
 
 `diffrescor` and `diffwpcov` are one setting under two names, so pass either and
 the other follows. Passing both with contradictory values is an error, because
@@ -653,7 +768,7 @@ to change it, so trace plots stay GUI-only on both settings (Section 14.3).
 threshold-failure dialog (Section 14.2); it defaults to the flag the `.psyrat`
 carries, and to interactive when the file was saved by the GUI.
 
-**`psyrat_report` options.** The reporting call takes eight of its own. Note the
+**`psyrat_report` options.** The reporting call takes these options. Note the
 export format: `.xlsx` is the default, so a script that wants CSV has to say so.
 
 | Option | Meaning | Default |
@@ -661,8 +776,18 @@ export format: `.xlsx` is the default, so a script that wants CSV has to say so.
 | `outdir` | where to write tables; omit to return only | `''` |
 | `format` | `.xlsx` or `.csv` | `.xlsx` |
 | `CI` | credible-interval width | the summary's width, else `.95` |
-| `marginal` | dynrel: 0 typical-person, 1 population-average | `0` |
+| `marginal` | dynrel, Gaussian non-difference designs: 0 typical person, 1 population average; ignored under gamma, where 1 is forced to 0 with a warning | `0` |
+| `surface_target` | dynrel, gamma non-difference designs (analyses 11, 14, 26, 27): `'population_marginal'` or `'typical_person'`; any other design or value is an error; never changes the per-participant table | `[]` (the stored target, else population-marginal) |
 | `reltype` | dynrel two-facet: 1 equiv., 2 stability, 3 both | `3` |
-| `nocc` | dynrel two-facet: occasion n', or `'observed'` | `[]` (1) |
+| `nocc` | dynrel two-facet: occasion n', or `'observed'`; analysis 24 splits: numeric balanced projection | `[]` (dynrel: 1; splits: observed available occasions) |
+| `obs` | nonparallel splits: numeric split-count projection | `[]` (observed) |
 | `ngrid` | dynrel: grid points per dimension axis | `25` |
 | `ntrials` | one-facet/test-retest: max trial count for the curve | `50` |
+
+`psyrat_report` names each file after the result's save name and the table
+(for example `manual_ern_overall.xlsx` or `manual_ern_cutoff.csv`), and a
+repeat call replaces an existing file of that name outright: unlike the
+viewers' .xlsx saves ([Chapter 9](09_viewing-results.md)), it keeps no copy
+and reads nothing back. When the result has no save name, the files are named
+`psyrat_report_*`, and an existing file of that name stops the report instead.
+Write each run to its own folder if you need to keep earlier tables.

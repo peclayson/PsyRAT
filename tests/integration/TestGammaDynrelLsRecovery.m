@@ -29,7 +29,7 @@ classdef TestGammaDynrelLsRecovery < PsyRATTestBase
     %   2. testCrossParameterizationIdentityHolds - fits the SAME data BOTH ways
     %      and checks b - b_nu/2 (log-nu) against b_sigma (location-scale). This
     %      is the acceptance criterion from
-    %      documentation/gamma_scale_submodel_decision.md, and it is a genuine
+    %      the scale-submodel decision record, and it is a genuine
     %      cross-implementation check: two different Stan models, two different
     %      MATLAB extraction paths, one algebraic identity linking them.
     %   3. testSubjectLevelPerParticipantRecovered - analysis 26, the only design
@@ -49,6 +49,9 @@ classdef TestGammaDynrelLsRecovery < PsyRATTestBase
 
     methods (TestClassTeardown)
         function cleanupCmdStanArtifacts(testCase)
+            if ~isempty(PsyRAT2CRecoveryCapture.captureDir())
+                return; % Root guard archives raw evidence even if capture fails.
+            end
             base = localCmdStanOutputDir(testCase.projectRoot());
             for tag = {'recov_gamma_ls', 'recov_gamma_ls_lognu', 'recov_gamma_ls_sserr'}
                 localCleanupArtifacts(base, tag{1});
@@ -65,6 +68,8 @@ classdef TestGammaDynrelLsRecovery < PsyRATTestBase
             [dataTbl, ~] = localSimulate(c);
 
             rel = localRunLs(testCase, dataTbl, 'recov_gamma_ls');
+            PsyRAT2CRecoveryCapture.capture('dynamic11_ls',rel,c,dataTbl, ...
+                fullfile(localCmdStanOutputDir(testCase.projectRoot()),'recov_gamma_ls'));
             testCase.verifyEqual(rel.analysis, 'ic_dynrel');
             testCase.verifyEqual(rel.family, 'gamma');
             testCase.verifyEqual(rel.gammascale, 2, ...
@@ -169,7 +174,7 @@ classdef TestGammaDynrelLsRecovery < PsyRATTestBase
 
         function testCrossParameterizationIdentityHolds(testCase)
             % THE ACCEPTANCE CRITERION from
-            % documentation/gamma_scale_submodel_decision.md. Both submodels
+            % the scale-submodel decision record. Both submodels
             % describe the same likelihood through
             %   log nu = log(2) + 2*log mu - 2*log sigma,
             % so their dimension slopes are linked by  b_nu = 2*b - 2*b_sigma,
@@ -259,6 +264,8 @@ classdef TestGammaDynrelLsRecovery < PsyRATTestBase
             [dataTbl, truth] = localSimulate(c);
 
             rel = localRunLsSserr(testCase, dataTbl, 'recov_gamma_ls_sserr');
+            PsyRAT2CRecoveryCapture.capture('dynamic26_ls',rel,struct('settings',c,'person',truth),dataTbl, ...
+                fullfile(localCmdStanOutputDir(testCase.projectRoot()),'recov_gamma_ls_sserr'));
             testCase.verifyEqual(rel.analysis, 'ic_dynrel_sserrvar');
             testCase.verifyEqual(rel.gammascale, 2);
             testCase.verifyTrue(isfield(rel.out,'ind_sdlog') && ~isempty(rel.out.ind_sdlog), ...
@@ -384,23 +391,15 @@ truth = struct('u_p', u_p, 'w_p', w_p, 'zp', zp, 'sigma_p', sigma_p);
 end
 
 function [trueG, trueD] = localTrueSurface(c, zgrid, ci)
-% Closed-form true G(z)/D(z) via the production converter AT THE TRUE
-% PARAMETERS. Using the production converter here is deliberate and is not
-% circular for this purpose: what is under test is whether the FIT recovers
-% parameters that reproduce the truth, not whether the converter matches an
-% independent transcription (that is the offline oracle's job).
+% Independently derived population-marginal G(z)/D(z) at the planted
+% parameters and explicit design counts; no production converter or ratio.
 trueG = zeros(1,numel(zgrid));
 trueD = zeros(1,numel(zgrid));
 for k = 1:numel(zgrid)
     z = zgrid(k);
-    vc = psyrat_gamma_varcomps_ls(c.Alpha + c.B*z, c.SP, c.SI, ...
-        c.LogSig0 + c.BSigma*z, c.SSd);
-    [~,trueG(k)] = psyrat_rel_sing('gcoeff',2,'metric','global', ...
-        'bp',sqrt(vc.sigma_p2),'wp',sqrt(vc.sigma_pi_e2+vc.sigma_i2), ...
-        'i',sqrt(vc.sigma_i2),'obs',c.NTrl,'CI',ci);
-    [~,trueD(k)] = psyrat_rel_sing('gcoeff',1,'metric','global', ...
-        'bp',sqrt(vc.sigma_p2),'wp',sqrt(vc.sigma_pi_e2+vc.sigma_i2), ...
-        'i',sqrt(vc.sigma_i2),'obs',c.NTrl,'CI',ci);
+    reference=PsyRAT2CSurfaceReference(c.Alpha+c.B*z,[c.SP 0 c.SI 0 0 0], ...
+        2,c.LogSig0+c.BSigma*z,c.SSd,0,1,c.NTrl,1,3);
+    trueG(k)=reference.G; trueD(k)=reference.D;
 end
 end
 

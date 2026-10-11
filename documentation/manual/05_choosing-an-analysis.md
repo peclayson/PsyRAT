@@ -13,7 +13,7 @@ answer in a methods section anyway. [Chapter 6](06_preparing-data.md) covers the
 file format those choices assume, and [Chapter 7](07_processing.md) walks the
 screens they live on.
 
-![The Specify Inputs screen. Four of the six design axes are set by popups here; the other two live behind the Preferences button.](images/input_main.png)
+![The Specify Inputs screen. Three of the six design axes (facets, moderation, and splits) are set by popups here, and so is the Residual correlation choice once residual coupling is switched on; score type, error level, and the residual-covariance switch live behind the Preferences button.](images/input_main.png)
 
 ## 5.1 The six design axes
 
@@ -21,7 +21,7 @@ screens they live on.
 
 A facet is a source of measurement error you deliberately sampled. Every PsyRAT
 analysis treats trials as a facet. The Occasion ID popup on Specify Inputs
-decides whether there is a second one. Leave it on none and you get a one-facet
+decides whether there is a second one. Leave it on `(none)` and you get a one-facet
 design (persons crossed with trials), which is the internal-consistency case:
 all the data come from one session, and the question is how well a
 participant's score generalizes over the trials that produced it. Select an
@@ -29,22 +29,23 @@ occasion column and you get a two-facet crossed design (persons by trials by
 occasions), which adds the question of how well the score generalizes over
 occasions. The second facet is expensive in a specific way. Occasion-level
 variance components are estimated from as many levels as you have occasions,
-which is usually two, so those components stay wide no matter how many trials
-or participants you collected.
+which is usually two, so the intervals on those components stay wide no matter
+how many trials or participants you collected.
 
 ### Score type: single, difference, or difference of differences
 
 Set this with Estimate internal consistency of difference scores, in
 Preferences. No treats the measurement column as the score, one row per trial.
-Yes: 2-event difference models both conditions jointly and reports the
+Yes: 2-event difference fits both conditions in one model and reports the
 reliability of their difference (error minus correct, incongruent minus
 congruent, and so on), which requires exactly two event types in the data.
-Yes: 4-event DoD reports the reliability of a contrast between two differences
-(a difference of differences, DoD), (ERP_1 - ERP_2) - (ERP_3 - ERP_4), which
-requires exactly four. The four-event
-option also requires you to say which event plays which role, on the Configure
-DoD Contrast screen, before Analyze will run. Difference scores are not a
-post-hoc subtraction of two separately estimated coefficients. The constituent
+Yes: 4-event DoD reports the reliability of a difference of differences (DoD),
+the contrast (ERP_1 - ERP_2) - (ERP_3 - ERP_4), which requires exactly four
+event types. The four-event option also requires you to say which event plays
+which role: click DoD Contrast... on Specify Inputs and assign the roles on
+the Configure DoD Contrast screen before Analyze will run. Difference-score
+reliability is not computed by combining two separately estimated
+coefficients after the fact. The constituent
 scores are modeled together so that their covariance enters the universe-score
 variance, which is the whole reason a difference can be far less reliable than
 either score it is built from.
@@ -67,14 +68,14 @@ identify than a pooled one.
 The Dimension 1 (dynamic) popup turns on dynamic reliability, the
 conditional-reliability model of Rast and Clayson (in press). Selecting a
 continuous, between-person column (one value per participant, such as a
-questionnaire total) makes both the mean and the residual scale functions of
-that standardized dimension, so the reported coefficient becomes a curve rather
+questionnaire total) models both the mean and the residual scale as functions
+of that standardized dimension, so the reported coefficient becomes a curve rather
 than a number: reliability at low, average, and high values of the dimension.
 Dimension 2 (dynamic) adds a second predictor and its interaction with the
 first. This is the axis to reach for when you suspect the measure works better
 in one part of the sample than another, which is a common worry when a
 clinical range and a comparison range are pooled in one dataset. Leave both
-popups on none for a static analysis, which is the default.
+popups on `(none)` for a static analysis, which is the default.
 
 ### Residual coupling: independent, shared, or per-participant
 
@@ -85,11 +86,14 @@ the difference-score error variance. Estimate residual covariance for
 co-occurring events, in Preferences, turns that covariance on. No fixes it to
 zero, which is right when the two conditions come from separate trials. Yes
 estimates it. For dynamic subject-level designs a third choice opens up: the
-Residual correlation popup on Specify Inputs offers Population (shared), one
-correlation for the sample, or Per-subject, a separate correlation for each
-participant. That popup is greyed out until difference scores, subject-specific
-error variances, and residual covariance are all switched on, because it means
-nothing anywhere else. The four-event contrast never takes a residual
+Residual correlation popup on Specify Inputs keeps Population (shared), one
+correlation for the sample, as its default and adds Per-subject, a separate
+correlation for each participant. That popup is grayed out until Yes: 2-event
+difference, subject-specific error variances, and residual covariance are all
+switched on, and it takes effect only when a Dimension 1 (dynamic) column is
+also selected (the static subject-level concurrent design, analysis 8,
+estimates a per-participant correlation of its own under the Gaussian family,
+whatever the popup says). The four-event contrast never takes a residual
 covariance in any configuration; all six of its pairwise residual covariances
 are fixed at zero by the estimand it reports.
 
@@ -106,70 +110,79 @@ so the output looks exactly like a single-trial run with the word trial
 replaced by split. Nonparallel (unequal n_i) fits the weighted observed-design
 model instead, and it is identified only by variation in n_i across splits.
 Equal counts under that setting are rejected before the run starts. Nonparallel
-splits report the design you actually observed, with no projection to other
-split counts and no trial-count cutoff, because split means have already lost
-the item-level partition a projection would need.
+splits report the design you actually observed by default, with no projection
+over item counts and no trial-count cutoff, because split means have already
+lost the item-level partition such a projection would need; the Splits n' box
+on their viewer can still report the coefficients at another number of splits
+([Chapter 13](13_tutorial-splits.md)).
 
 ## 5.2 Two more choices, crossed with all six
 
 ![The Specify Processing Preferences screen, reached from the Preferences button. Score type, error level, residual coupling, and the likelihood family are all set here.](images/prefs_processing.png)
 
 The observation likelihood is set by Observation likelihood family in
-Preferences. Gaussian is the default and is what ERP amplitudes want, negative
-values included. Gamma fits a scaled chi-square (Gamma with a log link) and
+Preferences. Gaussian is the default and suits ERP amplitudes, negative values
+included. Gamma fits a scaled chi-square (Gamma with a log link) and
 suits strictly positive, right-skewed scores such as single-trial
 time-frequency power; non-positive values are rejected under it. The gamma
 family covers most, not all, of the design grid, and it always runs on CmdStan.
 Gamma scale parameterization decides what the dispersion submodel is built on,
 and Automatic (recommended) picks correctly for the design you asked for. The
-two settings under it are different estimands rather than two views of one fit,
-so leave it on Automatic unless you have a reason to do otherwise and are
+other two options, log-nu and location-scale (Section 15.4 of
+[Chapter 15](15_advanced-designs.md) names and explains them), select
+different estimands rather than two views of one fit, so leave the popup on
+Automatic (recommended) unless you have a reason to do otherwise and are
 willing to say which one you used.
 
 The Estimation engine popup on Specify Inputs picks how the model is fit.
 Automatic (recommended) uses CmdStan whenever it is installed, which is the
 configuration everything in this manual assumes. The popup is reachable only
 once CmdStan is found, because `psyrat_start` stops at its dependency check
-without it ([Chapter 18](18_troubleshooting.md)); from a script, `psyrat_run`
-with the `engine` option at its automatic default falls back to the first
-native MATLAB engine that implements your design, preferring
-native HMC (Hamiltonian Monte Carlo, a genuine Bayesian fit, though not
-bit-identical to CmdStan) over native fitlme (restricted maximum likelihood,
-REML, with a parametric bootstrap, whose intervals are approximate and not
-credible intervals). Which engine is legal depends on the
-design, not on your preference: the plain one-facet designs and the nonparallel
-splits are fitlme-only, the location-scale and multivariate designs are
-HMC-only, plain test-retest is the one design both native engines can fit, and
-several designs have no native implementation at all. Every card in
-[Chapter 16](16_analysis-reference.md) names its engines, and
-[Chapter 3](03_installation.md) covers what each one needs installed. One
-dependency is worth knowing before you plan a gamma run: the concurrent gamma
-difference designs need the Statistics and Machine Learning Toolbox even on the
-CmdStan path, and the failure comes after sampling finishes rather than before
-it starts.
+without it ([Chapter 18](18_troubleshooting.md)). A script behaves
+differently. If CmdStan is not installed, `psyrat_run` with the `engine`
+option at its automatic default falls back to the first native MATLAB engine
+that implements your design, preferring native HMC (Hamiltonian Monte Carlo, a
+genuine Bayesian fit, though not bit-identical to CmdStan) over native fitlme
+(restricted maximum likelihood, REML, with a parametric bootstrap, whose
+intervals are approximate and not credible intervals). Which native engine is
+legal depends on the design, not on your preference. Among the native engines,
+the plain one-facet designs and the nonparallel splits run only on fitlme; the
+other location-scale and multivariate designs run only on HMC; plain
+test-retest is the one design both can fit; and the subject-level test-retest
+and subject-level dynamic designs (analyses 25, 26, and 27) and the
+person-specific dynamic difference of differences (28 and 29) have no native
+implementation at all. Every card in [Chapter 16](16_analysis-reference.md)
+names its engines, and [Chapter 3](03_installation.md) covers what each one
+needs installed. One dependency is worth knowing before you plan a gamma run:
+the concurrent gamma difference designs (two-event difference scores with
+Estimate residual covariance for co-occurring events set to Yes) need the
+Statistics and Machine Learning Toolbox even on the CmdStan path, and without
+it the run is refused before anything is compiled.
 
 ## 5.3 Working through it
 
-Answer the questions in this order and you land on a card number. The first
+Answer the questions in this order and you land on a card. The first
 question is the one people skip, so it is first.
 
 - **Are your rows split means rather than single trials?**
   - Yes, and every split holds the same number of items. Declare Parallel; the
-    run reuses analyses 1 to 5 with trial relabeled as split (see the parallel
-    splits card).
+    run reuses the machinery of analyses 1 to 5 with trial relabeled as split
+    and has no number of its own (see the parallel splits card in
+    [Section 16.7](16_analysis-reference.md)).
   - Yes, and the counts differ. Declare Nonparallel: analysis 23 with one
     occasion, analysis 24 with an occasion column.
   - No. Continue.
 - **Do you want reliability reported as a function of a continuous participant
   characteristic?**
   - No. Take the static branch below.
-  - Yes. Select Dimension 1 and take the dynamic branch.
+  - Yes. Select a column in Dimension 1 (dynamic) and take the dynamic branch.
 
 ### Static branch
 
 - **A single score.**
-  - One occasion, one error variance for the sample: analysis 1; analyses 2,
-    3, and 4 once a group column, an event column, or both are selected.
+  - One occasion, one error variance for the sample: analysis 1, or analyses
+    2, 3, and 4 once a group column, an event column, or both are selected,
+    respectively.
   - One occasion, an error variance per participant: analysis 6.
   - Two occasions, one error variance for the sample: analysis 5.
   - Two occasions, an error variance per participant: analysis 25.
@@ -199,16 +212,15 @@ question is the one people skip, so it is first.
   subject-specific error variances must be on and residual covariance must be
   off.
 
-Combinations that are not in those lists are rejected, with a dialog naming the
-setting to change. The rejection happens before sampling starts in almost every
-case. The exception worth planning around is the gamma extraction dependency
-named above, which fires after the fit.
+Combinations that are not in those lists are rejected before sampling starts,
+with a dialog naming the setting to change. A missing Statistics and Machine
+Learning Toolbox on a concurrent gamma difference design is refused at the same
+point.
 
-Every analysis in those lists can be launched from the Analyze step. A few
+Every analysis in those lists can be launched with the Analyze button. Two
 options have no screen control and are set only from a script: custom priors
-([Chapter 15](15_advanced-designs.md)) and the gamma copula
-residual-dispersion option (`dispersion`) are passed as `psyrat_run`
-arguments. [Chapter 14](14_scripting.md) covers scripted runs in general.
+([Chapter 15](15_advanced-designs.md)) and the gamma residual-dispersion
+option (`dispersion`, Section 15.5), both passed as `psyrat_run` arguments. [Chapter 14](14_scripting.md) covers scripted runs in general.
 
 You do not have to remember which analysis a set of settings produced. Every
 run writes a `*_runconfig.json` sidecar next to its `.psyrat` output, recording
@@ -222,27 +234,85 @@ read first when you come back to a result six months later.
 Most of the grid is supported in the plain sense: covered by the unit and
 accuracy suites and, where a live recovery test exists, checked against known
 variance components in a live CmdStan run. The rest carries a label. The
-experimental arm says so in the header of every table it exports but nowhere on
-screen; the tractability-checked arm says in its export header that its one
-check established tractability, not robustness; the development-only cell says
-so nowhere at all. All of them are stated here and in the CHANGELOG's design
-maturity table, which uses the same five labels.
+Restricted arm says so in a notice you acknowledge when you press Analyze,
+before the save dialog; in the results viewer and on the figures you save from
+it; and in the header of every table it exports. The Experimental arm says so
+in the header of every table it exports but nowhere on screen; the
+Tractability checked arm says in its export header that its one check
+established tractability, not robustness; the Development-only cell says so
+nowhere at all. All of them are stated here
+and in the CHANGELOG's design maturity table, which uses the same six labels.
 
 | Designs | Configuration | Status |
 |---|---|---|
-| One-facet and test-retest reliability, subject-level error variances, non-concurrent two-event difference scores, the four-event difference of differences, reliability from splits, the dynamic family apart from analysis 20 under gamma, and the person-specific dynamic difference of differences | Gaussian throughout, and gamma wherever gamma is offered | Supported |
+| One-facet and test-retest reliability, subject-level error variances, non-concurrent two-event difference scores, the four-event difference of differences, reliability from splits, the dynamic family apart from analysis 20 under gamma, and the person-specific dynamic difference of differences | Gaussian throughout, and gamma wherever gamma is offered, apart from the gamma two-facet row below (analyses 14, 25, and 27) | Supported |
+| Three two-facet designs with an occasion facet: dynamic test-retest reliability (analysis 14), subject-level test-retest reliability (analysis 25), and subject-level dynamic test-retest reliability (analysis 27) | Gamma, in both parameterizations (location-scale and log-nu); the Gaussian arms stay Supported | Restricted |
 | Two-event difference scores with correlated residuals (analyses 7, 8, and 10) | Gamma, with a separate dispersion parameter for each participant (`dispersion` 1, the only gamma arm analysis 8 has) | Experimental |
 | Two-event difference scores with correlated residuals (analyses 7 and 10) | Gamma, one global dispersion parameter (`dispersion` 2, the default for these two) | Tractability checked, robustness not |
 | Two-facet subject-level concurrent dynamic difference (analysis 20) | Gamma, location-scale | Development-only |
 | Analyses 15, 16, 17, 18, 21, and 22 under gamma; every splits design under gamma; residual covariance on the four-event difference of differences in any family | any | Not implemented: requesting them stops with a message |
 
 Supported does not mean that every cell has a live CmdStan recovery test of its
-own. The Gaussian four-event difference of differences (analysis 9) is recovered
-live only through the native HMC engine; the Gaussian subject-level dynamic
-designs (analyses 26 and 27) share the fits of analyses 11 and 14 and have no
-recovery test of their own; the gamma arm of analysis 19 is checked only by a
-replay of an external reference fit; and the splits designs (analyses 23 and 24)
-have no independent-oracle row. The CHANGELOG records the same list.
+own. The Gaussian four-event difference of differences (analysis 9) is
+recovered live only through the native HMC engine. The Gaussian subject-level
+dynamic designs (analyses 26 and 27) share the fits of analyses 11 and 14 and
+have no recovery test of their own. The gamma arm of analysis 19 is checked
+only by a replay of an external reference fit, and the splits designs
+(analyses 23 and 24) have no independent check of their formulas beyond the
+regression suite. The CHANGELOG records the same list.
+
+Restricted means one specific thing, and it is not a convergence label. With
+few occasion levels (three or four in each reviewed capture of these designs),
+the population variance components and the pooled residual that the
+tables report as posterior means are not recovered at level. The ratios below
+compare each posterior mean with its planted value on the variance scale, even
+where a viewer table shows standard deviations.
+
+In the five re-evaluated scope captures (a capture is a saved simulated fit
+reviewed for these designs), the occasion component came out 2.4 to
+12.1 times its planted value, the highest-order remainder 2.2 to 7.2 times, and
+the pooled residual 1.1 to 1.9 times, and for some components the whole 95%
+interval sat above the truth. The retained analysis-27 location-scale capture,
+reviewed beside them as a control, read 1.42, 1.66, and 1.02 for the same three
+components; that is not a new pass. Two further fits of analysis 27 on fresh
+simulated data put the occasion component at 60.1 and 2.45 times, the
+highest-order remainder at 31.6 and 3.35 times, and the pooled residual at 1.83
+and 2.95 times. The five scope captures, the retained control, and the first of
+those two fits converged; the second did not by the toolbox's own criterion (an
+R-hat of 1.14 and an effective sample size of 12). That sampling problem is
+recorded alongside the finding, but it is not the reason for the Restricted
+label.
+
+The pattern is consistent with a property of the summary under this design:
+the raw-scale components are exponentials of squared log-scale standard
+deviations, and with only a few occasion levels those posteriors are strongly
+right-skewed, so their means are dominated by the tail. The coefficients are
+means of bounded per-draw ratios and are far less affected.
+
+Among the three Restricted analyses, the generalizability (G) and
+dependability (D) coefficients stayed within about .03 and .06 of the truth,
+respectively, for analyses 14 and 25. For analysis 27, both G and D were
+biased downward in the converged fits. Each
+offset below is the median, across participants, of the signed error of a
+participant's posterior-mean coefficient (its posterior mean minus the planted
+value). G was about .05 low under
+location-scale at four occasions and .10 low under log-nu at three. D was .13
+low in the converged fresh fit, where all 40 participants fell below the truth,
+.10 low under log-nu, and .02 low in the retained capture; the second fresh fit
+put D .08 high, but that fit did not converge. These offsets describe
+particular datasets and are not bounds. The ordering of participants is kept
+(r of at least .86).
+
+Wherever the toolbox's summaries were compared with an independent
+enumeration, they agreed to 2e-12 or better, which shows that the
+equations are implemented consistently, not that the components are
+recovered, calibrated, identifiable, or adequately sampled. Report the
+coefficients of the Restricted analyses with this caveat. Reading the component estimates against their
+intervals does not remedy the weak evidence. The notice you see at Analyze, the note in the
+viewer and on the figures you save from it, and the export header all carry the
+same finding, and
+[Chapter 16](16_analysis-reference.md) marks the three analyses. The one-facet gamma dynamic designs (analyses 11 and 26) were
+checked the same way and do not show the pattern, so they stay Supported.
 
 Experimental means one specific thing here. Convergence for those fits has not
 been established in this release: an in-repo subject-level fit reached an R-hat
@@ -251,15 +321,19 @@ when the simulated participant and trial counts were raised. Treat any estimate
 from that configuration as unverified until you have read its own convergence
 verdict, divergent-transition count, and per-parameter diagnostics. Analysis 8
 has no alternative under gamma, because a per-participant coefficient needs a
-per-participant dispersion parameter. Analyses 7 and 10 default instead to a
-single dispersion parameter for the sample, which converged cleanly on one
-simulated one-facet dataset at one choice of sampler settings, while the
-two-facet check still produced divergent transitions. That is a statement
-about tractability, not about robustness, and its own disclosure text says so.
+per-participant dispersion parameter.
+
+Tractability checked, robustness not, is the label on the alternative.
+Analyses 7 and 10 default instead to a single dispersion parameter for the
+sample (`dispersion` 2), which converged cleanly on one simulated one-facet
+dataset at one choice of sampler settings, while the two-facet check still
+produced divergent transitions. That is a statement about tractability, not
+about robustness, and its own disclosure text says so.
 
 Development-only is stronger. The two-facet configuration of analysis 20 under
-gamma has no empirical anchor at all, so nothing outside the toolbox has ever
-been reproduced with it. Do not report from it.
+gamma has never been checked against a known-truth recovery or an external
+reference fit, and no label says so on screen or in an export. Do not report
+from it.
 
 Two more disclosures belong with these. Analyses 19 and 20 under the gamma
 family are fitted by a modular cut workflow: the margins are fitted first
@@ -268,8 +342,9 @@ result is a cut posterior rather than a full Bayesian one, and the exported
 provenance says so. Analyses 28 and 29 are explicitly not cut posteriors, since
 they have no dependence module to cut.
 
-All of the Gaussian arms named in those rows are unaffected. If you are running
-ERP amplitudes with the default family, none of this applies to your run.
+None of the Restricted, Experimental, Tractability checked, or
+Development-only labels applies to a Gaussian arm. If you are analyzing ERP
+amplitudes with the default family, those caveats do not apply to your run.
 
 ## 5.5 Why the version carries -beta
 
@@ -280,9 +355,9 @@ version may need edits against the next one. It is not a statement that the
 estimates are provisional, and the design maturity table above is per-design
 for exactly that reason.
 
-There is a second, narrower reason, and it deserves saying plainly. The
-concurrent gamma difference designs ship with their convergence unvalidated in
-this repository. Shipping them at all is a judgment call I made in favor of
+There is a second, narrower reason. The concurrent gamma difference designs
+with a per-participant dispersion parameter (analyses 7, 8, and 10 with
+`dispersion` 1) ship with their convergence unvalidated in this repository. Shipping them at all is a judgment call I made in favor of
 letting people run them with the caveat attached rather than withholding them
 until the sampler problem is solved. The suffix is part of that bargain: it
 says the toolbox is usable and honest about which corner of it is not yet

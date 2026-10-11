@@ -11,7 +11,7 @@ function value = psyrat_req(args,name,msg)
 % previously duplicated as an identical local function in psyrat_cutscore_sing
 % and psyrat_rel_sing. See psyrat_opt for the optional-argument counterpart.
 %
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

@@ -1,0 +1,128 @@
+{
+  "antithetic": {
+    "rows": 1000,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "87f14bb35349772a8aaf8eb0b30d0bc90bd4d4167584aa5a6495bae35072370d",
+    "binary_sha256": "5a68551a40134588ac767c4dfefe7908fb5530a24349d72ec245b91c1a900938"
+  },
+  "autocorrelated": {
+    "rows": 1000,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "184966ade544deadca6ec1386270f6c7d752291b446d2ca0022ac1610e4a83c6",
+    "binary_sha256": "015c6446b3a9e893cf08d05709037db62b87ba8d664c5ecf1cbb55e8e1c08e88"
+  },
+  "different_constants": {
+    "rows": 100,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "6ee3722570fd44645e9af851f97a587cc659ce51df0f7328da493d1f6b12e6c1",
+    "binary_sha256": "bdc8123b9f63b9e4feed5ab95da141a0da54dceeae79be5bca14842bb055e498"
+  },
+  "different_means": {
+    "rows": 2000,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "88ead91f8f55c7dde5991612c7bcbe99867328aa4687699be6223ba4e5cefe2c",
+    "binary_sha256": "0a46a12aa34d1a7250dcdd4e517975e47143851e6ad810d5e7a95340c18ac6b4"
+  },
+  "different_scale": {
+    "rows": 2000,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "cc672491d13c2e8bf24238f9743c69c37a568eac99559a0bb64613137d2a43c5",
+    "binary_sha256": "64cec5b39eba38272d430eb8c7cb1f58133f32449d1bc4e6910e22b16da2a33f"
+  },
+  "heavy_tail_cauchy": {
+    "rows": 1000,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "64df68b30cfd8e1783e63702f62475f3056556d1e3c4540c5508e69209ed7592",
+    "binary_sha256": "a3a02de309af69bffdf892d8bfc92111b2cebfbe2969bd9062a22a5f8c1c85b6"
+  },
+  "iid": {
+    "rows": 2000,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "cc3b388cd22be223e24e0e9fa2bff86a83e8a9f411a8fcdfe4a10044384d3852",
+    "binary_sha256": "4bcae83a4e1ffbe9f75f756589d62201196a1ce6c9e89801b250d67d56731ea5"
+  },
+  "mixed_one_constant": {
+    "rows": 100,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "03aad88f957a4612a2b3ac52e2f15f8d7c5cfa18b7528ef36ad2faa11f1c4913",
+    "binary_sha256": "64aa3430d981b195bf95c35dba6d27f994ca506092c395a052dd25e7c8fb0c13"
+  },
+  "nonfinite": {
+    "rows": 100,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "34e24526bb4425842d0a5edbf8b85c159371585e8e0c680f9849194663697acf",
+    "binary_sha256": "2d28f56f3aa38694e701c2d276be58db636478869084e094d1e3f30e1c8591eb"
+  },
+  "odd_middle_outlier": {
+    "rows": 101,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "ec2a16a5f9e0d094ff09db50c1f275948ed3eca2f6198ff0d17c6355c5fe001e",
+    "binary_sha256": "b24997ec635ef1223512cd834a389e2f1aac73b6cf5f2298527ed78440484c55"
+  },
+  "one_chain": {
+    "rows": 100,
+    "columns": 1,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "e4d0c4826db4d0519e9637ca7eae91f21962ee255754473304226449eb5fbc76",
+    "binary_sha256": "60abb854ed0558c3a7542d52dc7b1fd5fa15ee9ae1d72af0c1e83ce71ab5832c"
+  },
+  "same_constant": {
+    "rows": 100,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "4daa6d4ec572891d6e2966f0924a549f5bff71f5b30d7704de6de5cd537ec452",
+    "binary_sha256": "9498dac910b1db181ba67f375928e0a69b5d011418bbc60f185b36b4256fb76c"
+  },
+  "short_six": {
+    "rows": 6,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "c5c7525d497bed06040e458bbad100827cefb4012a68d44ff5df5e78d8204c8e",
+    "binary_sha256": "ee7630e56f34bb45971f62d9c983a41f62bfc82860738234349dbb90f1cfec74"
+  },
+  "ties": {
+    "rows": 1000,
+    "columns": 4,
+    "dtype": "IEEE754 float64",
+    "byte_order": "little endian",
+    "array_order": "column major",
+    "source_csv_sha256": "0dc41750989b90f138a3077ac44ffab7332431df48be08418093afaf82c29437",
+    "binary_sha256": "6d86edecde5877de37e0ff55af6088a8fb6a370ccc17ecd67c2b1f338ddf229c"
+  }
+}

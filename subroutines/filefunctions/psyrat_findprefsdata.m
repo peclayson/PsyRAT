@@ -8,11 +8,11 @@ function [psyrat_prefs,psyrat_data] = psyrat_findprefsdata(varin)
 % varin - varargin from guis
 %
 %output
-% psyrat_prefs - PsyRAT Toolbox structure array containing preferences
-% psyrat_data - PsyRAT Toolbox structure array containing data
+% psyrat_prefs - PsyRAT structure array containing preferences
+% psyrat_data - PsyRAT structure array containing data
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

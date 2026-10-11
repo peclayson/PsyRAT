@@ -29,19 +29,21 @@ the file Tutorial 1 uses:
 
 Read the columns left to right. `id` is the participant, `group` is the
 between-person grouping, `event` is the condition label, and `meas` is the
-single-trial ERN amplitude in microvolts. That last column is the only one the model treats
-as a score. The window shown here straddles a condition boundary: the first five
+single-trial amplitude in microvolts (the ERN on error trials). That last
+column is the only one the model treats as a score. The window shown here straddles a condition boundary: the first five
 rows are error trials on incongruent stimuli and the next five are correct
 trials on the same stimuli. Nothing marks the boundary except the `event` value,
-and nothing needs to. Rows may be interleaved across participants and
-conditions, but within a participant and condition the order of the rows
-matters: PsyRAT numbers each participant's trials in the order the rows
-appear, and that number is the trial level shared across participants in the
-trial main effect (a participant's third row within a condition is that
-condition's trial 3 for everyone). The
-concurrent difference designs pair trials the same way, the k-th trial of one
-event with the k-th trial of the other. Keep every participant's rows in the
-order the trials occurred, and do not shuffle rows within a participant.
+and nothing needs to.
+
+Rows may be interleaved across participants and conditions. Within a
+participant and condition, though, row order matters. PsyRAT numbers each
+participant's trials in the order the rows appear, and that number is the
+trial level shared across participants in the trial main effect (a
+participant's third row within a condition is that condition's trial 3 for
+everyone). The concurrent difference designs pair trials the same way, the
+k-th trial of one event with the k-th trial of the other. Keep every
+participant's rows in the order the trials occurred, and do not shuffle rows
+within a participant.
 
 Trial counts do not have to match. Participants routinely differ in how many
 artifact-free error trials they contribute, and the trial-count projection in
@@ -59,9 +61,10 @@ of items and you declare how many.
 Header names are free. The GUI maps columns to roles through the popup menus on
 the Specify Inputs screen ([Chapter 7](07_processing.md)), so a file whose
 headers read `subjid`, `cond`, and `ern_uv` works exactly as well as one written
-to the canonical names. Scripted callers pass the same mapping as arguments
-(`idcol`, `meascol`, `groupcol`, `eventcol`, `timecol`); see
-[Chapter 14](14_scripting.md).
+to the canonical headers `id`, `meas`, `group`, `event`, and `time`. Scripted
+callers pass the same mapping as arguments (`idcol`, `meascol`, `groupcol`,
+`eventcol`, `timecol`, and for the optional roles `dim1col`, `dim2col`, and
+`weightcol`); see [Chapter 14](14_scripting.md).
 
 The canonical names buy one thing: they are what auto-detection finds first.
 When the Specify Inputs screen opens, PsyRAT preselects each role by matching
@@ -78,7 +81,7 @@ often than it is wrong. It is still a guess. Confirm the Measurement popup befor
 you click Analyze, because a run on the wrong column completes normally and
 reports the reliability of whatever you pointed at.
 
-Dimension columns and the items-per-split column are never auto-detected. They
+Dimension columns and the Items per split (n_i) column are never auto-detected. They
 stay on `(none)` until you pick them, which is deliberate: selecting either one
 changes which analysis runs.
 
@@ -86,15 +89,17 @@ One header caveat, and it will surprise you the first time. MATLAB coerces table
 headers into valid variable names as it reads the file, so `ERN (uV)` arrives as
 `ERN_uV_` (the space is dropped and each parenthesis becomes an underscore), and
 that coerced name is what the popups show. Your data are untouched. If you
-want the popups to read cleanly, export headers made of
-letters, digits, and underscores.
+want the popups to read cleanly, export headers that start with a letter and
+contain only letters, digits, and underscores.
 
 ## 6.3 The splits format: one row per split, with a weight
 
 Reliability from data splits takes a different input, and the difference is not
 cosmetic. Each row is one SPLIT rather than one trial, the measurement column
-holds the split MEAN, and a weight column reports how many items were averaged
-into that split. The weight column is required. Without it the split-level model
+holds the split MEAN, and an Items per split (n_i) column (the weight column,
+for short) reports how many items were averaged into that split. That column
+is required, and selecting it on the Items per split (n_i) popup is what
+declares a splits analysis. Without it the split-level model
 cannot be identified, because the sampling variance of a split mean of `n_i`
 items is the per-item residual variance divided by `n_i`.
 
@@ -121,7 +126,8 @@ would be declared Parallel instead. The whole shipped file runs 4 to 40 items pe
 split across 36 participants.
 
 Every weight must be a positive whole number. Fractions, zeros, negatives, and
-non-finite entries are rejected at load time. Group, event, and occasion columns
+non-finite entries are refused when you click Analyze, along with the other
+data checks in Section 6.5. Group, event, and occasion columns
 load here exactly as they do for single-trial input, and Parallel splits use
 them as single-trial input does. One restriction applies to Nonparallel splits:
 their single-occasion model is fitted as one pooled model over all
@@ -148,21 +154,22 @@ interaction. Selecting Dimension 2 without Dimension 1 is refused.
 
 A dimension column must be numeric, and it must be constant within participant.
 One value per person, repeated down that person's rows, is what the format
-expects: a questionnaire total, an age, a symptom score. If a participant's rows
-disagree, the run stops and names the participant and the column. If a
-participant has no finite value at all, the run stops and names that participant
-too. A column with no between-participant variance cannot be standardized and is
-also refused.
+expects (a questionnaire total or a symptom score, for example). Fill the value
+on every row: a blank Dimension cell anywhere stops the run with the
+missing-cells message in Section 6.5. If a participant's rows disagree, the
+run stops and names the participant and the Dimension (as dim1 or dim2). A
+column with no between-participant variance cannot be standardized and is also
+refused.
 
 Nothing else about the file changes. The dimension column sits alongside the
 usual `id`, `meas`, and facet columns, one more column in the same long-format
 table. [Chapter 15](15_advanced-designs.md) covers what the analysis reports.
 
-## 6.5 What loading checks, and what to do about it
+## 6.5 What Analyze checks, and what to do about it
 
 The data checks do not run when the file picker closes. Opening the file only
 reads it into a table. The checks below run when you click Analyze, once per
-selected measurement, and (this catches people out) AFTER you have chosen a name
+selected measurement, and (this trips people up) AFTER you have chosen a name
 and folder for the output. The one exception is the setup-screen wording quoted
 in the non-numeric row below, which fires once for all selected measurements
 before the save dialog opens. [Chapter 7](07_processing.md), Section 7.5,
@@ -173,22 +180,27 @@ quoted from what the toolbox prints, trimmed to the identifying phrase.
 
 | What you will see | How to fix |
 |---|---|
-| "Input data include missing cells, which CmdStan cannot process." | Remove or impute the affected rows so every row has an id, a measurement, and a value for every facet you selected. |
+| "Input data include missing cells, which CmdStan cannot process." (followed by each column with missing cells, how many, the first such row of the prepared table, and that row's id) | Remove or impute the affected rows so every row has an id, a measurement, and a value for every facet you selected. A value that cannot be read as a number, such as `NA`, text, or an empty cell, is imported as missing, so the message also catches non-numeric entries in the measurement column. |
 | "Participants differ in the number of distinct events" (with a printed table of ids and `Number_of_Events`) | Read the printed table, find the ids whose count differs from the rest, and either restore the missing condition or drop those participants. |
 | "Participants differ in the number of distinct occasion cells" (with a printed table of ids and `Number_of_Occasions`) | Same remedy, applied to the event-by-occasion grid (or, when no event column is selected, to occasions alone; the check runs either way). |
 | "The data in the measurement column is not numeric" (or, from the setup screen, "The following selected measurement columns are not numeric:") | Point Measurement at a numeric column. A text or date column selected by mistake is the usual cause. |
 | "Column 'group' is a logical (true/false) array, which cannot be used as a label column." | Convert the column to numeric codes, a categorical, or text before loading, for example with `double(t.group)` or `categorical(t.group)`. |
 | "has numeric values that convert to the SAME text label, so two or more distinct levels would be merged into one" | Supply that label column as text yourself, rounding or naming the levels the way you want them reported. |
-| "The 'id' column contains missing values" | Give every row a label. A missing label cannot be filled in safely, because every missing entry would collapse into one level. |
+| "The 'id' column contains missing values" (or 'group', 'event', 'time') | Give every row a label in that column. A missing label cannot be filled in safely, because every missing entry would collapse into one level. |
 | "The dataset is a table with column headers but no data rows." | Re-export the file with its single-trial rows. |
+| "Measurement column '...' contains N non-finite (Inf or -Inf) value(s)" | Remove or correct the infinite scores. Every score must be a finite number. |
+| "Column '...' has N label(s) containing a comma, a double quote, or a line break" | Rename those labels. The exported CSV tables would otherwise misplace every later column of such a row. |
+| "The occasion column 'time' has only one level" | An occasion column with one level routes the run to the two-facet test-retest design, whose occasion components cannot be identified from a single occasion. Set Occasion ID back to (none), or supply a second occasion. |
 
-Two of those rows deserve more than a line.
+Three of those rows deserve more than a line.
 
 The two participant-count checks compare COUNTS, not membership, and the error
 text says so itself. A participant with four distinct events passes even if they
 are not the same four events everybody else has. That is a real limit, not a
 subtlety I am glossing: uniform counts are what the check can enforce cheaply on
-a long-format table. A genuinely incomplete design still runs. When both an
+a long-format table.
+
+A genuinely incomplete design still runs. When both an
 event and an occasion column are selected, PsyRAT warns rather than blocking,
 reporting how many participant-by-event-by-occasion cells hold no observations
 and naming the first few. In a single-session design there is no such warning,
@@ -200,14 +212,21 @@ exclusion, such as artifact rejection, and not a data-preparation error.
 
 Two more warnings belong to the same non-blocking class. "The dataset has only N
 participant(s), fewer than the recommended minimum of 20" fires below 20
-participants, per group when a group column is selected, and "Median trials per
-cell is X, fewer than the recommended minimum of 10" fires when the median trial
-count per participant, or per participant-by-event cell, falls below 10. None of
+participants (variance components are unstable and prior-dominated with so
+few); when a group column is selected the check runs per group and reads
+"Group 'GroupA' has only N participant(s)..." instead. "Median trials per cell
+is X, fewer than the recommended minimum of 10" fires when the median trial
+count per cell (each participant crossed with whichever group, event, and
+occasion columns are selected) falls below 10; splits runs skip it. None of
 the three stops the run. In the GUI they appear together in one modal dialog
-titled Preflight warnings, raised after the save dialog and before the first
-fit, and the run waits until you click OK; the same lines print in the Command
+titled Preflight warnings, raised after the save dialog and before each fit,
+and the run waits until you click OK; the same lines print in the Command
 Window, which is the only channel on the `psyrat_run` route
-([Chapter 14](14_scripting.md)).
+([Chapter 14](14_scripting.md)). The same dialog carries the other advisory
+checks: labels that differ only in letter case or surrounding spaces, exact
+duplicate rows, a participant id listed under more than one group, and, for
+splits, weights that barely vary, unequal weights declared Parallel, or
+participants with different numbers of splits.
 
 The numeric-label collision is the check people meet unprepared. MATLAB renders
 numbers with about five significant digits, so two event codes that differ only
@@ -218,18 +237,14 @@ so two conditions that look distinct in the spreadsheet would arrive as one.
 Writing label columns as text (`t1` and `t2`, `cor` and `err`) in the first
 place avoids the whole question.
 
-Two more checks never stop a run and only advise. PsyRAT warns when a modeled
-group has fewer than 20 participants, because variance components are unstable
-and prior-dominated at small N, and it warns when the median number of trials per
-cell falls below 10. Both leave the decision with you.
-
 ## 6.6 File types PsyRAT reads
 
 The file picker offers a combined All Readable Files filter covering `.xlsx`,
 `.xls`, `.csv`, `.dat`, `.txt`, and `.ods`, plus one filter per type. Underneath,
 the reader also accepts `.xlsb`, `.xlsm`, `.xltm`, and `.xltx`, so those open if
 you type the name or widen the filter to All Files. Anything else is refused with
-a message about unsupported file types.
+a message about unsupported file types. The extension must be lowercase: a file
+saved as `DATA.CSV` is refused, so rename it `DATA.csv` first.
 
 Delimited text does not need a declaration. PsyRAT first asks MATLAB to read the
 file on the strength of its extension, and if that succeeds but yields only one
@@ -245,14 +260,15 @@ round trip through a save dialog and a failed run.
 
 1. One row per single-trial score, unaveraged.
 2. A participant column and a numeric measurement column, both present in every row.
-3. No blank cells in any column you intend to use.
-4. Facet labels as text where you can manage it (`t1`, `err`), not as bare numbers.
+3. No blank cells in any column you intend to use, and no infinite values in the measurement column.
+4. Facet labels as text where you can manage it (`t1`, `err`), not as bare numbers, and with no commas, double quotes, or line breaks in them.
 5. The same number of distinct events, and of event-by-occasion cells, for every participant.
-6. Plain headers: letters, digits, underscores.
-7. For splits, a positive whole-number weight on every row, and a decision about Parallel or Nonparallel.
-8. For dynamic reliability, one numeric Dimension value per participant, constant down that participant's rows.
-9. A save location whose full path contains no spaces (a CmdStan restriction, covered in Section 7.5).
+6. An occasion column with at least two levels, or none at all.
+7. Plain headers: a letter first, then letters, digits, underscores.
+8. For splits, a positive whole-number weight on every row, and a decision about Parallel or Nonparallel.
+9. For dynamic reliability, one numeric Dimension value per participant, constant down that participant's rows.
+10. A save location whose full path contains no spaces (a CmdStan restriction, covered in Section 7.5).
 
 The last item is not about the data at all, and it is one of the mistakes that
-most often stop a first run. With the nine satisfied you have a file PsyRAT
+most often stop a first run. With the ten satisfied you have a file PsyRAT
 will load, and [Chapter 7](07_processing.md) picks up at the file picker.

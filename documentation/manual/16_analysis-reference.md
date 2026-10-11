@@ -1,12 +1,13 @@
 # 16. Analysis reference
 
-One card per routed analysis, plus a card for parallel splits, which reuses
-other analyses rather than receiving its own number. Use
+The chapter has one card per routed analysis, plus a card for parallel
+splits, which reuse other analyses and so have no number of their own. Use
 [Chapter 5](05_choosing-an-analysis.md) to find the number; use this chapter to
 check what it needs, what fits it, and where the results open.
 
 Every card follows the same shape. Status is the maturity label from
-[Chapter 5](05_choosing-an-analysis.md). Data lists the columns the design
+[Chapter 5](05_choosing-an-analysis.md). Use when states the question the
+design answers. Data lists the columns the design
 requires and the constraints it enforces. GUI names the exact on-screen
 controls that reach it, on the Specify Inputs screen and the Specify Processing
 Preferences screen behind the Preferences button. Scripted lists the
@@ -26,15 +27,15 @@ to it, and a forced Native HMC or Native fitlme selection is rejected with an
 error rather than redirected.
 
 Subject-level analyses are not collected in a section of their own. Each one
-sits with the design it modifies, and its Use when line says that it reports a
-coefficient per participant.
+sits with the design it modifies, and its Use when line says, directly or
+through the card it points to, that it reports a coefficient per participant.
 
 ## 16.1 One-facet reliability, single occasion
 
 These are the internal-consistency designs: persons crossed with trials, all
 data from one session. They are the oldest and best-covered part of the
-toolbox, and the only difference among the first four is which facet columns
-you selected.
+toolbox, and the only difference among the first four is which group and
+event columns you set.
 
 ### Analysis 1: One-facet reliability
 
@@ -48,7 +49,7 @@ occasion column.
 
 **GUI:** Specify Inputs, Participant ID and Measurement set; Group ID, Event
 Type, Occasion ID, Dimension 1 (dynamic), and Items per split (n_i) all left on
-none. Preferences: Estimate internal consistency of difference scores set to
+`(none)`. Preferences: Estimate internal consistency of difference scores set to
 No, Estimate subject-specific error variances set to No.
 
 **Scripted:** No design flags at all. The defaults (`diffest` 1, `ssubjrel` 1,
@@ -162,7 +163,8 @@ deviation.
 **Notes:** The fit is slower than analysis 1 by more than the parameter count
 suggests, since per-participant scale is harder to identify than a pooled one.
 Participants with few trials get wide per-person intervals, and that is the
-honest answer rather than a defect.
+honest answer rather than a defect. Criterion Score Outputs is not offered for
+this design ([Section 9.7](09_viewing-results.md)).
 
 **See:** Rocha et al. (2026), Table 2, applied per participant (the toolbox's
 convention for the per-person read-out).
@@ -183,13 +185,15 @@ coefficients that generalize over occasions as well as trials.
 **Data:** `id`, `meas`, and `time`; optional `group` and `event`.
 
 **GUI:** Specify Inputs, Occasion ID set to the occasion column. Select
-Occasions restricts which occasions are processed. Preferences: difference
-scores No, subject-specific error variances No.
+Occasions restricts which occasions are processed. Preferences: Estimate
+internal consistency of difference scores set to No, Estimate subject-specific
+error variances set to No.
 
 **Scripted:** Pass `timecol`. Add `whichtimes` to restrict the levels.
 
 **Engines:** CmdStan, native HMC, or native fitlme. This is the only design
-both native engines implement, and the automatic cascade prefers HMC.
+both native engines implement. When CmdStan is not available, the Automatic
+engine setting falls back to native HMC before native fitlme.
 
 **Opens in:** View Results Setup, the test-retest viewer.
 
@@ -203,7 +207,16 @@ columns are fitted as separate strata, as in analyses 2 to 4.
 
 ### Analysis 25: Subject-level test-retest reliability
 
-**Status:** Supported.
+**Status:** Supported under Gaussian; Restricted under gamma, in both
+parameterizations ([Section 5.4](05_choosing-an-analysis.md)).
+
+> RESTRICTED under gamma, in both parameterizations: with few occasion levels,
+> the variance components and pooled residual are not recovered at level as
+> posterior means, while generalizability and dependability stayed within about
+> .03 and .06 of the truth in the reviewed captures. You acknowledge a notice
+> when you press Analyze, the viewer and saved figures carry a note, and every
+> exported table carries a Design maturity: RESTRICTED line. Gaussian runs of
+> this design are Supported and carry no such line.
 
 **Use when:** You want a per-participant coefficient from a multi-occasion
 design, without difference scores and without a dimension.
@@ -223,7 +236,12 @@ refuses a native fallback rather than fitting a different model quietly.
 **Notes:** This is the direct two-facet analog of analysis 6. It inherits the
 subject-level participant-inclusion contract rather than the test-retest one,
 which matters if you drive the summary layer from a script. Criterion Score
-Outputs is not offered for this design (Section 9.7).
+Outputs is not offered for this design ([Section 9.7](09_viewing-results.md)).
+Under gamma, each participant's residual includes the pooled
+person-by-occasion-by-trial remainder, so per-participant coefficients can be
+lower than under the earlier observation-only scheme. A saved gamma result
+without the current target marker keeps that earlier scheme, and its header
+says LEGACY; to convert it, see [Appendix C](appendix-c_reprocessing.md).
 
 **See:** Rocha et al. (2026), Table 3, applied per participant (the toolbox's
 convention for the per-person read-out).
@@ -237,10 +255,11 @@ than either score behind it.
 
 ### Analysis 7: One-facet difference-score reliability
 
-**Status:** Supported under the Gaussian family. Under the gamma family with
-correlated residuals, the per-person dispersion arm (`'dispersion', 1`) is
-Experimental; the default single-dispersion arm is tractability-checked but
-not robustness-checked.
+**Status:** Supported under the Gaussian family. The non-concurrent gamma
+variant is Supported. Under the gamma family with correlated residuals, the
+per-participant dispersion arm (`'dispersion', 1`) is Experimental, and the
+default global-dispersion arm (`'dispersion', 2`) is Tractability checked,
+robustness not.
 
 > EXPERIMENTAL under gamma with per-participant dispersion (`dispersion` 1):
 > convergence has not been validated in this release, and exported tables from
@@ -259,11 +278,11 @@ optional `group`. No occasion column.
 two events selected under Select Events. Preferences: Estimate internal
 consistency of difference scores set to Yes: 2-event difference. Set Estimate
 residual covariance for co-occurring events to Yes when both conditions come
-from the same trials.
+from the same trials (the concurrent variant).
 
 **Scripted:** `'diffest', 2` (and `'diffrescor', 2` for the concurrent
 variant). Under gamma with residual covariance on, `'dispersion', 1` selects
-the experimental per-person parameterization; the default for that variant is
+the experimental per-participant parameterization; the default for that variant is
 `2`. The `dispersion` setting does not apply to the non-concurrent variant.
 
 **Engines:** CmdStan, or native HMC.
@@ -273,8 +292,10 @@ the experimental per-person parameterization; the default for that variant is
 **Notes:** The concurrent variant keeps the same analysis number and changes
 the model behind it, so a run with residual covariance on is not comparable to
 one with it off. Under gamma, the concurrent variant additionally requires the
-Statistics and Machine Learning Toolbox even on the CmdStan path, and the
-missing-function failure lands after sampling has finished.
+Statistics and Machine Learning Toolbox even on the CmdStan path; without it,
+preflight refuses the run before anything is compiled and names the toolbox.
+Criterion Score Outputs is not offered for this design
+([Section 9.7](09_viewing-results.md)).
 
 **See:** Rocha et al. (2026), Table 6.
 
@@ -311,20 +332,29 @@ residual correlation for each participant, unlike analysis 7's single
 population correlation; under gamma it delegates to analysis 7's population
 copula and folds the per-person cross-covariance in downstream. The gamma
 concurrent variant also requires the Statistics and Machine Learning Toolbox
-even on the CmdStan path, and a missing toolbox surfaces only after sampling
-finishes. This design has no non-experimental gamma parameterization: a
-per-participant coefficient needs a per-participant dispersion parameter, and a
-single sample-wide dispersion is a group-level estimand. Run it under the
-Gaussian family unless you have a specific reason not to.
+even on the CmdStan path, and preflight refuses the run before anything is
+compiled without it. The concurrent gamma variant has no non-experimental
+parameterization: a per-participant coefficient needs a per-participant
+dispersion parameter, and a single sample-wide dispersion is a group-level
+estimand. Run the concurrent variant under the Gaussian family unless you have
+a specific reason not to. Save Subject Coefficients writes the per-participant
+difference rows in a labeled section per group after the event rows, and
+`psyrat_report` returns them as `.sscoeffs_diff`. On this design the
+difference row's flag, not the event rows' flags, decides which participants
+are retained and what the Save IDs lists contain
+([Chapter 15](15_advanced-designs.md), [Chapter 14](14_scripting.md)).
+Criterion Score Outputs is not offered for this design
+([Section 9.7](09_viewing-results.md)).
 
 **See:** Rocha et al. (2026), Table 6.
 
 ### Analysis 10: Test-retest difference-score reliability
 
-**Status:** Supported under the Gaussian family. Under the gamma family with
-correlated residuals, the per-person dispersion arm (`'dispersion', 1`) is
-Experimental; the default single-dispersion arm is tractability-checked but
-not robustness-checked.
+**Status:** Supported under the Gaussian family. The non-concurrent gamma
+variant is Supported. Under the gamma family with correlated residuals, the
+per-participant dispersion arm (`'dispersion', 1`) is Experimental, and the
+default global-dispersion arm (`'dispersion', 2`) is Tractability checked,
+robustness not.
 
 > EXPERIMENTAL under gamma with per-participant dispersion (`dispersion` 1):
 > convergence has not been validated in this release, and exported tables from
@@ -339,8 +369,8 @@ of interest is the difference.
 **Data:** `id`, `meas`, `time`, and `event` with exactly two unique event
 types; optional `group`.
 
-**GUI:** As analysis 7, with an Occasion ID column assigned on the input
-screen (subject-level reliability off).
+**GUI:** As analysis 7, with Occasion ID also set on Specify Inputs and
+Estimate subject-specific error variances left on No.
 
 **Scripted:** Pass `timecol` with `'diffest', 2` (and `'diffrescor', 2` for the
 concurrent variant; under gamma the same `'dispersion'` arms and the same
@@ -354,7 +384,7 @@ Statistics and Machine Learning Toolbox requirement as analysis 7 apply).
 and the facet main effects (occasions especially) are the weakly identified
 ones at realistic occasion counts. Read the person and person-by-facet
 components first. Criterion Score Outputs is not offered for this design
-(Section 9.7).
+([Section 9.7](09_viewing-results.md)).
 
 **See:** Rocha et al. (2026), Table 6, two-facet form.
 
@@ -380,7 +410,9 @@ ERP_1 through ERP_4 before the run.
 Yes: 4-event DoD, and Estimate residual covariance for co-occurring events set
 to No. On Specify Inputs, Event Type set to the condition column with exactly
 four events selected, then click DoD Contrast... and assign four unique events
-on the Configure DoD Contrast screen.
+on the Configure DoD Contrast screen. Select one Measurement column; with more
+than one selected, the run analyzes only the first, after a notice you
+acknowledge.
 
 **Scripted:** `'diffest', 3` plus `'dodmap', {...}`, a 1-by-4 cell of event
 labels in ERP_1 to ERP_4 order.
@@ -391,19 +423,20 @@ labels in ERP_1 to ERP_4 order.
 
 **Notes:** Residual covariance is unavailable in every family, and a concurrent
 request is rejected rather than ignored: the contrast is defined with all four
-constituents treated as measured on distinct trials. The default contrast
-weights are 1, -1, -1, 1. The intraclass correlations this design reports are
-derived quantities rather than entries in the published difference-score table,
-and the exported headers label them that way.
+constituents treated as measured on distinct trials. The contrast weights are
+fixed at 1, -1, -1, 1. The intraclass correlations this design reports are
+single-observation quantities, derived rather than taken from the published
+difference-score table; the variance-component table and the results window
+label them single-observation (n' = 1).
 
 **See:** Toolbox convention, built on the Rocha et al. (2026) Table 6
 difference-score partitioning.
 
 ## 16.5 Dynamic reliability
 
-Selecting a Dimension 1 column makes the mean and the residual scale functions
-of a standardized between-person covariate, so the result is a reliability
-surface over that dimension rather than a single number. The dimension is
+Selecting a Dimension 1 column makes both the mean and the residual scale
+depend on a standardized between-person covariate, so the result is a
+reliability surface over that dimension rather than a single number. The dimension is
 standardized once across the whole sample before any group or event stratum is
 split off, so zero is the overall mean everywhere. All fourteen cards in this
 section open in the same viewer.
@@ -419,8 +452,9 @@ function of a participant characteristic.
 participant); optional `dim2`, `group`, and `event`. No occasion column.
 
 **GUI:** Specify Inputs, Dimension 1 (dynamic) set to the covariate column, and
-optionally Dimension 2 (dynamic). Preferences: difference scores No,
-subject-specific error variances No.
+optionally Dimension 2 (dynamic). Preferences: Estimate internal consistency
+of difference scores set to No, Estimate subject-specific error variances set
+to No.
 
 **Scripted:** Pass `dim1col` (and `dim2col`) with `'dynrel', 2`.
 
@@ -453,7 +487,8 @@ variances set to Yes.
 
 **Opens in:** Dynamic Reliability: View Results.
 
-**Notes:** The model and the posterior draws are identical to analysis 11. What
+**Notes:** The model and the posterior draws are identical to those of
+analysis 11. What
 changes is the read-out: each participant's own residual heterogeneity becomes
 their own conditional coefficient instead of being pooled into one surface. If
 you want both views, one fit gives you both.
@@ -462,7 +497,16 @@ you want both views, one fit gives you both.
 
 ### Analysis 14: Dynamic test-retest reliability
 
-**Status:** Supported.
+**Status:** Supported under Gaussian; Restricted under gamma, in both
+parameterizations ([Section 5.4](05_choosing-an-analysis.md)).
+
+> RESTRICTED under gamma, in both parameterizations: with few occasion levels,
+> the variance components and pooled residual are not recovered at level as
+> posterior means, while generalizability and dependability stayed within about
+> .03 and .06 of the truth in the reviewed captures. You acknowledge a notice
+> when you press Analyze, the viewer and saved figures carry a note, and every
+> exported table carries a Design maturity: RESTRICTED line. Gaussian runs of
+> this design are Supported and carry no such line.
 
 **Use when:** Multi-occasion data, one score, and reliability reported as a
 function of a participant characteristic.
@@ -479,14 +523,25 @@ function of a participant characteristic.
 **Opens in:** Dynamic Reliability: View Results.
 
 **Notes:** Five crossed mean components sit on top of the one-facet dynamic
-model. Occasion-level components stay weakly identified at two occasions, and
-the viewer prints them as diagnostics rather than as findings.
+model. Occasion-level components stay weakly identified at two occasions. They
+appear in the variance components table alongside the other components, with
+intervals that reflect how little two occasions can say, so do not read them
+as findings.
 
 **See:** Rast and Clayson (in press).
 
 ### Analysis 27: Subject-level dynamic test-retest reliability
 
-**Status:** Supported.
+**Status:** Supported under Gaussian; Restricted under gamma, in both
+parameterizations ([Section 5.4](05_choosing-an-analysis.md)).
+
+> RESTRICTED under gamma, in both parameterizations: with few occasion levels,
+> the variance components and pooled residual are not recovered at level as
+> posterior means, and generalizability and dependability are biased low,
+> while participant ordering is kept. You acknowledge a notice when you press
+> Analyze, the viewer and saved figures carry a note, and every exported table
+> carries a Design maturity: RESTRICTED line. Gaussian runs of this design are
+> Supported and carry no such line.
 
 **Use when:** You want per-participant conditional reliability from the
 two-facet dynamic model.
@@ -504,7 +559,11 @@ variances set to Yes.
 
 **Notes:** Same relationship to analysis 14 that analysis 26 has to analysis
 11: one model, one set of draws, a per-participant read-out instead of a pooled
-surface.
+surface. Under gamma, each participant's residual includes the pooled
+person-by-occasion-by-trial remainder, so per-participant coefficients can be
+lower than under the earlier observation-only scheme. A saved gamma result
+without the current target marker keeps that earlier scheme, and its header
+says LEGACY; to convert it, see [Appendix C](appendix-c_reprocessing.md).
 
 **See:** Rast and Clayson (in press).
 
@@ -610,7 +669,9 @@ events set to Yes, and Specify Inputs, Residual correlation left on Population
 **Notes:** Under gamma this design is fitted by a modular cut workflow: the
 margins are fitted first without the coupling, and the coupling is estimated
 afterward, so the result is a cut posterior rather than a full Bayesian one.
-The exported provenance says so on every table. The Gaussian arm is an ordinary
+The exported provenance says so on every table. Under gamma, this design also
+requires the Statistics and Machine Learning Toolbox; without it, preflight
+refuses the run before anything is compiled. The Gaussian arm is an ordinary
 joint fit.
 
 **See:** Rast and Clayson (in press), with the difference-score partitioning of
@@ -626,8 +687,10 @@ differ across participants.
 **Data:** As analysis 12.
 
 **GUI:** As analysis 19, with Specify Inputs, Residual correlation set to
-Per-subject. That popup stays greyed out until difference scores,
-subject-specific error variances, and residual covariance are all on.
+Per-subject. That popup stays grayed out until Estimate internal consistency
+of difference scores is set to Yes: 2-event difference and Estimate
+subject-specific error variances and Estimate residual covariance for
+co-occurring events are both set to Yes.
 
 **Scripted:** `'dynrel', 2, 'diffest', 2, 'ssubjrel', 2, 'diffrescor', 2,
 'ssrescor', 2` plus `dim1col`.
@@ -713,9 +776,9 @@ events set to Yes.
 
 **Opens in:** Dynamic Reliability: View Results.
 
-**Notes:** Gaussian only. The bivariate residual is evaluated row by row, since
-its scale moves with the dimension, which is the main reason this design costs
-more per draw than analysis 15.
+**Notes:** Gaussian only. The bivariate residual is evaluated row by row
+because its scale moves with the dimension. That row-by-row evaluation is the
+main reason this design costs more per draw than analysis 15.
 
 **See:** Rast and Clayson (in press), with the difference-score partitioning of
 Rocha et al. (2026), Table 6.
@@ -740,10 +803,11 @@ events set to Yes and Residual correlation left on Population (shared).
 **Opens in:** Dynamic Reliability: View Results.
 
 **Notes:** The gamma arm carries no user-facing status label anywhere in the
-software, so this card is the disclosure: its two-facet configuration has no
-empirical anchor, nothing outside the toolbox has been reproduced with it, and
-it should not be reported from. Like analysis 19 under gamma, it is a cut
-posterior. The Gaussian arm is ordinary and supported.
+software, so this card is the disclosure. Its two-facet configuration has no
+empirical anchor, so nothing outside the toolbox has been reproduced with it.
+Do not report results from it. Like analysis 19 under gamma, it is a cut
+posterior and has the same toolbox requirement. The Gaussian arm is an
+ordinary joint fit and is Supported.
 
 **See:** Rast and Clayson (in press), with the difference-score partitioning of
 Rocha et al. (2026), Table 6.
@@ -777,9 +841,10 @@ Rocha et al. (2026), Table 6.
 ## 16.6 Dynamic difference of differences
 
 These two designs report each participant's own conditional reliability for a
-four-event contrast. They are person-specific by definition, so subject-level
-error variances must be on, and they are non-concurrent by definition, so
-residual covariance cannot be turned on.
+four-event contrast. They are person-specific by definition, so Estimate
+subject-specific error variances must be set to Yes, and they are
+non-concurrent by definition, so Estimate residual covariance for co-occurring
+events must stay on No.
 
 ### Analysis 28: Dynamic difference-of-differences reliability
 
@@ -792,10 +857,13 @@ participant's own conditional reliability for it.
 types, assigned to ERP_1 through ERP_4; optional `dim2` and `group`. No
 occasion column. Every participant needs at least one trial in all four cells.
 
-**GUI:** Specify Inputs, Dimension 1 (dynamic) set, Event Type set with exactly
-four events selected, and the DoD Contrast... assignment saved. Preferences:
-difference scores Yes: 4-event DoD, subject-specific error variances Yes,
-residual covariance No.
+**GUI:** Preferences, Estimate internal consistency of difference scores set to
+Yes: 4-event DoD, Estimate subject-specific error variances set to Yes, and
+Estimate residual covariance for co-occurring events set to No. On Specify
+Inputs, Dimension 1 (dynamic) set, Event Type set with exactly four events
+selected, then click DoD Contrast... and assign four unique events on the
+Configure DoD Contrast screen. Select one Measurement column; with more than
+one selected, the run analyzes only the first, after a notice you acknowledge.
 
 **Scripted:** `'dynrel', 2, 'diffest', 3, 'ssubjrel', 2` plus `dim1col` and
 `dodmap`.
@@ -808,7 +876,7 @@ residual covariance No.
 estimand, so this is a full Bayesian posterior rather than a cut one. The
 per-participant coverage check runs before the fit: a participant missing a
 cell entirely would make their coefficient undefined, and finding that out
-after a multi-hour run is worse than being stopped at the start. Expect a large
+after a long run is worse than being stopped at the start. Expect a large
 saved result, since the posterior carries four margins and a per-participant
 block.
 
@@ -833,10 +901,12 @@ et al. (2026) Table 6 difference-score partitioning.
 **Opens in:** Dynamic Reliability: View Results.
 
 **Notes:** The largest and slowest routed design. Occasion standard deviations
-are prior-dominated at two occasions and stay printed as diagnostics. One
+are prior-dominated at two occasions; they appear in the variance components
+table like every other component, so do not read them as findings. One
 observed run of this design took about half an hour and wrote a result file of
-roughly 300 MB, and loading a file that size back into the viewer takes
-noticeably longer than the fit's last iteration might lead you to expect.
+roughly 300 MB. Loading a file that size back into the viewer takes a
+noticeable wait, so give it time before assuming MATLAB has stopped
+responding.
 
 **See:** Toolbox convention, built on Rast and Clayson (in press) and the Rocha
 et al. (2026) Table 6 difference-score partitioning.
@@ -846,7 +916,8 @@ et al. (2026) Table 6 difference-score partitioning.
 Each row is the mean of several items rather than one trial, and a weight
 column says how many items went into it. Declaring the splits parallel reuses
 the ordinary machinery; declaring them nonparallel fits a weighted
-observed-design model with no projection.
+observed-design model that reports the observed design by default and cannot
+project over item counts.
 
 ### Parallel splits (no analysis number)
 
@@ -860,8 +931,8 @@ of items, as with an even split of the trials into halves or quarters.
 
 **GUI:** Specify Inputs, Items per split (n_i) set to the weight column, and
 Split type set to Parallel (equal n_i). Everything else as for the analysis it
-reuses. Preferences must keep difference scores No and subject-specific error
-variances No.
+reuses. Preferences must keep Estimate internal consistency of difference
+scores and Estimate subject-specific error variances on No.
 
 **Scripted:** Pass `weightcol` with `'splits', 2`.
 
@@ -894,7 +965,7 @@ splits. No group, event, or occasion column.
 
 **GUI:** Specify Inputs, Items per split (n_i) set and Split type set to
 Nonparallel (unequal n_i), with Group ID, Event Type, Occasion ID, and
-Dimension 1 (dynamic) all left on none.
+Dimension 1 (dynamic) all left on `(none)`.
 
 **Scripted:** Pass `weightcol` with `'splits', 3`.
 
@@ -905,12 +976,19 @@ Dimension 1 (dynamic) all left on none.
 **Notes:** Equal item counts are rejected outright, because the per-item
 residual and the person-by-split interaction are identified only through the
 variation in the counts. Low variation is allowed with a warning, and the
-warning is worth heeding. Dependability is exact for this design;
-generalizability is a downward-biased lower bound (and its standard error a
-corresponding upper bound), because a split mean has already lost the
-item-level partition the relative coefficient needs. Every relative coefficient
-in the output carries a flag saying so. There is no D-study projection and no
-trial-count cutoff. A group or event column is rejected rather than pooled.
+warning is worth heeding. Dependability is exact for this design, for the
+person-averaged error. When participants contribute different numbers of
+splits, each participant's own counts enter, the reported n splits is the
+harmonic mean of the counts, the Preflight warnings dialog says so, and the
+relative coefficient's exclusion of the split main effect is approximate,
+which the viewer note and the export header also say. Generalizability is a
+downward-biased lower bound, and its standard error a corresponding upper
+bound, because a split mean has already lost the item-level partition the
+relative coefficient needs. Every relative coefficient in the output carries a
+flag saying so. There is no projection over item counts and no trial-count
+cutoff; the Splits n' box reports the coefficients at a different number of
+splits, holding the items per split at what the data supplied (Section 13.7).
+A group or event column is rejected rather than pooled.
 
 **See:** Rocha et al. (2026), Table 4.
 
@@ -931,10 +1009,19 @@ allowed here.
 
 **Opens in:** Data-Splits Reliability: View Results.
 
-**Notes:** Unlike analysis 23, this design is group and event aware and fits
-each stratum separately. It reports the three test-retest coefficients at the
-observed design only, with no projection and no cutoff. The same exactness
-asymmetry applies: dependability is exact, generalizability is a lower bound,
-and the flag travels with every relative coefficient.
+**Notes:** Unlike analysis 23, this design is group- and event-aware and fits
+each stratum separately. With Splits n' and Occasions n' left blank it reports
+the three test-retest coefficients for a score that equally weights each
+participant's available occasion means: a missing occasion carries no weight,
+the universe-score and error variances are averaged over participants within
+each stratum before the coefficients and SEMs are formed, and preflight warns
+when participants differ in available occasions or split counts. A number in
+either box requests a balanced reference-design projection, labeled as one.
+The exactness asymmetry of analysis 23 does not carry over: dependability is
+exact conditional on that score and the fitted model, generalizability uses the
+conventional relative partition with no lower-bound flag or bias guarantee, and
+the viewer labels the column Generalizability (conventional). For a fit saved
+by an earlier version, export the tables again from the saved result (no
+refit is needed) to pick this up.
 
 **See:** Rocha et al. (2026), Table 5.

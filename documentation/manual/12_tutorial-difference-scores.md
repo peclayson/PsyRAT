@@ -44,7 +44,8 @@ Of the 6.89 microvolts squared of person variance that go in, 1.79 come out:
 
 Now the error. At 15 error trials and 30 correct trials, the trial-level
 variance of each condition is its trial main effect plus its trial noise
-(1.0^2 + 5.5^2 = 31.25 for GroupA errors, 1.0^2 + 5.0^2 = 26.00 for corrects).
+(1.0^2 + 5.5^2 = 31.25 for GroupA errors, 1.0^2 + 5.0^2 = 26.00 for correct
+trials).
 The trial main effects were drawn independently per condition, so no covariance
 enters, and with no residual covariance between the two conditions,
 
@@ -95,12 +96,13 @@ as in Tutorial 1 (auto-detect gets `id`, `meas`, `group`, and `event` right, and
 Occasion ID stays on `(none)`).
 
 Click Select Events and choose `inc_cor` and `inc_err`, and nothing else. Exactly
-two events are required for a two-event difference score; PsyRAT rejects one or
-more than two before CmdStan launches.
+two events are required for a two-event difference score; PsyRAT rejects a
+selection of one event, or of more than two, before CmdStan launches.
 
-The difference is formed as the FIRST selected event minus the second, where
-"first" means the order in which the two events first appear in the file after
-sorting by group and participant. For this file that is `inc_err` minus
+The difference is formed as the first event minus the second, where "first"
+means the order in which the two selected events first appear in the file after
+sorting by group and participant, not the order in which you selected them. For
+this file that is `inc_err` minus
 `inc_cor`, which is the conventional ERN difference. Direction does not change
 the coefficient (the universe-score and error terms are both symmetric), but it
 does determine the sign of the scores, so check it before you interpret a mean.
@@ -121,14 +123,19 @@ settings at their defaults (4 chains, 5,000 warmup, 5,000 sampling, seed 12345).
 
 Click Save, then Analyze, and choose a whitespace-free output path.
 
-Checkpoint: the Command Window should print "Model converged", with a maximum
-R-hat of 1.00 and 0 divergent transitions.
+Checkpoint: the Command Window should print "Early-workflow Rhat/ESS check:
+passed" and "Final-inference readiness: unassessed (quantity-specific MCSE and
+uncertainty calibration required)", then "Saving Processed Data...", with no
+divergent-transition warning before them. The largest R-hat in the CmdStan
+summary should be 1.00 (an exported table header records the divergence count,
+here 0).
 
 ## 12.3 The viewer
 
 The View Results Setup screen looks slightly different for a difference-score
 run. Where a plain single-session run offers G-Theory Coefficient, this one
-offers Difference-Score Coefficient, with the same two options.
+offers Difference-Score Coefficient, with the same two options, and the
+Criterion Score Outputs button is not offered.
 
 ![View Results Setup after a two-event difference-score run. The G-Theory Coefficient control is replaced by Difference-Score Coefficient.](images/viewer_single_diff.png)
 
@@ -141,13 +148,15 @@ trial counts, so those rows come back with numbers. The difference-score rows
 are another matter, and that is the lesson: the same threshold the constituents
 can meet sends the difference score's common cutoff far beyond the data. Those
 rows still print the cutoff and a coefficient at it, and the Extrapolation
-beyond data dialog is the honest report of it (Section 10.8 covers the -1
-sentinels, which do not appear on these rows).
+beyond data dialog is the honest report of it. Valid coefficients remain numeric
+and are labeled "projection beyond observed data". Section 10.6 explains the -1
+sentinel, which is reserved for a cutoff that cannot be found at all.
 
-Difference-Score Coefficient stays on Dependability. On this analysis, that
+Difference-Score Coefficient stays on Dependability. In this analysis, that
 one visible control governs both the difference-score row and the per-event
-rows, so everything in the output follows the coefficient you pick here; the
-stored G-Theory Coefficient preference is not read.
+rows, so everything in the output follows the coefficient you pick here,
+including the per-event curves drawn by Plot: Trials vs Reliability. The stored
+G-Theory Coefficient preference has no effect.
 
 Click Generate Figures/Tables.
 
@@ -170,24 +179,32 @@ described at the end of this section.
 | GroupB - inc_cor | 21 | .71 [.58, .82] |
 | GroupB - diff score | 97 | .70 [.40, .87] |
 
-The diff score row's Trial Cutoff is a single COMMON trial count, applied to both
+On screen, the Dependability cell of each `diff score` row also ends with
+"(projection beyond observed data)", which this table omits, because both
+counts lie beyond the observed trials.
+
+The `diff score` row's Trial Cutoff is a single COMMON trial count, applied to both
 conditions at once, and not the pair of per-event cutoffs above it. That is a
 deliberate choice: a reader of this row wants to know how many trials the
 difference score needs, and two separately derived counts (each chosen so its own
 event clears the threshold) do not answer that question. Holding the two counts
-equal also removes the case where unequal counts make the error variance
-misbehave.
+equal also rules out a negative error variance, which unequal counts can
+produce once the residual covariance is divided by their harmonic mean.
 
 From the truth values, GroupA's difference needs a common count of 75 trials in
 each condition to reach .70, and GroupB's needs 92. Solve
-1.79 x .3 = .7 x 57.25 / n for GroupA, and 2.12 x .3 = .7 x 83.25 / n for GroupB
-(each condition's error term is its trial main effect plus its trial noise).
-Both counts are far beyond what any participant supplied (the largest observed
-error-trial count in the file is 36), so PsyRAT raises a non-modal dialog titled
-Extrapolation beyond data:
-
-> Not enough trials are present in the current data
-> Cutoffs represent an extrapolation beyond the data
+1.79 x .3 = .7 x 57.25 / n for GroupA and 2.12 x .3 = .7 x 83.25 / n for
+GroupB, where each constant is the sum of the two conditions' trial-level
+variances (31.25 + 26.00 in GroupA; 57.25 + 26.00 in GroupB, whose error-trial
+noise SD is 7.5, as in Table 10.1). Both counts are far beyond what any
+participant supplied (the largest observed error-trial count in the file is
+36), so PsyRAT raises a non-modal dialog titled Extrapolation beyond data. It
+warns that the projected cutoffs exceed the trial counts participants
+originally supplied (counted before anyone was excluded), that the projected
+coefficients are kept and labeled in the cutoff table, and that they are not
+estimates for the retained sample. The difference-score rows keep their
+numeric cutoffs and coefficients, and each coefficient ends in "(projection
+beyond observed data)".
 
 That dialog is the correct outcome and the substantive result. Read the number,
 note that it is an extrapolation, and do not report it as though participants
@@ -195,34 +212,56 @@ supplied that many trials.
 
 ### The overall summary
 
+On screen this is the window titled Dependability Analyses and the table headed
+Overall Dependability, with the nine columns Tutorial 1 describes: Label,
+n Included, n Excluded, Dependability, Mean # of Trials, Med # of Trials,
+Std Dev of Trials, Min # of Trials, and Max # of Trials. The rows follow the
+run's event order (`inc_err` before `inc_cor` here), not the sorted order
+Tutorial 1 shows. The table below is not a copy of the screen: it keeps three
+of the nine columns and adds a True D column computed by hand from the
+generating truth, which the toolbox does not print.
+
 | Label | Dependability | Mean # of Trials | True D |
 |---|---|---|---|
 | GroupA - inc_err | .75 | 28.6 | .774 |
 | GroupA - inc_cor | .80 | 31.3 | .781 |
-| GroupA - diff score | .40 | (uses both counts) | .475 |
+| GroupA - diff score | .40 | --- | .475 |
 | GroupB - inc_err | .72 | 34.4 | .727 |
 | GroupB - inc_cor | .78 | 30.0 | .783 |
-| GroupB - diff score | .46 | (uses both counts) | .447 |
+| GroupB - diff score | .46 | --- | .447 |
 
-This is the table to read. The diff score row is the difference-score
+This is the table to read. The `diff score` row is the difference-score
 dependability evaluated at the mean trial counts the retained participants
 actually contributed in each condition, which is the score a study would carry
-forward. Put the three rows for a group side by side and the cost of the
+forward. On screen that row prints n Included (the group-level count of
+participants retained in both events, the same number as the per-event rows
+above it) and n Excluded (the rest of the group's roster). Its five
+trial-count columns show dashes, because a difference score has no single
+trial count of its own. Put the three rows for a group side by side and the cost of the
 subtraction is visible in one line: two constituents between .72 and .80
 produce a difference below .47.
 
 The True D column is computed at the trial counts the TRUE .70 cutoffs retain:
 means of 26.724 and 32.000 in GroupA and 31.462 and 32.538 in GroupB, computed
-from the committed dataset (Tutorial 1 prints the error-trial pair; the
-correct-trial pair comes from the same retention rule). For GroupA's difference,
+from the committed dataset (Tutorial 1 prints the two groups' error-trial
+means; the correct-trial means come from the same retention rule). For GroupA's
+difference,
 1.79 / (1.79 + 31.25 / 26.724 + 26 / 32.000) = 1.79 / 3.772 = .475. If your run's
 estimated cutoffs retained a different set, recompute at the Mean # of Trials it
 actually reports.
 
+The common difference-score trial cutoff is a projection; it does not change
+which participants are retained, which the per-event cutoffs decide. The means
+above describe the participants those cutoffs retained. Had they retained
+nobody, the per-event rows would show dashes in their coefficient and
+trial-summary cells, and if the difference coefficient were then computed from
+the full sample instead, its cell would end with "(full-sample reference)".
+
 To see the relative-error coefficient instead, set Difference-Score Coefficient
-to Generalizability and regenerate. Generalizability comes back as .41 for
-GroupA and .47 for GroupB. The two coefficients differ by the two sigma_i^2 / n
-terms the absolute coefficient adds; with a trial main effect of 1.0 against
+to Generalizability and click Generate Figures/Tables again. Generalizability
+comes back as .41 for GroupA and .47 for GroupB. The two coefficients differ by
+the two trial-main-effect terms (sigma_i^2 / n, one per condition) that the
+absolute coefficient adds; with a trial main effect of 1.0 against
 trial noise five or more times larger, the gap is real but small (truth: .483
 against .475 for GroupA). One caveat when reading the printed pair: switching
 the coefficient re-derives the trial cutoffs. In GroupB the generalizability
@@ -240,9 +279,12 @@ Covariance Std Dev, Between-Trial Std Dev, BT Covariance Std Dev, Error Std Dev,
 Error Covariance Std Dev, and ICC (n'=1).
 
 The covariance columns are populated on the `diff score` rows and dashed out on
-the per-event rows; the standard-deviation columns are the reverse. Every
-covariance is reported on the standard-deviation scale, as the square root of the
-covariance, so it can be read against the standard deviations beside it.
+the per-event rows; the standard-deviation columns are the reverse. The two
+between-person and between-trial covariance columns are reported on the
+standard-deviation scale, as the square root of the covariance, so they can be
+read against the standard deviations beside them. The Error Covariance Std Dev
+column, despite its name, prints the residual covariance itself, as a bare
+number with no interval.
 
 | Quantity | Truth | Estimate |
 |---|---|---|
@@ -255,14 +297,14 @@ covariance, so it can be read against the standard deviations beside it.
 The truth values for the covariance columns are the square roots of the
 generating covariances: sqrt(.75 x 2.0 x 1.7) = sqrt(2.55) = 1.60 for GroupA and
 sqrt(.75 x 2.2 x 1.7) = sqrt(2.805) = 1.67 for GroupB. The error covariance is
-exactly zero because it was not estimated, and it prints as a bare number with no
-interval for the same reason.
+exactly zero because it was not estimated.
 
 The ICC column is labeled ICC (n'=1), and on the `diff score` rows it is a
 DERIVED single-replication quantity: the same variance ratio as the coefficient,
 evaluated at one trial in each condition. Rocha et al. (2026, Table 6) tabulate
 no ICC for difference scores, so this is the toolbox's own convention rather than
-a formula from that table, and the column heading says so. The truth values above
+a formula from that table; the column heading, ICC (n'=1), marks it only as a
+single-trial quantity. The truth values above
 were computed the same way: 1.79 / (1.79 + 31.25 + 26.00) = .030 for GroupA.
 Report it as a single-trial quantity if you report it at all.
 
@@ -277,7 +319,8 @@ Clayson, Baldwin, and Larson (2021) worked this through for ERN and reward
 positivity difference scores in the same sample and reached a conclusion worth
 repeating: generalizability theory gives more suitable internal-consistency
 estimates for subtraction-based difference scores than classical test theory
-does, and the estimates it gives are frequently low. Their paper also covers
+does, and a difference score can reach adequate reliability, as their ERN
+difference did while their reward-positivity difference did not. Their paper also covers
 residualized difference scores, which are a different construction with a
 different psychometric profile, and is the reference to read before committing to
 one.
@@ -307,18 +350,19 @@ The [Chapter 17](17_reporting.md) template, pre-filled.
 > divergent transitions). Residual covariance between conditions was not
 > estimated, because the two conditions comprise different trials.
 > Dependability of the difference score was .40 in GroupA and .46 in GroupB at
-> mean trial counts of 28.6 and 31.3 (GroupA) and 34.4 and 30.0 (GroupB). The
+> mean trial counts of 28.6 error and 31.3 correct trials (GroupA) and 34.4 and
+> 30.0 (GroupB). The
 > constituent scores were considerably more dependable (.75 and .80 in GroupA;
 > .72 and .78 in GroupB), reflecting the between-person covariance between
 > conditions (covariance standard deviation 1.66 and 1.68 microvolts), which
-> the subtraction removes. A decision study indicated that 114 and 97 trials
-> per condition would be required for the difference score to reach a
+> the subtraction removes. A decision study indicated that 114 (GroupA) and 97
+> (GroupB) trials per condition would be required for the difference score to reach a
 > dependability of .70; both counts extrapolate beyond the observed trial
 > counts and should be read as such.
 
 Never report the constituents' reliabilities as though they described the
 difference. That substitution is common in the ERP literature, and Table 12.1
-shows the size of the error it introduces.
+read against Table 10.1 shows the size of the error it introduces.
 
 ## 12.7 Where to go next
 

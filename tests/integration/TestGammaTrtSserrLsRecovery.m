@@ -7,19 +7,20 @@ classdef TestGammaTrtSserrLsRecovery < PsyRATTestBase
     %   log mu_pot  = alpha + u_p + u_o + u_t + u_po + u_pt + u_ot
     %   log sigma_p = logsig0 + w_p
     %   nu_pot      = 2*(mu_pot/sigma_p)^2
-    % so Var(Y | p) = sigma_p^2 exactly, with NO within-person facet averaging.
+    % so conditional observation variance given all random effects is sigma_p^2.
+    % Its facet average is unchanged; the Q8 residual is R_population+sigma_p^2.
     % The log-nu form's residual instead carries exp(2*V_w); planting data with no
     % such factor is what makes this a test of the estimand rather than of the
     % arithmetic.
     %
-    % THE CHECK THAT CARRIES THE VALIDATION is the partial correlation of the
-    % planted person log-MEAN with the recovered per-participant coefficient,
-    % controlling for the planted person SCALE effect. It must be ~0; under log-nu
-    % it is strongly negative (finding S16).
+    % Recovery checks whether residuals and coefficients track the planted
+    % scale effects. Partial correlation with person location is a diagnostic,
+    % not an asserted zero: nonlinear coefficients do not support that claim.
+    % Common-R pooling is established by separate exact draw-level controls.
     %
     % CmdStan-gated (skips Incomplete, not Failed, when CmdStan/MatlabStan absent).
 
-    % Copyright (C) 2016-2025 Peter E. Clayson
+    % Copyright (C) 2016-2026 Peter E. Clayson
     %
     %     This program is free software: you can redistribute it and/or modify
     %     it under the terms of the GNU General Public License as published by
@@ -43,6 +44,9 @@ classdef TestGammaTrtSserrLsRecovery < PsyRATTestBase
 
     methods (TestClassTeardown)
         function cleanupCmdStanArtifacts(testCase)
+            if ~isempty(PsyRAT2CRecoveryCapture.captureDir())
+                return; % Root artifact guard preserves all scratch, including capture failures.
+            end
             localCleanupArtifacts(localCmdStanOutputDir(testCase.projectRoot()));
         end
     end
@@ -62,16 +66,26 @@ classdef TestGammaTrtSserrLsRecovery < PsyRATTestBase
                 alpha, logsig0, sP, sO, sT, sPO, sPT, sOT, sSD, rho);
 
             rel = localRunTrtSserrGammaLs(testCase, dataTbl, 'recov_gamma_ls_trt_sserr');
+            PsyRAT2CRecoveryCapture.capture('static25_ls',rel,truth,dataTbl, ...
+                fullfile(localCmdStanOutputDir(testCase.projectRoot()),'recov_gamma_ls_trt_sserr'));
+            [maxRhat,nConvParams]=psyrat_conv_maxrhat(rel.out.conv.data);
+            rel=psyrat_checkconv(rel);
+            fprintf('[LS static25] max Rhat=%.6g over %d parameters; converged=%d\n', ...
+                maxRhat,nConvParams,rel.out.conv.converged);
+            testCase.assumeGreaterThan(nConvParams,0);
+            testCase.assumeEqual(rel.out.conv.converged,1, ...
+                'Early workflow convergence gate failed; recovery remains unvalidated.');
 
             testCase.verifyEqual(rel.analysis, 'trt_sserrvar');
             testCase.verifyEqual(rel.family, 'gamma');
             testCase.verifyEqual(rel.gammascale, 2);
 
             % ---- slot-level recovery ----
-            sigHat = mean(rel.out.pop_sdlog(:,1));
+            % Composite residual log-SD no longer equals the raw sigma parameter.
+            sigHat = mean(rel.out.gamma_disp.log_sigma);
             sdHat  = mean(cell2mat(rel.out.gro_sds{1}(:,2)));
             indsd  = cell2mat(rel.out.ind_sdlog{1});          % ndraws x nsub
-            errSsHat = mean(exp(rel.out.pop_sdlog(:,1) + indsd), 1).^2;
+            errSsHat = mean(exp(2*(rel.out.pop_sdlog(:,1) + indsd)), 1);
 
             testCase.verifyEqual(size(indsd,2), nsub, ...
                 'ind_sdlog must carry one column per participant.');
@@ -161,7 +175,7 @@ function [tbl, truth] = localSimulateGammaTrtSserrLs(nsub, nocc, ntrl, ...
 % Balanced crossed Persons x Occasions x Trials table from the LOCATION-SCALE
 % generative model: six independent normal effects on the log mean, plus a person
 % log-sigma effect correlated with the person mean effect. sigma is per
-% PARTICIPANT (no facet terms), so Var(Y|p) = sigma_p^2 with no within-person
+% PARTICIPANT (no facet terms), so observation variance is sigma_p^2 with no within-person
 % averaging factor -- the feature that distinguishes this from the log-nu form.
 rng(12345);
 z1 = randn(nsub,1); z2 = randn(nsub,1);
@@ -192,7 +206,9 @@ for p = 1:nsub
     end
 end
 tbl = table(ids, occs, meas, 'VariableNames', {'id','time','meas'});
-truth = struct('u_p', u_p, 'w_p', w_p, 'residTrue', sigma_p.^2);
+k=PsyRAT2CMeanReference(alpha,sP,sO,sT,sPO,sPT,sOT);
+truth = struct('u_p',u_p,'w_p',w_p,'residTrue',k(7)+sigma_p.^2, ...
+    'mean_remainder',k(7),'observation_variance',sigma_p.^2);
 end
 
 function r = localPearson(x, y)

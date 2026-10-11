@@ -18,9 +18,9 @@ function psyrat_startview_dynrel(varargin)
 %psyrat_startview_dynrel('psyrat_prefs',psyrat_prefs,'psyrat_data',psyrat_data)
 %
 %Required Input
-% psyrat_data - PsyRAT Toolbox data structure array (REL.analysis = 'ic_dynrel'
+% psyrat_data - PsyRAT data structure array (REL.analysis = 'ic_dynrel'
 %   or another dynrel-family analysis string)
-% psyrat_prefs - PsyRAT Toolbox preferences structure array
+% psyrat_prefs - PsyRAT preferences structure array
 %
 %Output
 % No variables are returned. Figures/tables are created on demand and can be
@@ -101,6 +101,22 @@ istwofacet = istrt || isdifftrt || issubjtrt || isdifftrtrescor ...
 %avoid implying a population-average difference estimand that is not computed.
 isnondiff = strcmp(REL.analysis,'ic_dynrel') || strcmp(REL.analysis,'ic_dynrel_trt') ...
     || issubjnondiff || issubjnondiff_trt;
+%under the GAMMA family the same control selects the explicit Q9 SURFACE
+%target instead (population-marginal primary, default; typical-person
+%companion), passed to the summary as 'surface_target'. The Gaussian
+%'marginal' Boolean is never sent for a gamma run: it selected nothing there
+%(GUI-1) and its historical value 0 meant the population surface.
+isgammanondiff = isnondiff && isfield(REL,'family') && strcmp(REL.family,'gamma');
+%RESTRICTED design-maturity note (queue row 3a, owner rulings 2-4 of
+%2026-09-21): the gamma two-facet designs 14 and 27, location-scale and log-nu
+%alike, say on screen that their variance components and pooled residual are
+%not recovered at level as posterior means with few occasions. Family AND exact
+%label, never gammascale (stamped on every run). Analysis 25 has its own note
+%in psyrat_startview_trt; the one-facet gamma designs (11, 26) are outside the
+%label (ruling 4). The words come from psyrat_gamma_twofacet_restriction, the
+%same source as the export header and the Analyze-time notice.
+isrestricted = (istrt || issubjnondiff_trt) && isfield(REL,'family') ...
+    && strcmp(REL.family,'gamma');
 
 %close the setup gui if open
 psyrat_gui = findobj('Tag','psyrat_gui');
@@ -117,11 +133,14 @@ end
 if istwofacet
     figheight = figheight + rowspace*2; %room for the reltype + occasion-n' rows
 end
+if isrestricted
+    figheight = figheight + rowspace*1.6; %room for the three-line RESTRICTED note
+end
 figheight = figheight + rowspace*1.6; %room for the navigation row (B18; 50-px buttons, sibling height)
 row = figheight - rowspace*1.6;
 lcol = 30;
-rcol = (figwidth/9)*5;
-
+rcol = (figwidth/9)*5; %560-px base: the two-facet widening below keeps the right column in place
+if istwofacet; figwidth = 660; end %G106: room for the 300-px reliability-coefficient popup
 psyrat_gui = psyrat_newfigure('unit','pix',...
     'position',[400 400 figwidth figheight],...
     'menub','no','name','Dynamic Reliability: View Results',...
@@ -146,6 +165,20 @@ uicontrol(psyrat_gui,'Style','text','fontsize',fsize,...
     'String',sprintf('Dimensions (standardized): %s',dimstr),...
     'Position',[0 row figwidth 25]);
 row = row - rowspace;
+
+%the on-screen RESTRICTED note (see isrestricted above): 50 px tall in the
+%1.6-row space reserved for it, sized from a render at the old 560-px width
+%(three lines, 2026-09-21); its wrap in the 660-px two-facet window (G106)
+%must be read from a render, not assumed; tagged for the headless viewer test
+if isrestricted
+    R = psyrat_gamma_twofacet_restriction();
+    uicontrol(psyrat_gui,'Style','text','fontsize',max(fsize-1,8),...
+        'HorizontalAlignment','center',...
+        'Tag','psyrat_dynrel_restriction_note',...
+        'String',R.screen,...
+        'Position',[lcol row-25 figwidth-2*lcol 50]);
+    row = row - rowspace*1.6;
+end
 
 %coefficient (G vs D)
 uicontrol(psyrat_gui,'Style','text','fontsize',fsize,...
@@ -183,13 +216,35 @@ row = row - rowspace;
 
 %estimand: typical person vs population average (disabled for difference
 %variants, where only the typical-person reference surface is computed).
+%Under gamma the two choices are the Q9 surface targets, primary first.
 if isnondiff; marg_enable = 'on'; else; marg_enable = 'off'; end
+marg_value = 1;
+if isgammanondiff
+    marg_strings = {'Population-marginal surface (primary)',...
+        'Typical-person surface (zero person effects)'};
+    %reopen to the SAVED explicit choice: the same resolver the summary uses
+    %(explicit option > valid stored stamp > historical primary) decides the
+    %initial selection, so a stored typical_person reopens as choice 2 while
+    %an unstamped legacy result and a fresh fit (stamped primary) open as 1.
+    %A malformed/incoherent stamp is left at choice 1 here; the summary
+    %raises the precise refusal when a button is pressed.
+    try
+        stored_target = psyrat_gamma_target_resolve(REL,[],[],[]);
+        if strcmp(stored_target,'typical_person')
+            marg_value = 2;
+        end
+    catch
+        marg_value = 1;
+    end
+else
+    marg_strings = {'Typical person (delta_p = 0)','Population average (lognormal)'};
+end
 uicontrol(psyrat_gui,'Style','text','fontsize',fsize,...
     'HorizontalAlignment','left','String','Estimand:','Enable',marg_enable,...
     'Position',[lcol row 220 25]);
 hmarg = uicontrol(psyrat_gui,'Style','pop','fontsize',fsize,...
-    'String',{'Typical person (delta_p = 0)','Population average (lognormal)'},...
-    'Value',1,'Enable',marg_enable,'Position',[rcol row 230 28]);
+    'String',marg_strings,'Tag','psyrat_dynrel_estimand',...
+    'Value',marg_value,'Enable',marg_enable,'Position',[rcol row 230 28]);
 
 %trial + occasion two-facet: coefficient reltype + occasion n' selectors. The
 %popup Value (1/2/3) maps directly to the psyrat_rel_trt reltype; the default is
@@ -205,7 +260,7 @@ if istwofacet
         'String',{'Equivalence (occasion fixed)',...
         'Stability (trial fixed)',...
         'Equivalence + stability (both random)'},'Value',3,...
-        'Position',[rcol row 260 28]);
+        'Position',[rcol row 300 28]); %G106: width chosen at the current default font
     row = row - rowspace;
     uicontrol(psyrat_gui,'Style','text','fontsize',fsize,...
         'HorizontalAlignment','left','String','Occasions n'':',...
@@ -272,7 +327,20 @@ cachedKey = '';
         if ciperc <= 0 || ciperc >= 1; ciperc = 0.95; end
         obsstr = strtrim(get(hobs,'String'));
         if isempty(obsstr); obs = []; else; obs = local_parse_pos(obsstr,[]); end
-        marginal = get(hmarg,'Value') - 1; %1->0 typical, 2->1 marginal
+        %the estimand control: the Gaussian marginal Boolean, or under gamma the
+        %explicit surface target (never both; a gamma run always sends
+        %marginal = 0, its historical value, plus 'surface_target')
+        targetArg = {};
+        tgtKey = '';
+        if isgammanondiff
+            targets = {'population_marginal','typical_person'};
+            surface_target = targets{get(hmarg,'Value')};
+            marginal = 0;
+            targetArg = {'surface_target',surface_target};
+            tgtKey = ['|tgt' surface_target];
+        else
+            marginal = get(hmarg,'Value') - 1; %1->0 typical, 2->1 marginal
+        end
 
         %trial + occasion two-facet selectors (reltype + occasion n'); inert for
         %the other dynrel analyses (handles are empty there).
@@ -298,14 +366,16 @@ cachedKey = '';
         %all reported the stale n'. 17 digits round-trips any double, so
         %distinct requests now get distinct keys.
         if isempty(obs); obsKey = 'auto'; else; obsKey = num2str(obs,17); end
-        key = sprintf('%.6f|%s|%d%s',ciperc,obsKey,marginal,relKey);
+        %the surface target is part of the key (Q9): switching A -> B -> A
+        %must return A's surface, never B's cached one
+        key = sprintf('%.6f|%s|%d%s%s',ciperc,obsKey,marginal,relKey,tgtKey);
         if strcmp(key,cachedKey) && ~isempty(cachedSumm)
             summ = cachedSumm;
             return;
         end
 
         summ = psyrat_dynrel_summary(REL,'CI',ciperc,'obs',obs,...
-            'marginal',marginal,extra{:});
+            'marginal',marginal,extra{:},targetArg{:});
         %record the n' REQUEST alongside the resolved per-stratum counts so
         %the export header can label their source: [] = blank field (each
         %stratum's median default), a scalar = user override. Viewer-local
@@ -419,8 +489,54 @@ cachedKey = '';
             'Dynamic reliability: per-participant',...
             'NumberTitle','off','Tag','psyrat_output',...
             'Position',[200 200 920 380]);
+        %gamma non-difference subject-level designs must disclose ON SCREEN
+        %what the per-participant residual is (Q8 v2, or the LEGACY
+        %observation-only scheme of an unstamped saved result), not only in
+        %the export header. The window changes only when the note exists.
+        tablepos = [0.02 0.02 0.96 0.96];
+        tlines = psyrat_gamma_target_lines(summ,true);
+        if numel(tlines) >= 3
+            %G111 (owner ruling 2026-09-23): the note wraps to 6-9 lines (the
+            %LEGACY analysis-27 scheme text is the longest; fsize-2 is 9-11
+            %pt), and the former fixed box (0.14 of 380, about 53 px) hid all
+            %but about 3.5 of them. The box is now sized from its own textwrap
+            %line count, and the window grows by that height, so the table
+            %keeps its former 0.82 x 380 px.
+            note = uicontrol(f,'Style','text','Units','pixels',...
+                'Position',[0.02*920 4 0.96*920 20],...
+                'HorizontalAlignment','left','FontSize',fsize-2,...
+                'Tag','psyrat_dynrel_subject_target_note',...
+                'String',strjoin(tlines(3:end)',' '));
+            notestr = get(note,'String');
+            nlines = numel(textwrap(note,{notestr}));
+            %Extent adds one em per line, but the renderer spaces the lines
+            %about 1.23 em apart (exportapp renders at 9 and 11 pt,
+            %2026-09-23; at 9 pt that spacing also reproduces the native
+            %clipping), so an Extent-sized box clips the last line. Each line
+            %gets 1.3 em, plus one line of slack; the em is read from Extent,
+            %so it follows the font.
+            set(note,'String',{'X';'X'});
+            ext2 = get(note,'Extent');
+            set(note,'String','X');
+            ext1 = get(note,'Extent');
+            set(note,'String',notestr);
+            em = ext2(4) - ext1(4);
+            noteh = ceil((nlines + 1)*1.3*em);
+            %bottom to top: 4 px margin, the note, a 4 px gap, the table at
+            %its former height, and the former 0.02 top margin
+            tableh = 0.82*380;
+            figh = 4 + noteh + 4 + tableh + 0.02*380;
+            set(f,'Position',[200 200 920 figh]);
+            %lay out against the height the window actually got: a docked or
+            %window-manager-limited figure may not take the requested one
+            figpos = get(f,'Position');
+            figh = figpos(4);
+            set(note,'Position',[0.02*920 4 0.96*920 noteh]);
+            set(note,'Units','normalized'); %resizes with the window, as before
+            tablepos = [0.02 (8+noteh)/figh 0.96 tableh/figh];
+        end
         uitable(f,'Data',data,'ColumnName',cols,...
-            'Units','normalized','Position',[0.02 0.02 0.96 0.96],...
+            'Units','normalized','Position',tablepos,...
             'ColumnWidth',widths);
     end
 
@@ -461,7 +577,7 @@ cachedKey = '';
         head{end+1} = sprintf('PsyRAT dynamic reliability: %s',label);
         head{end+1} = sprintf('Generated: %s',datestr(clock));
         if isfield(psyrat_data,'ver')
-            head{end+1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+            head{end+1} = sprintf('PsyRAT v%s',psyrat_data.ver);
         end
         head{end+1} = sprintf('Dataset: %s',REL.filename);
         head{end+1} = sprintf('Dimensions (standardized): %s',dimstr);
@@ -477,7 +593,7 @@ cachedKey = '';
         %per-participant conditional sentences. The wording is identical
         %across families - the per-cell log residual SD conditioning
         %statement is true for both, because the scale submodel is log-linked
-        %in both (SCIENTIFIC_FORMULA_AUDIT.md section 26).
+        %in both (development formula audit, section 26).
         %
         %The nonconcurrent DoD surfaces (analyses 28/29) are the
         %TYPICAL-PERSON estimand - all person effects, location AND scale, at
@@ -515,12 +631,20 @@ cachedKey = '';
                     'undetermined without the dod_labels carrier (see '...
                     'the surface line above)'];
             end
+        elseif isfield(summ,'gamma_target') && ~isempty(summ.gamma_target)
+            %gamma NON-difference designs (11/26/14/27): the explicit Q9/Q8
+            %target contract on the summary names the surface target (primary
+            %or companion), the per-participant conditioning set and remainder
+            %scheme (including a LEGACY unstamped analysis-27 result), and the
+            %count sources. One shared writer, also used by psyrat_report and
+            %the figure caption, so the three cannot drift.
+            head = [head, psyrat_gamma_target_lines(summ,isperpart)'];
         elseif isfield(summ,'isgamma') && summ.isgamma
-            %Neither gamma parameterization has a delta_p, so the Gaussian
-            %typical-person label never applies: the surface is always marginal
-            %over the person scale population, and the per-participant table
-            %exported alongside it is the complementary CONDITIONAL read-out.
-            %Say which is which.
+            %Remaining gamma designs (two-event difference / copula): neither
+            %gamma parameterization has a delta_p, so the Gaussian typical-person
+            %label never applies: the surface is marginal over the person scale
+            %population, and the per-participant table exported alongside it is
+            %the complementary CONDITIONAL read-out. Say which is which.
             %
             %WHAT the two marginalize and condition on DIFFERS, so the wording
             %below is branched rather than shared. Under gammascale = 1 there is
@@ -600,8 +724,9 @@ cachedKey = '';
         head{end+1} = '';
 
         if strcmpi(ext,'.xlsx')
-            writecell(head',outfile);
-            writetable(T,outfile,'Range',strcat('A',num2str(numel(head))));
+            %a fresh, checked workbook replaces the chosen file (G110); a
+            %refused save raises, so the "Saved" line below is not printed
+            psyrat_replace_workbook(outfile,head',T,numel(head));
         else
             %CSV: write the header lines, then append the table (its own column
             %names + data) so arbitrary table columns are handled robustly.
@@ -611,12 +736,12 @@ cachedKey = '';
             fid = fopen(outfile,'w');
             for i = 1:numel(head)
                 hline = head{i};
-                %quote per the CSV convention (B19): a comma-bearing
-                %provenance line must stay ONE spreadsheet field, or the
+                %quote per the CSV convention (B19): a line carrying a comma,
+                %a quote, a CR or an LF must stay ONE spreadsheet field, or the
                 %header the on-screen note points readers to arrives
-                %scattered across columns. Comma-free lines stay
-                %byte-identical; the XLSX branch (writecell) already quotes.
-                if contains(hline,',') || contains(hline,'"')
+                %scattered across columns or records. Other lines stay
+                %byte-identical. The XLSX branch is checked separately.
+                if contains(hline,',') || contains(hline,'"') || contains(hline,newline) || contains(hline,char(13))
                     hline = ['"' strrep(hline,'"','""') '"'];
                 end
                 fprintf(fid,'%s\n',hline);

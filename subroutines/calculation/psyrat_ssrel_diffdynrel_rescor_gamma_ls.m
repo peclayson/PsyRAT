@@ -50,7 +50,7 @@ function [gen,dep,diagnostic] = psyrat_ssrel_diffdynrel_rescor_gamma_ls(varargin
 %effect and must not be described as a fully facet-marginalized residual
 %covariance. That labeling requirement comes from the reference bundle and is
 %carried through every output surface; see
-%documentation/modular_cut_copula_workflow.md.
+%manual section 15.5 and the exported provenance header.
 %
 %DRAW ALIGNMENT IS THE CALLER'S JOB. The copula correlation exists only for the
 %retained (thinned) stage-1 draws, so every array passed here must already be

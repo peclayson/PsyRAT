@@ -1,7 +1,7 @@
 function psyrat_updatepsyrat
-%Update the PsyRAT Toolbox from the PsyRAT.zip asset of the latest stable
+%Update PsyRAT from the PsyRAT.zip asset of the latest stable
 % GitHub release (resolved through the releases API). This currently only
-% works for some newer versions of Mac or Windows. If using Linux, the PsyRAT
+% works for some newer versions of Mac or Windows. If using Linux, PsyRAT
 % will need to be updated manually.
 %
 %psyrat_updatepsyrat
@@ -15,7 +15,7 @@ function psyrat_updatepsyrat
 % No data are outputted to the Matlab command window. However, software
 %  will be installed and a new Matlab path will be saved.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ asseturl = info.latestReleaseAssetURL;
 ver = info.latestReleaseVersion;
 
 %version number will be appended to directory
-psyrat_dirname = strcat('PsyRAT_Toolbox_v',ver);
+psyrat_dirname = strcat('PsyRAT_v',ver);
 
 str_cantdl = 'The new version of the toolbox is available on ';
 str_cantdl = [str_cantdl... 
@@ -117,7 +117,7 @@ if sys == 1 %mac
     if str2double(parseOS{1}) >= 10
         if str2double(parseOS{2}) >= 9 || str2double(parseOS{1}) >= 11
             [~, savepath] = uiputfile('PsyRAT',...
-            'Where would you like to save the PsyRAT?');
+            'Where would you like to save PsyRAT?');
         
             %if the user does not select a file, then take the user back to psyrat_start    
             if savepath == 0
@@ -158,7 +158,7 @@ elseif sys == 2 %windows
     psyrat_toolboxinstall(wrkdir,asseturl);
 elseif sys == 3 %linux (EXPERIMENTAL - unverified by the maintainer)
     warning('os:linuxExperimental',... %not an error: Linux update is experimental
-        strcat('EXPERIMENTAL: automatic PsyRAT toolbox update on Linux has not\n',...
+        strcat('EXPERIMENTAL: automatic PsyRAT update on Linux has not\n',...
         'been verified by the maintainer. The toolbox itself is pure MATLAB, so\n',...
         'the download/unzip update is expected to work, but proceed with caution.\n'));
     [~, savepath] = uiputfile('PsyRAT',...
@@ -218,7 +218,7 @@ warning('on','MATLAB:rmpath:DirNotFound');
 %add files to the Matlab path and save it
 addpath(genpath(wrkdir));
 psyrat_savepath_safe;
-fprintf('Directories for PsyRAT Toolbox added and saved to Matlab path\n');
+fprintf('Directories for PsyRAT added and saved to Matlab path\n');
 
 %go back to the starting directory
 if strcmp(genpath(old_psyratdir),startdir)

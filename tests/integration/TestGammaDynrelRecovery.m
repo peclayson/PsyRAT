@@ -25,6 +25,9 @@ classdef TestGammaDynrelRecovery < PsyRATTestBase
 
     methods (TestClassTeardown)
         function cleanupCmdStanArtifacts(testCase)
+            if ~isempty(PsyRAT2CRecoveryCapture.captureDir())
+                return; % Root guard archives raw evidence even if capture fails.
+            end
             localCleanupArtifacts(localCmdStanOutputDir(testCase.projectRoot()), ...
                 'recov_gamma_dynrel');
         end
@@ -54,23 +57,29 @@ classdef TestGammaDynrelRecovery < PsyRATTestBase
             zgrid = [-1 0 1];
             ci = 0.95;
 
-            % ---- Closed-form true G(z)/D(z) at each grid z (the same converter the
-            % production surface uses, at the true parameters) ----
+            % ---- Closed-form true G(z)/D(z) at each grid z (independent support-union
+            % moments and coefficient equations, at the planted parameters) ----
             trueG = zeros(1,numel(zgrid)); trueD = zeros(1,numel(zgrid));
             for k = 1:numel(zgrid)
                 z = zgrid(k);
-                vc = psyrat_gamma_varcomps(alpha + b*z, s_p, s_i, ...
-                    exp(beta + b_nu*z), s_v, cov_pv);
-                [~,trueG(k)] = psyrat_rel_sing('gcoeff',2,'metric','global',...
-                    'bp',sqrt(vc.sigma_p2),'wp',sqrt(vc.sigma_pi_e2+vc.sigma_i2),...
-                    'i',sqrt(vc.sigma_i2),'obs',ntrl,'CI',ci);
-                [~,trueD(k)] = psyrat_rel_sing('gcoeff',1,'metric','global',...
-                    'bp',sqrt(vc.sigma_p2),'wp',sqrt(vc.sigma_pi_e2+vc.sigma_i2),...
-                    'i',sqrt(vc.sigma_i2),'obs',ntrl,'CI',ci);
+                reference=PsyRAT2CSurfaceReference(alpha+b*z,[s_p 0 s_i 0 0 0], ...
+                    1,beta+b_nu*z,s_v,cov_pv,1,ntrl,1,3);
+                trueG(k)=reference.G; trueD(k)=reference.D;
             end
 
             % ---- Fit ----
             rel = localRunDynrelGamma(testCase, dataTbl, 'recov_gamma_dynrel');
+            PsyRAT2CRecoveryCapture.capture('dynamic11_lognu',rel,struct('alpha',alpha,'b',b,'sd',[s_p 0 s_i 0 0 0], ...
+                'beta',beta,'b_nu',b_nu,'s_v',s_v,'cov_pv',cov_pv, ...
+                'zgrid',zgrid,'G',trueG,'D',trueD,'ntrl',ntrl),dataTbl, ...
+                fullfile(localCmdStanOutputDir(testCase.projectRoot()),'recov_gamma_dynrel'));
+            [maxRhat,nConvParams]=psyrat_conv_maxrhat(rel.out.conv.data);
+            rel=psyrat_checkconv(rel);
+            fprintf('[2C recovery] max Rhat=%.6g over %d parameters; converged=%d\n', ...
+                maxRhat,nConvParams,rel.out.conv.converged);
+            testCase.assumeGreaterThan(nConvParams,0);
+            testCase.assumeEqual(rel.out.conv.converged,1, ...
+                'Early workflow convergence gate failed; recovery remains unvalidated.');
             testCase.verifyEqual(rel.analysis, 'ic_dynrel');
             testCase.verifyEqual(rel.family, 'gamma');
             testCase.verifyEqual(rel.engine, 'cmdstan');

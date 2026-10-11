@@ -77,7 +77,7 @@ classdef PsyRATIndependentOracle
     %   Rocha, H. A., et al. (2026). International Journal of Psychophysiology, 222,
     %   113321. Table 2 (p. 7), Table 3 (p. 8), Table 6 (p. 13).
     %
-    %   Copyright (C) 2016-2025 Peter E. Clayson
+    %   Copyright (C) 2016-2026 Peter E. Clayson
     %
     %   This program is free software: you can redistribute it and/or modify it under the
     %   terms of the GNU General Public License as published by the Free Software

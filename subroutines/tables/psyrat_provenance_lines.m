@@ -7,7 +7,7 @@ function lines = psyrat_provenance_lines(psyrat_data)
 %Returns a cell column of char rows recording the reproducibility-relevant
 %settings for a run: the estimation seed, the engine that produced it, whether
 %the priors were the PsyRAT defaults or customized, the convergence verdict,
-%the CmdStan divergent-transition count, the credible-interval width the
+%the CmdStan divergent-transition count, the engine-appropriate interval width the
 %summary was built at (when a summary records one), and (test-retest only)
 %which of the three coefficient estimands was selected. These are appended to
 %the table-specific header block each exporter already builds, so a saved
@@ -30,7 +30,7 @@ function lines = psyrat_provenance_lines(psyrat_data)
 %Output
 % lines - N-by-1 cell array of char strings.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -84,6 +84,12 @@ else
     lines{end+1,1} = 'Estimation engine: cmdstan';
 end
 
+bootlines = psyrat_bootstrap_lines(rel);
+lines = [lines; bootlines(:)];
+if isfield(rel,'engine') && strcmpi(rel.engine,'fitlme')
+    lines{end+1,1} = 'Interval method: approximate frequentist parametric bootstrap (REML)';
+end
+
 % Observation likelihood family. Gaussian is the historical default; a line is
 % emitted only for a non-Gaussian family so existing Gaussian output stays
 % byte-identical (absence/empty == Gaussian, matching the engine-defaults-to-
@@ -109,6 +115,18 @@ end
 % roughly homogeneous), i.e. the population-nu plug-in would have been adequate.
 if ~isempty(famstr) && strcmpi(famstr,'gamma')
     lines = [lines; local_gamma_dispersion_lines(rel)];
+end
+
+% RESTRICTED maturity disclosure for the gamma two-facet designs (analyses 14,
+% 25 and 27; queue row 3a, owner rulings 2-4 of 2026-09-21). Keyed on the family
+% AND an exact analysis label, never on gammascale: both the location-scale and
+% the log-nu arm are in scope, and gammascale is stamped on every run
+% (including Gaussian ones), so reading it would gain nothing and could misfire.
+% Its own block, like the modular-cut lines below, because
+% local_gamma_dispersion_lines returns early for results whose dispersion
+% struct is absent (a legacy file), and the label must not depend on that.
+if ~isempty(famstr) && strcmpi(famstr,'gamma')
+    lines = [lines; local_gamma_twofacet_restriction_lines(rel)];
 end
 
 % Modular cut-copula disclosure (any gamma design storing REL.out.copula;
@@ -163,23 +181,15 @@ if isstruct(psyrat_data) && isfield(psyrat_data,'relsummary') && ...
         isnumeric(psyrat_data.relsummary.ciperc) && ...
         isscalar(psyrat_data.relsummary.ciperc) && ...
         ~isnan(psyrat_data.relsummary.ciperc)
-    lines{end+1,1} = sprintf('Credible interval: %g%%', ...
+    lines{end+1,1} = sprintf('%s: %g%%',psyrat_interval_label(rel), ...
         100 * psyrat_data.relsummary.ciperc);
 end
 
 % Priors: default vs custom relative to the toolbox defaults.
 lines{end+1,1} = local_priors_line(rel);
 
-% Convergence verdict (0/1 stamped by psyrat_checkconv for all engines).
-if local_has(rel,{'out','conv','converged'}) && ~isempty(rel.out.conv.converged)
-    if isequal(rel.out.conv.converged,1)
-        lines{end+1,1} = 'Converged: Yes';
-    else
-        lines{end+1,1} = 'Converged: No (see estimation diagnostics)';
-    end
-else
-    lines{end+1,1} = 'Converged: not assessed';
-end
+%Shared diagnostic scope/quality is identical in saved notices and exports.
+lines=[lines;psyrat_diagnostic_lines(rel)];
 
 % CmdStan divergent transitions (report-only; NaN/absent -> not assessed, e.g.
 % native engines that expose no divergence count).
@@ -191,6 +201,16 @@ if isempty(nd) || (isnumeric(nd) && all(isnan(nd(:))))
     lines{end+1,1} = 'Divergent transitions: not assessed';
 else
     lines{end+1,1} = sprintf('Divergent transitions: %g', nd);
+end
+
+% Constants excluded from the convergence gate (Q6b, 2026-09-11): emitted only
+% when psyrat_checkconv stamped a non-empty list, so every other header is
+% unchanged.
+if local_has(rel,{'out','conv','excluded'}) && iscell(rel.out.conv.excluded) && ...
+        ~isempty(rel.out.conv.excluded)
+    ex = cellfun(@char, rel.out.conv.excluded(:)', 'UniformOutput', false);
+    lines{end+1,1} = sprintf('Recorded diagnostic exclusions: %d (%s)', ...
+        numel(ex), strjoin(ex, ', '));
 end
 end
 
@@ -234,6 +254,10 @@ end
 end
 
 function s = local_priors_line(rel)
+if isfield(rel,'engine') && strcmpi(rel.engine,'fitlme')
+    s = 'Priors: not used (REML estimation); configured values are for Bayesian replay';
+    return;
+end
 if ~isfield(rel,'priors') || isempty(rel.priors)
     s = 'Priors: not recorded';
     return;
@@ -299,7 +323,7 @@ if local_has(rel,{'out','sig_trl_source'}) && ~isempty(rel.out.sig_trl_source)
 elseif local_has(rel,{'out','sig_trl'})
     st = rel.out.sig_trl;
     if iscell(st)
-        st = cell2mat(st);
+        st = vertcat(st{:});
     end
     if ~isempty(st) && isnumeric(st) && any(st(:) ~= 0)
         src = 'estimated';
@@ -396,9 +420,11 @@ if ~isempty(lsg)
         'and the residual-SD slope (b_sigma) move the conditional ' ...
         'coefficient. The mean-slope cancellation that holds under the log-nu ' ...
         'parameterization does not hold here; report both slope posteriors.'];
-    %Subject-level pooled-residual disclosure, analysis 26 ONLY (S17-FIX). The
-    %two-facet sibling 27 breaks person x trial out as its own component and has
-    %no pooling counterpart, so the gate is the exact one-facet label.
+    %Subject-level pooled-residual disclosure, analysis 26 (S17-FIX) and, since
+    %the Q8 ruling (2026-09-13), analysis 27 with its own pooled term - the
+    %highest-order person x occasion x trial mean remainder - keyed on the
+    %result's gamma_target stamp: an UNSTAMPED 27 result is summarized under
+    %the legacy observation-only scheme and is disclosed as such.
     if local_gamma_is_analysis(rel,'ic_dynrel_sserrvar')
         lines{end+1,1} = ['Gamma subject-level residual (location-scale, ' ...
             'POOLED): each participant''s error is the person-by-trial term ' ...
@@ -406,11 +432,15 @@ if ~isempty(lsg)
             'POPULATION quantity - the same term the population curve ' ...
             'carries) plus their own conditional variance sigma_s(z)^2. The ' ...
             'participant''s OWN amplitude does not enter. The curve and the ' ...
-            'per-participant points remain different estimands - the curve ' ...
-            'marginalizes the conditional term over the person residual-SD ' ...
-            'population and uses a reference trial count (the per-group ' ...
-            'median unless overridden) - so points fall on BOTH sides of the ' ...
-            'curve; that is not estimation error.'];
+            'per-participant points remain different estimands - the ' ...
+            'population-marginal curve marginalizes the conditional term over ' ...
+            'the person residual-SD population and uses a reference trial ' ...
+            'count (the per-group median unless overridden) - so points fall ' ...
+            'on BOTH sides of the curve; that is not estimation error. The ' ...
+            'typical-person companion surface (zero person effects) is the ' ...
+            'reference an equal-count zero-effect participant sits on.'];
+    elseif local_gamma_is_analysis(rel,'ic_dynrel_sserrvar_trt')
+        lines = [lines; local_gamma_trt_subject_scheme_lines(rel,'location-scale')];
     end
     return;
 end
@@ -593,10 +623,15 @@ if ~isempty(lssg)
     %The counterpart of the log-nu subject-level caveat further down, and it says
     %the OPPOSITE thing. That one warns that the participant's own amplitude does
     %not cancel; here it does not enter at all. The residual sentence is split by
-    %analysis: 6 (one-facet) pools the person x trial mean-surface term (S17-FIX),
-    %25 (two-facet) reports person x trial as its own component and stays a pure
-    %conditional read-out - there is no two-facet pooling counterpart.
-    if strcmpi(char(string(rel.analysis)),'ic_sserrvar')
+    %analysis: 6 (one-facet) pools the person x trial mean-surface term (S17-FIX);
+    %25 (two-facet) reports person x trial and person x occasion as their own
+    %components and, since the Q8 ruling (2026-09-13, gamma_target_version 2),
+    %pools the highest-order person x occasion x trial mean remainder R - keyed
+    %on the result's gamma_target stamp, so an older (unstamped) 25 result is
+    %disclosed as the observation-only encoding it was produced under.
+    if strcmpi(char(string(rel.analysis)),'trt_sserrvar')
+        lines = [lines; local_gamma_trt_subject_scheme_lines(rel,'location-scale')];
+    elseif strcmpi(char(string(rel.analysis)),'ic_sserrvar')
         lines{end+1,1} = ['Gamma subject-level reliability (location-scale, ' ...
             'POOLED): each participant''s residual is the person-by-trial ' ...
             'term of the log-linked mean surface (a POPULATION quantity - the ' ...
@@ -695,13 +730,13 @@ end
 %dead code. It therefore emitted NO dispersion caveat at all, which is the wrong
 %way round: this is the one dynamic design where the exp(2*alpha(z)) cancellation
 %demonstrably BREAKS (asymmetric event mean slopes move the surface with
-%b_nu_dim = 0; see SCIENTIFIC_FORMULA_TRACEABILITY_TABLE.md, row GAMMA-DIFF-DYNREL),
+%b_nu_dim = 0; see development traceability table, row GAMMA-DIFF-DYNREL),
 %while analyses 11/14, where it provably holds, did get one.
 %Keyed on an EXACT analysis match, never startsWith/contains: 'ic_diff_dynrel'
 %is a strict prefix of ic_diff_dynrel_sserrvar / _trt / _rescor / _rho, so a prefix
 %test would fire on cases 13/15/16 and every concurrent variant. Keying on
 %REL.out.b_nu_dim instead would be wrong for the same reason in the other
-%direction: gamma_chisquare_remaining_models.md specifies b_nu_dim for case 15 too.
+%direction: the remaining-gamma-models spec defines b_nu_dim for case 15 too.
 if local_gamma_is_analysis(rel,'ic_diff_dynrel') ...
         && local_has(rel,{'out','b_sigma_dim'})
     %LOCATION-SCALE case 12 (gammascale = 2). This MUST be tested before the
@@ -837,10 +872,11 @@ if isfield(g,'is_dynrel') && g.is_dynrel
         'b_sigma = b - b_nu/2, which includes the log-mean slope b, so -b_nu/2 and ' ...
         'b_sigma differ by exactly b. For an absolute-precision estimand refit with ' ...
         '''gammascale'',2.'];
-    %Subject-level pooled-residual disclosure, analysis 26 ONLY (S20, the
-    %log-nu counterpart of the S17-FIX line in the location-scale branch). The
-    %two-facet sibling 27 breaks person x trial out as its own component and
-    %has no pooling counterpart, so the gate is the exact one-facet label.
+    %Subject-level pooled-residual disclosure, analysis 26 (S20, the log-nu
+    %counterpart of the S17-FIX line in the location-scale branch) and, since
+    %the Q8 ruling (2026-09-13), analysis 27 with its own pooled term - the
+    %highest-order person x occasion x trial mean remainder - keyed on the
+    %result's gamma_target stamp (an unstamped 27 result is legacy).
     if local_gamma_is_analysis(rel,'ic_dynrel_sserrvar')
         lines{end+1,1} = ['Gamma subject-level residual (log-nu, POOLED): each ' ...
             'participant''s error is the person-by-trial term of the log-linked ' ...
@@ -850,7 +886,11 @@ if isfield(g,'is_dynrel') && g.is_dynrel
             'log-mean and log-nu effects. The participant''s own amplitude enters ' ...
             'through the conditional part only; the pooled term does not depend ' ...
             'on the participant. The curve and the per-participant points remain ' ...
-            'different estimands, so points fall on both sides of the curve.'];
+            'different estimands, so points fall on both sides of the curve; ' ...
+            'the typical-person companion surface (both person effects zero) ' ...
+            'is the reference an equal-count zero-effect participant sits on.'];
+    elseif local_gamma_is_analysis(rel,'ic_dynrel_sserrvar_trt')
+        lines = [lines; local_gamma_trt_subject_scheme_lines(rel,'log-nu')];
     end
 elseif isfield(g,'is_diff_sserr') && g.is_diff_sserr
     lines{end+1,1} = ['Gamma subject-level difference: the observed-score residual is ' ...
@@ -903,8 +943,12 @@ elseif local_gamma_is_analysis(rel,{'ic_sserrvar','trt_sserrvar'})
         'constant CV, where the Gaussian subject-level model shrinks toward ' ...
         'constant absolute SD. Report the s_v posterior, and treat participant ' ...
         'rankings and any dependability-based screening as partly amplitude-driven.'];
-    %Pooled-residual disclosure, analysis 6 ONLY (S20): the two-facet
-    %sibling 25 reports person x trial as its own component and pools nothing.
+    %Pooled-residual disclosure: analysis 6 (S20) pools the person x trial
+    %term; analysis 25 reports person x trial and person x occasion as their
+    %own components and, since the Q8 ruling (2026-09-13), pools the
+    %highest-order person x occasion x trial mean remainder R - keyed on the
+    %result's gamma_target stamp, so an unstamped 25 result is disclosed as
+    %the observation-only encoding it was produced under.
     if local_gamma_is_analysis(rel,'ic_sserrvar')
         lines{end+1,1} = ['Gamma subject-level residual (log-nu, POOLED): each ' ...
             'participant''s error is the person-by-trial term of the log-linked ' ...
@@ -913,6 +957,8 @@ elseif local_gamma_is_analysis(rel,{'ic_sserrvar','trt_sserrvar'})
             'at their own log-mean and log-nu effects. The amplitude statement ' ...
             'above concerns the conditional part; the pooled term does not ' ...
             'depend on the participant.'];
+    elseif local_gamma_is_analysis(rel,'trt_sserrvar')
+        lines = [lines; local_gamma_trt_subject_scheme_lines(rel,'log-nu')];
     end
     lines{end+1,1} = local_gamma_cv_line();
 end
@@ -1318,6 +1364,20 @@ switch lower(family)
 end
 end
 
+function lines = local_gamma_twofacet_restriction_lines(rel)
+%The RESTRICTED design-maturity line for the gamma two-facet designs (14, 25,
+%27), or {} for every other result. The caller has already gated on family =
+%'gamma'; this only matches the analysis label EXACTLY (see
+%local_gamma_is_analysis for why a prefix test is wrong here). The words live
+%in psyrat_gamma_twofacet_restriction, shared with the viewers' on-screen note
+%and the Analyze-time notice, so the three surfaces cannot drift.
+lines = cell(0,1);
+R = psyrat_gamma_twofacet_restriction();
+if local_gamma_is_analysis(rel, R.designs)
+    lines{end+1,1} = R.header;
+end
+end
+
 function tf = local_gamma_is_analysis(rel,names)
 %True when rel.analysis EXACTLY matches one of the supplied analysis labels.
 %
@@ -1348,6 +1408,149 @@ for k = 1:numel(names)
         tf = true;
         return;
     end
+end
+end
+
+function lines = local_gamma_trt_subject_scheme_lines(rel,paramname)
+%The per-participant residual scheme of the two-facet gamma subject-level
+%designs (static 25, dynamic 27), keyed on the result's explicit gamma_target
+%stamp (Q8/PBA-08 owner ruling 2026-09-13, gamma_target_version 2), plus one
+%line carrying the explicit target identifiers (surface target, reference
+%target, subject target, remainder scheme, parameterization, count source)
+%so the static exports and report carry the same contract the dynamic
+%summary does. A result WITHOUT the stamp was produced under the earlier
+%observation-only scheme; it is disclosed as such and never described as
+%pooled - the stamp, not the toolbox version reading the file, decides.
+%paramname is 'log-nu' or 'location-scale' and only changes the
+%observation-variance wording. Returns a column cell of two lines.
+%the marker is judged by the SAME strict validator the summary uses
+%(psyrat_gamma_target_validate): 'valid' -> POOLED v2; 'absent' -> LEGACY;
+%'invalid' (present but empty, malformed, unsupported version, partial or
+%contradictory, or an uninterpretable gammascale) -> an explicit
+%uninterpretable-marker disclosure that asserts NO scheme. A best-effort
+%header must never print POOLED from a bare version field or LEGACY from a
+%version it does not understand.
+vv = psyrat_gamma_target_validate(rel);
+if strcmp(vv.status,'invalid')
+    lines = { ...
+        ['Gamma two-facet subject-level residual (' paramname '): the stored ' ...
+        'gamma_target marker is INVALID or uninterpretable - ' vv.reason ' No ' ...
+        'residual scheme is asserted for this result: it is neither the pooled ' ...
+        'version-2 scheme nor a historical unstamped result. Re-run the ' ...
+        'versioned migration on the saved result or restore the file before ' ...
+        'reporting per-participant coefficients from it.']; ...
+        ['Stored-result contract: marker present but invalid (' vv.errid ...
+        '); surface_target, reference_target, subject_target, remainder_scheme, ' ...
+        'parameterization, count_source and surface_count_source are not ' ...
+        'reported from it.']};
+    return;
+end
+stamped = strcmp(vv.status,'valid');
+isstatic = local_gamma_is_analysis(rel,'trt_sserrvar');
+if strcmp(paramname,'location-scale')
+    cpart = ['their own observation variance exp(2*(log sigma + w_s)), which ' ...
+        'never touches the mean, so - unlike the log-nu parameterization - the ' ...
+        'participant''s own amplitude does NOT enter their coefficient and the ' ...
+        'person prior shrinks toward constant absolute SD rather than constant ' ...
+        'CV; that observation term carries no trial/occasion averaging factor'];
+    pkey = 'ls';
+else
+    cpart = ['their own conditional observation variance 2*mu_s^2/nu_s at ' ...
+        'their own log-mean and log-nu effects (the amplitude statement above ' ...
+        'concerns this part; the pooled term does not depend on the participant)'];
+    pkey = 'lognu';
+end
+if stamped
+    lines{1,1} = ['Gamma two-facet subject-level residual (' paramname ', POOLED, scheme ' ...
+        'population_highest_order_plus_person_observation_v2): each ' ...
+        'participant''s error is the population highest-order (person x ' ...
+        'occasion x trial) mean remainder of the log-linked mean surface (the ' ...
+        'same term the group residual carries; the six population mean ' ...
+        'components - person, occasion, trial and the three two-way ' ...
+        'interactions - are retained at the population value, and person x ' ...
+        'trial and person x occasion stay separate components with their own ' ...
+        'divisors) plus ' cpart '. This is a MIXED population/person target: the ' ...
+        'mean components are population quantities and the participant''s own ' ...
+        'effects enter only the observation variance; it is not a fully ' ...
+        'person-conditioned decomposition of the mean surface.'];
+    st = rel.out.gamma_target;
+    lines{2,1} = local_gamma_identifier_line(st, pkey, isstatic);
+else
+    lines{1,1} = ['Gamma two-facet subject-level residual (' paramname ', LEGACY ' ...
+        'observation-only scheme; this result carries no gamma_target stamp): ' ...
+        'each participant''s error is ' cpart ' ALONE. The population ' ...
+        'highest-order (person x occasion x trial) mean remainder R that the ' ...
+        'group residual carries is OMITTED from it, so these per-participant ' ...
+        'coefficients can be larger than under the current pooled scheme (they ' ...
+        'coincide when R is zero, so a zero-facet control provides an equality ' ...
+        'check), and an ' ...
+        'equal-count zero-effect participant need not sit on a reference ' ...
+        'surface. The six population mean components are retained as under the ' ...
+        'current scheme. Re-encode or re-summarize the saved result through the ' ...
+        'versioned migration to obtain the pooled scheme; nothing is ' ...
+        'reinterpreted silently.'];
+    lines{2,1} = local_gamma_identifier_line([], pkey, isstatic);
+end
+end
+
+function s = local_gamma_identifier_line(st, pkey, isstatic)
+%One machine-readable line with the explicit target identifiers. From the
+%stamp when one is present (fields read verbatim; a missing optional field
+%prints as not_recorded rather than being invented); for an UNSTAMPED result
+%the legacy identifiers its design implies, marked legacy/unstamped so it can
+%never be mistaken for a version-2 capture.
+%This is the STORED-RESULT contract: what the saved file carries, BEFORE any
+%view-time selection (surface target, n' override, explicit legacy scheme).
+%The contract actually summarized is printed by psyrat_gamma_target_lines as
+%'Active summary contract'; when a dynamic result stored one surface target
+%and the user selected the other, or explicitly requested the legacy subject
+%scheme on a stamped result, the two lines differ, and both are kept.
+if ~isempty(st) && isstruct(st)
+    s = sprintf(['Stored-result contract (as saved, before any view-time ' ...
+        'override; gamma_target_version %d): surface_target = %s; ' ...
+        'reference_target = %s; subject_target = %s; remainder_scheme = %s; ' ...
+        'parameterization = %s; count_source = %s; surface_count_source = %s; ' ...
+        'analysis = %s'], ...
+        local_stamp_num(st,'gamma_target_version'), ...
+        local_stamp_str(st,'surface_target'), local_stamp_str(st,'reference_target'), ...
+        local_stamp_str(st,'subject_target'), local_stamp_str(st,'remainder_scheme'), ...
+        local_stamp_str(st,'parameterization'), local_stamp_str(st,'count_source'), ...
+        local_stamp_str(st,'surface_count_source'), local_stamp_str(st,'analysis'));
+else
+    if isstatic
+        sfc = 'not_applicable';
+        ref = 'typical_person_zero_person_effects';
+        cnt = 'mean_trials_per_occupied_occasion';
+        scs = 'not_applicable';
+    else
+        sfc = 'population_marginal';
+        ref = 'not_applicable';
+        cnt = 'median_trials_per_occupied_occasion';
+        scs = 'default_stratum_median';
+    end
+    s = sprintf(['Stored-result contract (LEGACY, unstamped - no ' ...
+        'gamma_target_version recorded; identifiers implied by the design, ' ...
+        'before any view-time override): surface_target = %s; reference_target ' ...
+        '= %s; subject_target = ' ...
+        'own_observation_variance_with_population_mean_components_at_own_z; ' ...
+        'remainder_scheme = legacy_observation_only_v1; parameterization = %s; ' ...
+        'count_source = %s; surface_count_source = %s'], sfc, ref, pkey, cnt, scs);
+end
+end
+
+function v = local_stamp_str(st, f)
+if isfield(st,f) && ~isempty(st.(f))
+    v = char(string(st.(f)));
+else
+    v = 'not_recorded';
+end
+end
+
+function v = local_stamp_num(st, f)
+if isfield(st,f) && isnumeric(st.(f)) && isscalar(st.(f))
+    v = st.(f);
+else
+    v = NaN;
 end
 end
 

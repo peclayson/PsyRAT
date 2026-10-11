@@ -27,7 +27,7 @@ function out = psyrat_rel_diffdynrel_gamma_ls(varargin)
 %about precision alone. Here the CONDITIONAL variance is exactly sigma_k(z)^2 and
 %no longer moves with the amplitude, so b_sigma_dim is a pure residual-SD slope
 %per event. The log-nu sibling is NOT invalid - it is a coherent constant-CV
-%model. See documentation/gamma_scale_submodel_decision.md sections B and I.
+%model. See manual section 15.4 and decision-record sections B and I.
 %
 %BE PRECISE ABOUT WHICH RESIDUAL IS DECOUPLED. It is tempting to write "the
 %residual is decoupled from the mean surface entirely". That is WRONG and was
@@ -61,7 +61,7 @@ function out = psyrat_rel_diffdynrel_gamma_ls(varargin)
 %cross-event covariance is a covariance of two conditional MEANS, and
 %E[Y_k | u, w] = mu_k whatever the dispersion parameterization, because the scale
 %parameter governs the second moment of Y given mu, not the first. See
-%gamma_scale_submodel_decision.md section I.3 for the full argument.
+%the scale-submodel decision record, section I.3, for the full argument.
 %
 %NO cov_pv COUNTERPART, AND ADDING ONE WOULD BE WRONG. The log-nu sibling threads
 %the within-event person mean<->log-nu covariance into its converter because its
@@ -317,7 +317,7 @@ for a = 1:nz1
         %covariance EY_A*EY_B*expm1(c_p)*expm1(c_i), which the owner's reference
         %retains. Owner decision 2026-08-05: documented as a measured
         %approximation, not fixed here - measured at 4e-6 to 6e-5 of the residual
-        %variance beside it. See gamma_scale_submodel_decision.md section I.4.
+        %variance beside it. See the scale-submodel decision record, section I.4.
         %
         %CONCURRENT OVERRIDE (analysis 19). When a copula correlation is supplied
         %the two events ARE measured on the same trials, so neither omission

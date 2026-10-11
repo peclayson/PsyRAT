@@ -557,8 +557,13 @@ classdef TestNativeEngine < PsyRATTestBase
                 'data',data,'seed',12345,'chains',4,'iter',200,'warmup',200);
 
             % the engine's stored point estimate must equal a direct REML fit
-            % exactly (deterministic given the data), validating the extraction
-            lme = fitlme(Tbl,'meas ~ 1 + (1|id) + (1|trl)');
+            % exactly (deterministic given the data), validating the extraction.
+            % The reference names its method: a bare fitlme call fits by ML
+            % (MATLAB's default), and until Q1 (2026-09-11) this comparison was
+            % ML against ML, so it could not see that the engine omitted the
+            % option too (post-beta review, PBA-04).
+            lme = fitlme(Tbl,'meas ~ 1 + (1|id) + (1|trl)','FitMethod','REML');
+            testCase.assertEqual(lme.FitMethod,'REML');
             [psi,mse] = covarianceParameters(lme);
             fe = fixedEffects(lme);
             p = fit.meta.point;
@@ -581,6 +586,148 @@ classdef TestNativeEngine < PsyRATTestBase
             testCase.verifyLessThan(c{2,3},1.1);        % r_hat
             testCase.verifyGreaterThanOrEqual(c{2,2},40); % n_eff >= 10*nchains
             testCase.verifyEqual(fit.engine,'fitlme');
+        end
+
+        function testFitlmeUsesReml(testCase)
+            % Q1 (post-beta review, PBA-04): the engine must fit by REML, as its
+            % method label and every document say. Both references name their
+            % method so neither can repeat an omitted option, and the ML fit is
+            % the differential: the fixture must separate the two estimators,
+            % or agreeing with the engine would prove nothing.
+            testCase.assumeTrue(localHasFitlme(), ...
+                'Statistics and Machine Learning Toolbox (fitlme) not available.');
+            [data,Tbl] = localSimOneFacet(60,30,2.0,0.7,3.0,1.0,11);
+            spec = localSpec(2,'sing'); spec.opts.bootstrap_reps = 10;
+            fit = psyrat_run_native('fitlme',spec, ...
+                'data',data,'seed',12345,'chains',4,'iter',200,'warmup',200);
+            reml = fitlme(Tbl,'meas ~ 1 + (1|id) + (1|trl)','FitMethod','REML');
+            ml   = fitlme(Tbl,'meas ~ 1 + (1|id) + (1|trl)','FitMethod','ML');
+            testCase.assertEqual(reml.FitMethod,'REML');
+            testCase.assertEqual(ml.FitMethod,'ML');
+            [psi_reml,~] = covarianceParameters(reml);
+            [psi_ml,~]   = covarianceParameters(ml);
+            sig_u_reml = sqrt(psi_reml{1}(1,1));
+            sig_u_ml   = sqrt(psi_ml{1}(1,1));
+            testCase.assertGreaterThan(abs(sig_u_reml - sig_u_ml),1e-6, ...
+                'fixture does not separate REML from ML; the test would be vacuous');
+            p = fit.meta.point;
+            testCase.verifyEqual(p.sig_u,sig_u_reml,'AbsTol',1e-9, ...
+                'the engine did not return the REML person SD');
+            testCase.verifyGreaterThan(abs(p.sig_u - sig_u_ml),1e-6, ...
+                'the engine returned the ML person SD under a REML label');
+            testCase.verifyEqual(fit.meta.method,'fitlme_reml_parametric_bootstrap');
+        end
+
+        % --- Q3: failed bootstrap refits are dropped behind a floor -----------
+        % A test-local shadow of fitlme (first on the path for the duration of
+        % the test, see localFitlmeShadow) counts calls and throws on chosen
+        % call numbers. Call 1 is the original fit; calls 2..B+1 are the
+        % bootstrap refits. The shadow forwards everything else to the real
+        % fitlme through a handle captured before it was shadowed.
+
+        function testBootstrapFailuresAreDroppedAndCounted(testCase)
+            testCase.assumeTrue(localHasFitlme(), ...
+                'Statistics and Machine Learning Toolbox (fitlme) not available.');
+            shadow = localFitlmeShadow(testCase, [3 5]);   %#ok<NASGU> two refits fail
+            data = localSimOneFacet(20,10,2.0,0.7,3.0,1.0,3);
+            spec = localSpec(2,'sing'); spec.opts.bootstrap_reps = 20;
+            fit = testCase.verifyWarning(@() psyrat_run_native('fitlme',spec, ...
+                'data',data,'seed',21,'chains',4,'iter',50,'warmup',50), ...
+                'PsyRAT:fitlmeBootstrapFailures');
+            for f = {'mu','sig_u','sig_trl','sig_e'}
+                v = fit.extract('pars',f{1}).(f{1});
+                testCase.verifySize(v,[18 1], ...
+                    sprintf('%s must carry only the 18 successful replicates',f{1}));
+            end
+            % no returned draw is the point estimate any more
+            testCase.verifyFalse(any(fit.extract('pars','sig_u').sig_u == fit.meta.point.sig_u));
+            testCase.verifyEqual(fit.meta.bootstrap_reps,20);
+            testCase.verifyEqual(fit.meta.bootstrap_ok,18);
+            testCase.verifyEqual(fit.meta.bootstrap_failed,2);
+            testCase.verifyEqual(fit.meta.bootstrap_fail_ids,{'PsyRATTest:injectedRefitFailure'});
+        end
+
+        function testBootstrapSingleFailureWarns(testCase)
+            % the strict "more than 10%" rule is gone: one failure is disclosed
+            testCase.assumeTrue(localHasFitlme(), ...
+                'Statistics and Machine Learning Toolbox (fitlme) not available.');
+            shadow = localFitlmeShadow(testCase, 4);   %#ok<NASGU>
+            data = localSimOneFacet(20,10,2.0,0.7,3.0,1.0,3);
+            spec = localSpec(2,'sing'); spec.opts.bootstrap_reps = 20;
+            fit = testCase.verifyWarning(@() psyrat_run_native('fitlme',spec, ...
+                'data',data,'seed',21,'chains',4,'iter',50,'warmup',50), ...
+                'PsyRAT:fitlmeBootstrapFailures');
+            testCase.verifyEqual(fit.meta.bootstrap_ok,19);
+        end
+
+        function testBootstrapFloorRefusesTheRun(testCase)
+            % 20 requested, floor ceil(0.9*20) = 18 successes; four failures
+            % leave 16 and the run is refused with a named error
+            testCase.assumeTrue(localHasFitlme(), ...
+                'Statistics and Machine Learning Toolbox (fitlme) not available.');
+            shadow = localFitlmeShadow(testCase, 3:6);   %#ok<NASGU>
+            data = localSimOneFacet(20,10,2.0,0.7,3.0,1.0,3);
+            spec = localSpec(2,'sing'); spec.opts.bootstrap_reps = 20;
+            testCase.verifyError(@() psyrat_run_native('fitlme',spec, ...
+                'data',data,'seed',21,'chains',4,'iter',50,'warmup',50), ...
+                'PsyRAT:fitlmeBootstrapFloor');
+        end
+
+        function testBootstrapFloorRequires200WhenRequested(testCase)
+            % at B >= 200 the floor is max(ceil(0.9*B), 200): with 220 requested,
+            % 20 failures leave 200 (accepted), 21 leave 199 (refused)
+            testCase.assumeTrue(localHasFitlme(), ...
+                'Statistics and Machine Learning Toolbox (fitlme) not available.');
+            data = localSimOneFacet(12,6,2.0,0.7,3.0,1.0,9);
+            spec = localSpec(2,'sing'); spec.opts.bootstrap_reps = 220;
+            shadow = localFitlmeShadow(testCase, 2:21);   %#ok<NASGU>
+            fit = testCase.verifyWarning(@() psyrat_run_native('fitlme',spec, ...
+                'data',data,'seed',4,'chains',4,'iter',50,'warmup',50), ...
+                'PsyRAT:fitlmeBootstrapFailures');
+            testCase.verifyEqual(fit.meta.bootstrap_ok,200);
+            testCase.verifySize(fit.extract('pars','sig_u').sig_u,[200 1]);
+            clear shadow
+            shadow = localFitlmeShadow(testCase, 2:22);   %#ok<NASGU>
+            testCase.verifyError(@() psyrat_run_native('fitlme',spec, ...
+                'data',data,'seed',4,'chains',4,'iter',50,'warmup',50), ...
+                'PsyRAT:fitlmeBootstrapFloor');
+        end
+
+        function testBootstrapShadowIsTransparentWithNoFailures(testCase)
+            % control: with no injected failure the shadowed run is bit-identical
+            % to the unshadowed one, so the shadow itself changes nothing
+            testCase.assumeTrue(localHasFitlme(), ...
+                'Statistics and Machine Learning Toolbox (fitlme) not available.');
+            data = localSimOneFacet(20,10,2.0,0.7,3.0,1.0,3);
+            spec = localSpec(2,'sing'); spec.opts.bootstrap_reps = 15;
+            f0 = psyrat_run_native('fitlme',spec,'data',data,'seed',21, ...
+                'chains',4,'iter',50,'warmup',50);
+            shadow = localFitlmeShadow(testCase, []);   %#ok<NASGU>
+            f1 = psyrat_run_native('fitlme',spec,'data',data,'seed',21, ...
+                'chains',4,'iter',50,'warmup',50);
+            testCase.verifyEqual(f1.extract('pars','sig_u').sig_u, ...
+                f0.extract('pars','sig_u').sig_u);
+            testCase.verifyEqual(f1.meta.bootstrap_ok,15);
+            testCase.verifyEqual(f1.meta.bootstrap_failed,0);
+        end
+
+        function testComputevarcompStampsEngineRecord(testCase)
+            % Q3: the estimation core stamps the engine's own record beside the
+            % engine label (REL.engine_meta), so the exported headers, the
+            % runconfig sidecar and the viewer notice can name the achieved
+            % bootstrap count. A native one-facet run through the full core.
+            testCase.assumeTrue(localHasFitlme(), ...
+                'Statistics and Machine Learning Toolbox (fitlme) not available.');
+            data = localSimOneFacet(20,10,2.0,0.7,3.0,1.0,17);
+            ids = arrayfun(@(k) sprintf('S%02d',k), data.id, 'UniformOutput', false);
+            T = table(ids, data.meas, 'VariableNames', {'id','meas'});
+            rel = psyrat_computevarcomp('data',T,'engine',2,'bootstrap_reps',12, ...
+                'chains',2,'warmup',10,'sampling',10,'seed',12345,'verbose',1,'showgui',0);
+            testCase.verifyEqual(rel.engine,'fitlme');
+            testCase.verifyEqual(rel.engine_meta.bootstrap_reps,12);
+            testCase.verifyEqual(rel.engine_meta.bootstrap_ok,12);
+            testCase.verifyEqual(rel.engine_meta.bootstrap_failed,0);
+            testCase.verifySize(rel.out.sig_u,[12 1]);
         end
 
         function testFitlmeReproducibleWithSeed(testCase)
@@ -736,8 +883,10 @@ classdef TestNativeEngine < PsyRATTestBase
                 categorical(data.trl(:)),categorical(data.trlxid(:)), ...
                 categorical(data.occxid(:)),categorical(data.trlxocc(:)), ...
                 'VariableNames',{'meas','id','occ','trl','trlxid','occxid','trlxocc'});
+            % (the reference names its method, as in the one-facet test: Q1)
             lme = fitlme(Tbl,['meas ~ 1 + (1|id)+(1|occ)+(1|trl)+(1|trlxid)+' ...
-                '(1|occxid)+(1|trlxocc)']);
+                '(1|occxid)+(1|trlxocc)'],'FitMethod','REML');
+            testCase.assertEqual(lme.FitMethod,'REML');
             [psi,mse] = covarianceParameters(lme);
             testCase.verifyEqual(fit.meta.point.sig_id, sqrt(psi{1}(1,1)),'AbsTol',1e-9);
             testCase.verifyEqual(fit.meta.point.sig_err, sqrt(mse),'AbsTol',1e-9);
@@ -923,4 +1072,51 @@ data = struct('NOBS',numel(meas),'NSUB',NSUB,'NTRL',NTRL, ...
     'id',id,'trl',trl,'meas',meas);
 Tbl = table(meas,categorical(id),categorical(trl), ...
     'VariableNames',{'meas','id','trl'});
+end
+
+function cleanup = localFitlmeShadow(testCase, failAt)
+% Put a fitlme shadow FIRST on the path for the duration of the calling test
+% (Q3, 2026-09-11). It counts calls and throws PsyRATTest:injectedRefitFailure
+% on the call numbers in failAt (call 1 = the original fit; 2..B+1 = the
+% bootstrap refits). Every other call is forwarded to the real fitlme by
+% taking the shadow off the path for the duration of that call, so the
+% forwarding does not depend on function-handle binding rules. which() proves
+% the shadow is active, and onCleanup removes it even when the test fails.
+d = fullfile(tempname, 'fitlme_shadow');
+mkdir(d);
+fid = fopen(fullfile(d, 'fitlme.m'), 'w');
+testCase.assertGreaterThan(fid, 0, 'could not write the fitlme shadow');
+fprintf(fid, '%s\n', ...
+    'function varargout = fitlme(varargin)', ...
+    '%Test shadow (TestNativeEngine, Q3): counts calls, fails on request, forwards.', ...
+    's = getappdata(0, ''psyrat_test_fitlme_shadow'');', ...
+    's.calls = s.calls + 1;', ...
+    'setappdata(0, ''psyrat_test_fitlme_shadow'', s);', ...
+    'if any(s.failAt == s.calls)', ...
+    '    error(''PsyRATTest:injectedRefitFailure'', ...', ...
+    '        ''injected refit failure at fitlme call %d'', s.calls);', ...
+    'end', ...
+    'd = fileparts(mfilename(''fullpath''));', ...
+    'rmpath(d);', ...
+    'restore = onCleanup(@() addpath(d)); %#ok<NASGU>', ...
+    '[varargout{1:max(nargout,1)}] = fitlme(varargin{:});', ...
+    'end');
+fclose(fid);
+setappdata(0, 'psyrat_test_fitlme_shadow', struct('calls', 0, 'failAt', failAt));
+addpath(d);
+testCase.assertEqual(which('fitlme'), fullfile(d, 'fitlme.m'), ...
+    'the fitlme shadow is not first on the path');
+cleanup = onCleanup(@() localRemoveFitlmeShadow(d));
+end
+
+function localRemoveFitlmeShadow(d)
+if any(strcmp(strsplit(path, pathsep), d))
+    rmpath(d);
+end
+if isappdata(0, 'psyrat_test_fitlme_shadow')
+    rmappdata(0, 'psyrat_test_fitlme_shadow');
+end
+if exist(d, 'dir')
+    rmdir(d, 's');
+end
 end

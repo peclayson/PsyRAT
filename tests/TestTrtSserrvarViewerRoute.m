@@ -178,6 +178,74 @@ classdef TestTrtSserrvarViewerRoute < PsyRATTestBase
             end
         end
 
+        function testViewerShowsRestrictedNoteForGammaTrtSserrvarOnly(testCase)
+            %Queue row 3a (owner rulings 2-4, 2026-09-21): analysis 25 under
+            %the gamma family (location-scale and log-nu alike) is RESTRICTED
+            %and must say so ON SCREEN, in this setup window, with the shared
+            %psyrat_gamma_twofacet_restriction text; the Gaussian arm, a
+            %legacy result with no family field, and the other test-retest
+            %labels under gamma stay unlabeled. The viewer was family-agnostic
+            %before this, so the family gate is new here and is exercised on
+            %both sides. The extra row is conditional, so the RC-25 layout
+            %invariant is re-asserted on the gamma case below
+            %(testViewerControlsAllFitInsideTheWindow covers the rest).
+            R = psyrat_gamma_twofacet_restriction();
+            tag = 'psyrat_trt_restriction_note';
+            prefs = localStartviewPrefs();
+            rel = struct('analysis','trt_sserrvar','filename','synthetic', ...
+                'time',{{'o1','o2'}},'groups','none','events','none', ...
+                'nchains',2,'niter',1);
+            pd = struct('rel',rel,'proc',struct('measheader','meas'),'ver','0-test');
+            cleanup = onCleanup(@() close('all','force')); %#ok<NASGU>
+
+            %positives: both gamma parameterizations
+            for gs = [2 1]
+                pd.rel.family = 'gamma';
+                pd.rel.gammascale = gs;
+                close('all','force');
+                psyrat_startview_trt('psyrat_prefs',prefs,'psyrat_data',pd);
+                fig = findobj('Tag','psyrat_gui');
+                testCase.assertNotEmpty(fig, 'gamma trt_sserrvar did not build a viewer figure');
+                fig = fig(1);
+                note = findobj(fig, 'Tag', tag);
+                testCase.verifyNumElements(note, 1, sprintf( ...
+                    'gamma trt_sserrvar (gammascale %d): expected one on-screen RESTRICTED note', gs));
+                if ~isempty(note)
+                    txt = string(note(1).String);
+                    if numel(txt) > 1; txt = strjoin(txt, ' '); end
+                    testCase.verifyEqual(char(txt), R.screen, ...
+                        'the note must be the shared on-screen text');
+                end
+                u = findall(fig,'Type','uicontrol');
+                ys = arrayfun(@(h) h.Position(2), u);
+                hs = arrayfun(@(h) h.Position(4), u);
+                testCase.verifyGreaterThanOrEqual(min(ys), 0, ...
+                    'gamma trt_sserrvar: a control starts below the figure bottom');
+                testCase.verifyLessThanOrEqual(max(ys + hs), fig.Position(4), ...
+                    'gamma trt_sserrvar: a control ends above the figure top');
+                testCase.verifyLessThanOrEqual(fig.Position(2) + fig.Position(4), 1117, ...
+                    'gamma trt_sserrvar: the window must fit a 1728x1117 display');
+            end
+
+            %negatives: Gaussian 25, a legacy 25 with no family field, and the
+            %population test-retest label under gamma
+            negs = {struct('analysis','trt_sserrvar','family','gaussian'), ...
+                struct('analysis','trt_sserrvar'), ...
+                struct('analysis','trt','family','gamma')};
+            for k = 1:numel(negs)
+                pdk = pd;
+                pdk.rel = rel;
+                fn = fieldnames(negs{k});
+                for j = 1:numel(fn); pdk.rel.(fn{j}) = negs{k}.(fn{j}); end
+                close('all','force');
+                psyrat_startview_trt('psyrat_prefs',prefs,'psyrat_data',pdk);
+                fig = findobj('Tag','psyrat_gui');
+                testCase.assertNotEmpty(fig, 'negative case did not build a viewer figure');
+                testCase.verifyEmpty(findobj(fig(1), 'Tag', tag), sprintf( ...
+                    'negative case %d must not carry the RESTRICTED note', k));
+            end
+        end
+
         function testViewerControlsAllFitInsideTheWindow(testCase)
             %RC-25. This screen accumulates fixed-pixel row offsets that ran off
             %the bottom of its own figure. The bottom button row sat at

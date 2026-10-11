@@ -1,13 +1,16 @@
 # PsyRAT User Manual
 
-This manual documents PsyRAT 0.1.0-beta, the Psychophysiologist's Reliability
+This manual documents PsyRAT 0.1.1-beta, the Psychophysiologist's Reliability
 Analysis Toolbox: a MATLAB toolbox that uses generalizability theory to
 evaluate the psychometric reliability of event-related potential (ERP) scores,
 with Bayesian variance-component estimation via CmdStan.
 
-The version above is the only version number printed in this manual. Your
-installed version appears in the startup banner when you run `psyrat_start`,
-and in the header of every table the toolbox exports.
+The version above is the only PsyRAT version number printed in this manual.
+Your installed version appears in the startup banner when you run
+`psyrat_start`. The header of every table the toolbox exports names the
+version that produced the results, which is your installed version for a fresh
+run but an earlier one for a results file made with an earlier release (a file
+with no version stamp shows "(not recorded)").
 
 ## How to read this manual
 
@@ -17,8 +20,9 @@ and in the header of every table the toolbox exports.
   [Chapter 1](01_why-reliability.md) and [Chapter 4](04_gtheory.md) first.
 - Hit an error message? Go straight to
   [Chapter 18, Troubleshooting](18_troubleshooting.md).
-- Migrating from the ERA Toolbox? Chapter 1 notes what changed; the workflow
-  chapters (6 to 9) are the new reference.
+- Migrating from the ERP Reliability Analysis (ERA) Toolbox?
+  [Chapter 1](01_why-reliability.md) notes what changed, and Chapters 6 to 9
+  (Part III) are the new reference.
 
 ## Contents
 
@@ -55,15 +59,15 @@ and in the header of every table the toolbox exports.
 ### Appendices
 - [Appendix A. Glossary](appendix-a_glossary.md)
 - [Appendix B. References](appendix-b_references.md)
+- [Appendix C. Reprocessing saved gamma results](appendix-c_reprocessing.md)
 
 ## Conventions used in this manual
 
 - GUI control names appear with their exact on-screen capitalization: click
   Analyze, select the Preferences button.
-- Dialog titles are quoted as the toolbox sets them. macOS file panels do not
-  display a title, so a dialog the manual calls "titled Data" opens there as an
-  untitled panel.
-- File names and MATLAB commands appear in `code font`.
+- Dialog and window titles are given exactly as the toolbox sets them, in
+  plain text.
+- In running text, file names and MATLAB commands appear in `code font`.
 - The tutorial datasets ship with the toolbox in `test_data/`, and the
   expected results printed in the tutorials were produced from those exact
   files at the settings each tutorial states.
@@ -71,3 +75,20 @@ and in the header of every table the toolbox exports.
   absolute-error coefficient and generalizability to the relative-error
   coefficient; the two are not interchangeable, and the manual always names
   the one it means.
+
+macOS file panels do not display a title. On a Mac, a file dialog the manual
+describes as titled Data opens as an untitled panel.
+
+## Acknowledgments
+
+I thank Gavin Heindorf and Bohyun Park for their help with beta testing.
+
+Development of PsyRAT was supported by the National Institute of Mental
+Health of the National Institutes of Health under award number R01MH128208.
+I am grateful to NIMH for its generous support of this work. The content is
+solely the responsibility of the author and does not necessarily represent
+the official views of the National Institutes of Health.
+
+Claude (Anthropic) and ChatGPT (OpenAI) were used to write code and
+documentation for PsyRAT, including this manual. Responsibility for the
+resulting code and text rests with the author.

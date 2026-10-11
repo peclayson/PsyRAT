@@ -23,23 +23,33 @@ function [gen,dep] = psyrat_ssrel_dynrel_trt_gamma_ls(varargin)
 %model estimates the quantity directly:
 %
 %   log sigma_s(z) = logsig0 + b_sigma . x(z) + w_s        (w_s = ind_sd)
-%   Var(Y | s)     = sigma_s(z)^2 = exp(2*(logsig0 + b_sigma . x(z) + w_s))
+%   C_s(z)         = sigma_s(z)^2 = exp(2*(logsig0 + b_sigma . x(z) + w_s))
+%   E_s(z)         = R(z) + C_s(z)
 %
-%with no mu anywhere. **V_w HAS NO COUNTERPART HERE AND MUST NOT BE ADDED.** It
-%exists in the twin only because the log-nu conditional variance is an
-%expectation of 2*mu^2/nu over the within-person facets; sigma_s is a single
+%with no mu anywhere in C_s. **V_w HAS NO COUNTERPART HERE AND MUST NOT BE
+%ADDED.** It exists in the twin only because the log-nu conditional variance is
+%an expectation of 2*mu^2/nu over the within-person facets; sigma_s is a single
 %per-participant quantity carrying no facet terms, so there is no expectation to
 %take. This is the two-facet form of the same rule
 %psyrat_gamma_varcomps_trt_ls's header states for the group path, and the
 %two-facet form of the one-facet twin's dropped exp(2*s_i^2).
 %
+%R(z) (Q8/PBA-08 owner ruling 2026-09-13, gamma_target_version 2) is the
+%POPULATION highest-order (person x occasion x trial) mean-surface remainder
+%at the participant's z, psyrat_gamma_mean_remainder_trt, the two-facet
+%counterpart of the one-facet pi_mean pooled by S17-FIX in
+%psyrat_ssrel_dynrel_gamma_ls. It exists because the MEAN has a log link under
+%both parameterizations, and it is the same term the group residual sigma_res2
+%carries by subtraction. It is a term ADDED to C_s, not a factor on it, and it
+%depends on alpha(z_s) and the six log-mean SDs only.
+%
 %CONSEQUENCE: ind_bs IS NOT AN INPUT, AND MUST NOT BECOME ONE.
 %The participant's own log-mean u_s does not appear in this calculation at all:
 %
-% (a) The residual is exp(2*(log sigma_s)), which never touches mu. Under the
-%     log-nu twin it is 2*mu(z,u_s)^2*exp(2*V_w)/nu, so u_s DOES enter there and
-%     a higher-mean participant receives a strictly lower conditional
-%     coefficient.
+% (a) The observation variance is exp(2*(log sigma_s)), which never touches mu,
+%     and R is a population quantity. Under the log-nu twin C_s is
+%     2*mu(z,u_s)^2*exp(2*V_w)/nu, so u_s DOES enter there and a higher-mean
+%     participant receives a strictly lower conditional coefficient.
 % (b) sigma_p^2 is a BETWEEN-person variance, so it is evaluated at alpha(z_s)
 %     and NOT at alpha(z_s) + u_s - conditioning on a participant tells you where
 %     they sit, not how spread the population is. This is the same rule the
@@ -47,7 +57,8 @@ function [gen,dep] = psyrat_ssrel_dynrel_trt_gamma_ls(varargin)
 %     components remain population quantities evaluated at that participant's z).
 %
 %So under gammascale = 2 the per-participant coefficient is a FUNCTION of
-%(z_s, w_s) only, with the participant's own log-mean appearing nowhere in it.
+%(z_s, w_s) and population parameters only, with the participant's own log-mean
+%appearing nowhere in it.
 %That decoupling is the reason this parameterization exists. It is a property,
 %not an omission: a future reader who adds ind_bs "for parity" would reintroduce
 %exactly the mean-dispersion blending the owner ruled against.
@@ -62,7 +73,7 @@ function [gen,dep] = psyrat_ssrel_dynrel_trt_gamma_ls(varargin)
 %track amplitude across the sample. What this parameterization removes is the
 %amplitude term from the FORMULA; it does not and cannot remove an estimated
 %correlation from the data. This is the same formula-versus-fitted-numbers
-%distinction PSYRAT_AUDIT_FINDINGS.md already draws for S16 on the static
+%distinction that finding S16 already draws for the static
 %subject-level designs, and it is the honest version of the claim.
 %
 %Unlike the one-facet location-scale twin, the estimator does not lift ind_bs
@@ -120,6 +131,14 @@ function [gen,dep] = psyrat_ssrel_dynrel_trt_gamma_ls(varargin)
 % nocc       - n' (occasion count)
 % CI         - credible interval width in decimal format (.95 = 95%)
 %
+%Optional Inputs
+% remainder_scheme - 'population_highest_order_plus_person_observation_v2'
+%              (default: residual R + C_s) or 'legacy_observation_only_v1'
+%              (pre-Q8 residual C_s only; psyrat_dynrel_summary passes this for
+%              an analysis-27 result saved without a gamma_target stamp, so old
+%              results are not silently reinterpreted). Anything else errors
+%              ('dynrel:badremainderscheme').
+%
 %Outputs
 % gen - psyrat_ssrel_trt output table for generalizability (gcoeff = 2), one row
 %       per participant in idtable row order
@@ -159,10 +178,28 @@ ndim    = psyrat_req(varargin,'ndim','Please input ndim (1 or 2).');
 reltype = psyrat_req(varargin,'reltype','Please input reltype (1, 2, or 3).');
 nocc    = psyrat_req(varargin,'nocc','Please input nocc (occasion count).');
 ciperc  = psyrat_req(varargin,'CI','Please input CI.');
+%remainder scheme: the Q8 v2 residual R + C_s (default for every direct call)
+%or the pre-Q8 observation-only residual C_s, which psyrat_dynrel_summary
+%requests for an analysis-27 result saved without a gamma_target stamp so an
+%old file does not silently acquire R when re-summarized. Validated below.
+scheme  = psyrat_opt(varargin,'remainder_scheme',...
+    'population_highest_order_plus_person_observation_v2');
 
 if ~any(ndim == [1 2])
     error('varargin:ndim','WARNING: ndim must be 1 or 2.\n');
 end
+if ~(ischar(scheme) || (isstring(scheme) && isscalar(scheme))) || ...
+        ~any(strcmp(char(scheme),{'population_highest_order_plus_person_observation_v2',...
+        'legacy_observation_only_v1'}))
+    error('dynrel:badremainderscheme',...
+        ['Unknown remainder_scheme for psyrat_ssrel_dynrel_trt_gamma_ls. Valid values ' ...
+        'are ''population_highest_order_plus_person_observation_v2'' (default; ' ...
+        'residual R + C_s) and ''legacy_observation_only_v1'' (pre-Q8 residual ' ...
+        'C_s only, for unstamped saved results). How to fix: pass one of those ' ...
+        'two strings or omit the option.']);
+end
+scheme = char(scheme);
+uselegacy = strcmp(scheme,'legacy_observation_only_v1');
 
 %column vectors of draws
 alpha0  = alpha0(:);
@@ -234,11 +271,25 @@ for c = 1:nsub
     vc = psyrat_gamma_varcomps_trt_ls(alpha_z, sig_p, s_o, s_t, ...
         s_po, s_pt, s_ot, logsig_z, 0);
 
-    %per-participant CONDITIONAL residual SD at their own z and their own w_s.
-    %Exponentiated (unlike the converter argument above) because psyrat_ssrel_trt
-    %takes 'err' as an observed-scale SD. No mu term and no exp(2*V_w)
-    %within-person factor - see the header.
-    err_ss = exp(logsig_z + ind_sd(:,col));   % [ndraws x 1]
+    %Q8 (owner ruling 2026-09-13, gamma_target_version 2): the per-participant
+    %residual is E_s = R(z_s) + C_s, the POPULATION highest-order (person x
+    %occasion x trial) mean-surface remainder at this participant's z plus
+    %their own observation variance C_s = exp(2*(logsig(z_s) + w_s)). R is a
+    %TERM added, not a factor: it carries no mu-coupling into C_s and no
+    %exp(2*V_w) - see the header. It is built from alpha(z_s) and the six
+    %log-mean SDs only, so the participant's own log-mean still enters nowhere.
+    %Same helper as the log-nu twin and the static analysis-25 extractor.
+    if uselegacy
+        R_z = zeros(size(alpha_z));           % pre-Q8 scheme: no remainder
+    else
+        R_z = psyrat_gamma_mean_remainder_trt(alpha_z, sig_p, s_o, s_t, ...
+            s_po, s_pt, s_ot);                % [ndraws x 1]
+    end
+
+    %residual SD at their own z and their own w_s. Exponentiated (unlike the
+    %converter argument above) because psyrat_ssrel_trt takes 'err' as an
+    %observed-scale SD.
+    err_ss = sqrt(R_z + exp(2.*(logsig_z + ind_sd(:,col))));   % [ndraws x 1]
 
     row = idtable(c,:);
 

@@ -19,7 +19,7 @@ classdef TestStartprocNoneSentinel < PsyRATTestBase
     %conclude the facet is absent while the loader loads the column, so the
     %engine self-dispatches a WITH-facet analysis every GUI gate believes it
     %prevented -- a silent estimand substitution. B25 in
-    %PSYRAT_AUDIT_FINDINGS.md.
+    %the findings ledger.
 
     methods (Test)
 
@@ -94,7 +94,9 @@ classdef TestStartprocNoneSentinel < PsyRATTestBase
             %(one ==/~= pair per role, pre-existing) PLUS the nine converted
             %guards: the three which-X population conditions, the three
             %which-X handoffs, and the three design gates. Exact counts pin
-            %both the conversion and its completeness.
+            %both the conversion and its completeness. The sixth time site
+            %(2026-09-21, queue row 3a) is the RESTRICTED design notice's
+            %occasion test, written in the same index convention.
             body = testCase.functionBody('psyrat_exec');
             expected = { ...
                 'psyrat_prefs.proc.inp.group == length(psyrat_data.proc.collist)', 1; ...
@@ -102,7 +104,7 @@ classdef TestStartprocNoneSentinel < PsyRATTestBase
                 'psyrat_prefs.proc.inp.event == length(psyrat_data.proc.collist)', 2; ...
                 'psyrat_prefs.proc.inp.event ~= length(psyrat_data.proc.collist)', 3; ...
                 'psyrat_prefs.proc.inp.time == length(psyrat_data.proc.collist)', 1; ...
-                'psyrat_prefs.proc.inp.time ~= length(psyrat_data.proc.collist)', 5};
+                'psyrat_prefs.proc.inp.time ~= length(psyrat_data.proc.collist)', 6};
             for k = 1:size(expected, 1)
                 testCase.verifyEqual( ...
                     numel(strfind(body, expected{k, 1})), expected{k, 2}, ...

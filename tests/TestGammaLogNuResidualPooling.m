@@ -2,7 +2,7 @@ classdef TestGammaLogNuResidualPooling < matlab.unittest.TestCase
     %TESTGAMMALOGNURESIDUALPOOLING The four log-nu subject-level gamma
     %residual sites must pool the population person x trial term (S20).
     %
-    % S20 (PSYRAT_AUDIT_FINDINGS.md, owner-adjudicated 2026-08-12, fixed in
+    % S20 (findings ledger, owner-adjudicated 2026-08-12, fixed in
     % the pre-beta batch): under gammascale = 1 the subject-level designs 6,
     % 8 (both extractors) and 26 built each participant's residual as a single
     % exponential, E_t[Var(Y | mu, nu_p) | p], and dropped the induced

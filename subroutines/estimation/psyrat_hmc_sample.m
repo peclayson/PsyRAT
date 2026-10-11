@@ -28,10 +28,23 @@ function [draws,conv] = psyrat_hmc_sample(logpdfgrad,start,nchains,nwarmup, ...
 %Outputs:
 % draws - (nchains*nsampling) x D matrix of pooled post-warmup draws.
 % conv - {'name','n_eff','r_hat'; name_i, neff_i, rhat_i; ...} for the monitored
-%  parameters, computed with split-R-hat and an autocovariance effective sample
-%  size (Stan conventions). psyrat_checkconv flags r_hat>=1.1 or n_eff<10*nchains.
+%  parameters: rank-normalized/folded split Rhat, with n_eff=min(bulk,tail).
+%  Data columns 4/5/6 retain bulk ESS, tail ESS and mean MCSE separately.
+%  Header cell 4 remains the divergence slot; acceptance ratios retain their
+%  existing positions, followed by a schema/provenance struct. Fixed-array
+%  values are independently validated against R posterior 1.6.0 conventions.
+%  Frozen/nonfinite/too-short chains and invalid acceptance ratios fail.
+%  Acceptance below .1 still fails the existing owner-approved floor. The
+%  existing Rhat<1.1 / ESS>=10*nchains gate is an early-workflow check only.
+%
+%DIAGNOSTICS SEAM (tests only): [~,conv] = psyrat_hmc_sample('diagnostics',x,names,accratios)
+%  builds the convergence cell from a fixed draw array x (nsampling x nchains x
+%  D), a cellstr of D names and a 1 x nchains vector of acceptance ratios
+%  through the same local kernels the sampling path uses, so the kernels can
+%  be pinned on known arrays (they are local functions and unreachable
+%  otherwise). No sampling happens and draws is returned empty.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -48,8 +61,17 @@ function [draws,conv] = psyrat_hmc_sample(logpdfgrad,start,nchains,nwarmup, ...
 %     <http://www.gnu.org/licenses/>.
 %
 
+%diagnostics seam (see the header): the positional inputs are reused as
+%x, names, accratios
+if ischar(logpdfgrad) && strcmp(logpdfgrad,'diagnostics')
+    draws = [];
+    conv = local_convcell(start,nchains,nwarmup);
+    return;
+end
+
 D = numel(start);
 percnt = zeros(nsampling,D,nchains);   % per-chain draws for R-hat
+accratios = zeros(1,nchains);
 for c = 1:nchains
     rng(double(seed)+c-1,'twister');
     %a small random jitter of the start point decorrelates the chains so
@@ -58,85 +80,65 @@ for c = 1:nchains
     smp = hmcSampler(logpdfgrad,st,'CheckGradient',false);
     smp = tuneSampler(smp,'VerbosityLevel',0, ...
         'NumStepSizeTuningIterations',max(50,round(nwarmup/2)));
-    chain = drawSamples(smp,'NumSamples',nsampling,'Burnin',nwarmup, ...
-        'VerbosityLevel',0);
+    %the third output is the fraction of accepted proposals for this chain;
+    %requesting it does not touch the random stream, so draws are unchanged
+    [chain,~,accratios(c)] = drawSamples(smp,'NumSamples',nsampling, ...
+        'Burnin',nwarmup,'VerbosityLevel',0);
     percnt(:,:,c) = chain;
 end
 
 %pooled draws (nchains*nsampling) x D
 draws = reshape(permute(percnt,[1 3 2]),nsampling*nchains,D);
 
-%convergence for the monitored parameters only
-hdr = {'name','n_eff','r_hat'};
-conv = hdr;
-for k = 1:numel(monitor_idx)
-    j = monitor_idx(k);
-    x = squeeze(percnt(:,j,:));         % nsampling x nchains
-    rhat = local_split_rhat(x);
-    neff = local_ess(x);
-    conv(end+1,1:3) = {monitor_names{k},neff,rhat}; %#ok<AGROW>
-end
+%convergence for the monitored parameters only: nsampling x nchains x Dmon
+x = permute(percnt(:,monitor_idx,:),[1 3 2]);
+conv = local_convcell(x,monitor_names,accratios);
 end
 
 % ------------------------------------------------------------------------------
-function rhat = local_split_rhat(x)
-%Stan split-R-hat: split each chain in half, then between/within variance ratio.
-[n,m] = size(x);
-half = floor(n/2);
-if half < 2
-    rhat = Inf; return;
+function conv = local_convcell(x,names,accratios)
+%Build the convergence cell from a draw array x (n x m x D), the D parameter
+%names and the m acceptance ratios. Shared by the sampling path and the
+%diagnostics seam so that what the tests pin is what production runs.
+[~,m,D] = size(x);
+if iscell(names) == false
+    names = cellstr(names);
 end
-%2*m split chains of length `half`
-s = [x(1:half,:), x(half+1:2*half,:)];   % half x (2m)
-M = size(s,2);
-cmeans = mean(s,1);
-cvars  = var(s,0,1);
-W = mean(cvars);
-B = half*var(cmeans,0);                  % between-chain (scaled)
-if W <= 0
-    rhat = 1; return;
+accratios = double(accratios(:)');
+if numel(accratios) ~= m
+    error('PsyRAT:hmcAcceptanceShape', ...
+        'Expected one acceptance ratio per chain (%d), got %d.',m,numel(accratios));
 end
-varplus = (half-1)/half*W + B/half;
-rhat = sqrt(varplus/W);
+conv = {'name','n_eff','r_hat'};
+conv{1,4} = [];                       % divergence slot, stamped by psyrat_storeconv
+conv{1,5} = 'accept_ratio';
+conv(1,6:5+m) = num2cell(accratios);
+%acceptance floor: a chain that rejected more than 90% of its proposals is
+%stuck or nearly so, and its draws cannot be trusted whatever the R-hat says
+badaccept = ~isfinite(accratios) | imag(accratios)~=0 | real(accratios)<0.1 | real(accratios)>1;
+floorfail = any(badaccept);
+if floorfail
+    bad = find(badaccept);
+    warning('PsyRAT:hmcAcceptanceFloor',['Native HMC chain(s) %s accepted ' ...
+        'fewer than 10%% of proposals or reported invalid acceptance (%s); the fit is marked not ' ...
+        'converged. How to fix: rerun with more warmup, or use CmdStan.'], ...
+        mat2str(bad),mat2str(accratios(bad),3));
 end
-
-% ------------------------------------------------------------------------------
-function ess = local_ess(x)
-%Effective sample size from the combined-chain autocorrelations (Stan-style:
-%sum truncated when consecutive autocorrelation-pair sums go negative).
-[n,m] = size(x);
-N = n*m;
-%within-chain mean-centered, then average autocorrelation across chains
-acov = zeros(n,1);
-for c = 1:m
-    xc = x(:,c) - mean(x(:,c));
-    a = local_autocov(xc);
-    acov = acov + a;
+meta=psyrat_diagnostic_metadata({});
+meta.format='native_rank_fold'; meta.precision_significant_digits=16;
+meta.degraded=false; meta.degradation_reason='';
+meta.method='rank/fold split Rhat; bulk/tail ESS; posterior 1.6.0 conventions';
+meta.contract_status='no structural constants among unconstrained monitors';
+meta.expected_names=names(:)';
+meta.row_columns={'name','n_eff','r_hat','ess_bulk','ess_tail','mcse_mean'};
+meta.acceptance_ratios=accratios;
+meta.monitor_scope='selected unconstrained parameters; returned quantities appended by native engine';
+conv{1,6+m}=meta;
+for k=1:D
+    d=psyrat_rank_diagnostics(x(:,:,k));
+    neff=min(d.ess_bulk,d.ess_tail);
+    if isnan(d.ess_bulk) || isnan(d.ess_tail); neff=NaN; end
+    if floorfail; d.rhat=Inf; end
+    conv(end+1,1:6)={names{k},neff,d.rhat,d.ess_bulk,d.ess_tail,d.mcse_mean}; %#ok<AGROW>
 end
-acov = acov/m;
-if acov(1) <= 0
-    ess = N; return;
-end
-rho = acov/acov(1);
-%Geyer initial positive sequence: sum pairs until a pair-sum <= 0
-tau = 1;
-t = 1;
-while t+2 <= n
-    pair = rho(t+1) + rho(t+2);
-    if pair <= 0
-        break;
-    end
-    tau = tau + 2*pair;
-    t = t + 2;
-end
-ess = N/max(tau,1);
-end
-
-% ------------------------------------------------------------------------------
-function a = local_autocov(xc)
-%Biased autocovariance via FFT, lags 0..n-1.
-n = numel(xc);
-f = fft(xc,2^nextpow2(2*n));
-ac = ifft(f.*conj(f));
-a = real(ac(1:n))/n;
 end

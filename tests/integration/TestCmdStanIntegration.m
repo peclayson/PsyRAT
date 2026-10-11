@@ -97,6 +97,43 @@ classdef TestCmdStanIntegration < PsyRATTestBase
                 testCase.verifyFalse(isempty(rel.out.(required{i})));
             end
 
+            % Q4 (2026-09-11; post-beta review PBA-01): the CmdStan diagnostics
+            % come from the stansummary CSV by column name. Every convergence
+            % table carries bulk ESS, tail ESS and MCSE from column 4 of its
+            % data rows, labels them from header cell 5 (cell 4 stays the
+            % numeric divergence count), and gates on the smaller ESS.
+            conv = rel.out.conv.data;
+            if iscell(conv) && ~isempty(conv) && iscell(conv{1})
+                conv = conv{1};             % nested layout: the first fit
+            end
+            testCase.assertTrue(iscell(conv) && size(conv,1) >= 2, ...
+                'the convergence table must carry at least one parameter row');
+            testCase.assertFalse(strcmp(conv{2,1}, 'convergence_unavailable'), ...
+                ['diagnostics were not extracted for this fit (print(fit) and the ' ...
+                'direct stansummary call both returned nothing)']);
+            testCase.verifyGreaterThanOrEqual(size(conv,2), 7, ...
+                'the table must carry the ess_bulk/ess_tail/mcse columns (CSV route)');
+            testCase.verifyEqual(conv{1,5}, 'ess_bulk');
+            metadata=psyrat_diagnostic_metadata(conv);
+            testCase.verifyEqual(metadata.format,'modern_csv');
+            testCase.verifyEqual(metadata.precision_significant_digits,8);
+            testCase.verifyFalse(metadata.degraded);
+            testCase.verifyEqual(metadata.completeness_source,'chain_csv_headers');
+            testCase.verifyTrue(all(ismember(metadata.expected_names,conv(2:end,1))));
+            testCase.verifyNotEmpty(metadata.model_source_hash);
+
+            testCase.verifyTrue(isnumeric(conv{1,4}) && isscalar(conv{1,4}), ...
+                'the divergence count must stay in header cell 4');
+            for rr = 2:size(conv,1)
+                b = conv{rr,4}; t = conv{rr,5}; n = conv{rr,2};
+                if isnan(b) || isnan(t)
+                    testCase.verifyTrue(isnan(n), 'a constant row keeps nan as n_eff');
+                else
+                    testCase.verifyEqual(n, min(b,t), 'AbsTol', 1e-12, ...
+                        'n_eff must be the smaller of bulk and tail ESS');
+                end
+            end
+
             if isfield(rel.out, 'labels')
                 expectedLabels = localExpectedLabelCount(dataTbl);
                 if ischar(rel.out.labels)

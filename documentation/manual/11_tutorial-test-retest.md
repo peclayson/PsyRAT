@@ -17,7 +17,7 @@ what differs. The screen-by-screen reference lives in
 
 ## 11.1 The dataset
 
-Thirty participants (ids 201 to 230) completed the task at two occasions, `t1`
+Thirty participants (IDs 201 to 230) completed the task at two occasions, `t1`
 and `t2`. Two events, `err` and `cor`. There is no group column. Trial counts are
 balanced by design: every participant contributed exactly 24 error and 40
 correct trials at each occasion. The unequal-counts lesson belongs to Tutorial 1;
@@ -44,19 +44,19 @@ person x trial, person x occasion, occasion x trial, and residual.
 | Trial | sigma_i | 1.0 | 1.0 |
 | Person x trial | sigma_pi | 1.0 | 0.8 |
 | Person x occasion | sigma_po | 1.7 | 1.4 |
-| Occasion x trial | sigma_oi | 0.5 | 0.5 |
-| Residual (p x o x i) | sigma_poi,e | 5.5 | 5.0 |
+| Occasion x trial | sigma_io | 0.5 | 0.5 |
+| Residual (p x i x o) | sigma_pio,e | 5.5 | 5.0 |
 
 Three coefficients follow from those seven numbers, and they differ in which
-facet is held fixed. Squaring the SDs and taking the error event at its 24
-trials, with one occasion:
+facet is held fixed. The worked values below square the standard deviations in
+Table 11.1 and take the error event at its 24 trials, with one occasion.
 
 **Coefficient of equivalence (CE).** Occasion is fixed, so person x occasion
 variance counts as universe-score variance rather than error. This is internal
 consistency at one session.
 
     universe = sigma_p^2 + sigma_po^2 = 10.24 + 2.89 = 13.13
-    absolute error = (sigma_pi^2 + sigma_poi,e^2 + sigma_i^2 + sigma_oi^2) / 24
+    absolute error = (sigma_pi^2 + sigma_pio,e^2 + sigma_i^2 + sigma_io^2) / 24
                    = (1.00 + 30.25 + 1.00 + 0.25) / 24 = 32.50 / 24 = 1.354
     D_CE = 13.13 / (13.13 + 1.354) = .907
 
@@ -65,7 +65,7 @@ joins the universe score and occasion-related variance becomes error. This is
 test-retest reliability proper.
 
     universe = sigma_p^2 + sigma_pi^2 / 24 = 10.24 + 0.042 = 10.282
-    absolute error = sigma_po^2 + sigma_o^2 + (sigma_poi,e^2 + sigma_oi^2) / 24
+    absolute error = sigma_po^2 + sigma_o^2 + (sigma_pio,e^2 + sigma_io^2) / 24
                    = 2.89 + 0.36 + 30.50 / 24 = 4.521
     D_CS = 10.282 / (10.282 + 4.521) = .695
 
@@ -74,7 +74,10 @@ only person variance survives in the numerator. This is the reliability of a
 score meant to generalize across both trials and days.
 
     universe = sigma_p^2 = 10.24
-    absolute error = 0.042 + 2.89 + 1.260 + 0.042 + 0.36 + 0.010 = 4.604
+    absolute error = sigma_o^2 + sigma_po^2
+                     + (sigma_pi^2 + sigma_i^2 + sigma_io^2 + sigma_pio,e^2) / 24
+                   = 0.36 + 2.89 + (1.00 + 1.00 + 0.25 + 30.25) / 24
+                   = 3.25 + 1.354 = 4.604
     D_CES = 10.24 / (10.24 + 4.604) = .690
 
 **Table 11.2. True dependability and generalizability at the observed design
@@ -84,7 +87,7 @@ score meant to generalize across both trials and days.
 |---|---|---|---|---|
 | Equivalence (CE) | .907 | .910 | .936 | .939 |
 | Stability (CS) | .695 | .712 | .727 | .752 |
-| Equivalence + stability (CES) | .690 | .710 | .724 | .751 |
+| Equivalence + Stability (CES) | .690 | .710 | .724 | .751 |
 
 Stability is far below equivalence for both events, and that ordering is the
 substantive finding. It is driven by two components: the occasion main effect
@@ -133,11 +136,12 @@ dialog titled Recommended Iteration Increase:
 > How to fix: open Preferences and increase warmup and/or sampling iterations.
 
 The dialog fires only when warmup plus sampling falls below 10,000. At the
-shipped defaults (5,000 plus 5,000) the total is exactly 10,000, so on a fresh
-installation you will not see it. You will see it if you have saved lower
-settings, or if a previous run left them lowered.
+shipped defaults (5,000 plus 5,000) the total is exactly 10,000, so at those
+defaults you will not see it. You will see it only if you saved lower settings
+in Preferences earlier in this MATLAB session; the home screen restores the
+defaults each time it opens, and no run ever lowers them.
 
-Honor the advice regardless. Seven variance components estimated from 30
+Raise the iterations anyway. Seven variance components estimated from 30
 participants is a harder posterior than the one-facet model in Tutorial 1, and
 the default that suffices there is the floor here, not a comfortable margin.
 Click Preferences and set both iteration fields higher.
@@ -158,9 +162,11 @@ start it and go do something else.
 
 Click Analyze, choose a whitespace-free output path, and wait.
 
-Checkpoint: the Command Window should print "Model converged" and then "Saving
-Processed Data...". The largest R-hat should be 1.00 and the run
-should report 909 divergent transitions.
+Checkpoint: the Command Window should print a warning that 909 divergent
+transitions were detected, then "Early-workflow Rhat/ESS check: passed" and
+"Final-inference readiness: unassessed (quantity-specific MCSE and uncertainty
+calibration required)", and then "Saving Processed Data...". The largest R-hat
+in the CmdStan summary should be 1.00.
 
 That divergence count is not zero, and it will not be zero for you either. A
 persons x trials x occasions model with two occasions leaves the occasion
@@ -172,27 +178,30 @@ equivalence coefficients this tutorial reads first do not carry the occasion
 term; the stability coefficients do, and Section 11.7 shows what that costs.
 The count is reported here rather than hidden, and the same message will
 appear on your own two-session data. The tutorial proceeds because the
-quantities it reads are insensitive to the offending term, but a run you
-intend to report should try the remedies in Section 18.3 of
-[Chapter 18](18_troubleshooting.md) first: more warmup, a higher Adapt delta,
-and, where the design allows it, more occasions.
+equivalence results do not depend on the offending term and the stability
+results are read with that cost in view, but a run you intend to report should
+try the remedies in Section 18.3 of [Chapter 18](18_troubleshooting.md) first:
+more warmup, a higher Adapt delta (this model already runs at 0.98, so try
+0.99), and, where the design allows it, more occasions.
 
-Trace plots are not rendered for test-retest analyses. If you left View trace
-plots prior to saving Stan output on Yes, the Command Window prints "Viewing
+Trace plots are not rendered for test-retest analyses. If you set View trace
+plots prior to saving Stan output to Yes, the Command Window prints "Viewing
 trace plots for trt analyses is not currently supported" and the run continues.
 That message is informational, not an error.
 
 ## 11.5 The test-retest viewer
 
-Before the setup screen appears, a notice titled Estimation diagnostics repeats
-the divergence count from the checkpoint above. Click OK to continue.
+Before the setup screen appears, a notice titled Estimation diagnostics opens
+with the two check lines from the checkpoint above, the source of the
+diagnostics it read, and the divergence count. It blocks because of the
+divergences. Click OK to continue.
 
 The View Results Setup screen for a two-facet run carries three controls the
 single-session viewer does not.
 
 ![View Results Setup for a test-retest run. Type of Reliability Coefficient and Test-Retest Occasion Score are the two controls that define the estimand.](images/viewer_trt.png)
 
-**Type of Reliability Coefficient:** which of the three coefficients to compute.
+Type of Reliability Coefficient: which of the three coefficients to compute.
 The options are Equivalence, Stability, and Equivalence + Stability, and they
 correspond to CE, CS, and CES in Rocha et al. (2026, Table 3). The choice is not
 cosmetic: it changes which variance components sit in the numerator and which
@@ -203,27 +212,30 @@ is what a one-session study reports and what makes a test-retest run comparable
 to Tutorial 1. Choose Stability when the question is whether a participant's
 score holds across days, which is what a trait interpretation requires and what a
 pre-post treatment design depends on. Choose Equivalence + Stability when the
-score has to generalize across both, which is the right default for a measure
+score has to generalize across both, which is the right choice for a measure
 proposed as an individual-difference index. Clayson, Carbine, et al. (2021)
-work through the three coefficients and their algorithms in detail, and their
-framing is the one this viewer implements.
+work through the coefficients of equivalence and stability and their
+algorithms in detail, Rocha et al. (2026, Table 3) add the coefficient of
+equivalence and stability, and that framing is the one this viewer
+implements.
 
-**Test-Retest Occasion Score:** whether the reported coefficient describes a
+Test-Retest Occasion Score: whether the reported coefficient describes a
 score from one occasion or a composite averaged over several. The options are
 Single-occasion (n'_o = 1) and Multi-occasion composite (n'_o = k). A box labeled
 "# Occasions in Composite (k):" sits below it and becomes relevant only for the
 second option.
 
-The default is single-occasion, n'_o = 1, and that is the toolbox's convention
-rather than something a table forces. PsyRAT reports, by default, the reliability
+The default is Single-occasion (n'_o = 1), and that is the toolbox's
+convention rather than something the design forces. PsyRAT reports, by default, the reliability
 of a score taken at ONE session while generalizing over the occasion facet,
 because that is the score most studies actually analyze: participants are
 recorded twice so that occasion variance can be estimated, and then the analysis
-uses one session's data. Set n'_o = k only when your analysis really does average
-across k occasions. The reported SEM follows the same n'_o as the coefficient,
+uses one session's data. Choose Multi-occasion composite (n'_o = k) only when
+your analysis really does average across k occasions. The reported SEM follows
+the same n'_o as the coefficient,
 so the two always describe the same score.
 
-**G-Theory Coefficient:** Dependability or Generalizability, as in Tutorial 1.
+G-Theory Coefficient: Dependability or Generalizability, as in Tutorial 1.
 
 | Control | Value |
 |---|---|
@@ -275,10 +287,10 @@ The Sources of Variance table has one fewer column than in Tutorial 1: Label,
 Between Std Dev, Within Std Dev, SEM (dependability), and ICC (dependability),
 with the occasion estimand named in a line above the table. For a two-facet
 design Between Std Dev is sigma_p and Within Std Dev is the three-way residual
-sigma_poi,e. The other five components are estimated and used, but they are not
+sigma_pio,e. The other five components are estimated and used, but they are not
 printed here.
 
-| Label | Between Std Dev | Within Std Dev | SEM (dep.) | ICC (dep.) |
+| Label | Between Std Dev | Within Std Dev | SEM (dependability) | ICC (dependability) |
 |---|---|---|---|---|
 | err | 3.47 | 5.42 | 1.20 | .30 |
 | cor | 2.61 | 5.05 | 0.83 | .25 |
@@ -287,26 +299,27 @@ To see the generalizability coefficients instead, set G-Theory Coefficient to
 Generalizability and click Generate Figures/Tables again. Equivalence
 generalizability comes back as .91 for error trials and .93 for correct trials.
 The two coefficients are close here because the terms dependability adds (the
-trial and occasion x trial main effects) are small in these data, which is
-exactly what Table 11.1 predicts.
+trial main effect and the occasion x trial interaction) are small in these
+data, which is exactly what Table 11.1 predicts.
 
 ## 11.7 Stability, and a threshold that cannot be met
 
-Set Type of Reliability Coefficient to Stability and click Generate
-Figures/Tables. Then do it again with Equivalence + Stability.
-
-Lower Reliability Cutoff to `0.50` before you do, and here is why. Section 11.2
-showed that stability and CES dependability top out at .759 and .772 as trials
-increase, so .80 is out of reach at any trial count, and .70 sits just under
-those ceilings: at the true values it takes 27 to 29 error trials (more than the
-24 supplied) and 25 or 26 correct trials. The estimates sit lower still, and the
+Set Reliability Cutoff to `0.50`, set Type of Reliability Coefficient to
+Stability, and click Generate Figures/Tables. Then do it again with
+Equivalence + Stability. The lower cutoff is deliberate, and here is why.
+Section 11.2 showed that stability and CES dependability top out at .759 for
+error trials and .772 for correct trials, so .80 is out of reach at any trial
+count. A .70 cutoff sits just under those ceilings: at the true values it takes
+27 to 29 error trials (more than the 24 supplied) and 25 or 26 correct trials.
+The estimates sit lower still, and the
 reason is the occasion component. With two occasions the occasion main effect is
 estimated from two values, its posterior is pulled toward the prior and lands
 well above the true 0.6, and both stability coefficients carry sigma_o^2 in their
 error term (Section 11.8 shows the recovered value). Leave the cutoff at .70 and
-the Trial Cutoff column will report a count far larger than any participant
-supplied, PsyRAT will warn that the cutoff extrapolates beyond the data, and
-n Included will come back as zero. Nothing is broken when that happens. It is the
+PsyRAT finds no trial count, up to 1,000 beyond the largest one supplied, at
+which the estimate reaches .70: the Trial Cutoff column reports -1, a dialog
+titled Cutoff not calculable says the trial cutoffs could not be calculated,
+and n Included comes back as zero. Nothing is broken when that happens. It is the
 software telling you that, as estimated from two sessions, no amount of
 averaging will make these day-to-day scores that stable.
 
@@ -315,15 +328,20 @@ At a .50 cutoff every cell clears the threshold well inside the observed data
 than that in the estimate, for the same occasion-component reason), and the
 tables become readable.
 
-| Coefficient | Event | Trial Cutoff | Dependability | Truth (Table 11.2) |
+| Coefficient | Event | Trial Cutoff | Dependability (overall, at 24 or 40 trials) | Truth (Table 11.2) |
 |---|---|---|---|---|
 | Stability | err | 9 | .56 | .695 |
 | Stability | cor | 29 | .51 | .727 |
-| Equivalence + stability | err | 11 | .55 | .690 |
-| Equivalence + stability | cor | 32 | .51 | .724 |
+| Equivalence + Stability | err | 11 | .55 | .690 |
+| Equivalence + Stability | cor | 32 | .51 | .724 |
 
-Read the three coefficients side by side. Equivalence sits near .91 and .93;
-stability sits near .56 and .51. Reporting only the first would overstate how
+The Trial Cutoff comes from the trial-cutoff table. The dependability is the
+Overall Reliability Summary value at the observed 24 error or 40 correct
+trials, not the coefficient the trial-cutoff table prints beside the cutoff.
+
+Read the three coefficients side by side. Equivalence sits near .91 and .93,
+stability near .56 and .51, and equivalence + stability near .55 and .51.
+Reporting only the first would overstate how
 reproducible these scores are across sessions by thirty-five points or more, and
 the overstatement is not a rounding matter. It is the difference between a measure
 you can use as a stable individual-difference index and one you cannot.
@@ -371,12 +389,13 @@ from two values is not something 30 participants can rescue. Its posterior will
 be pulled toward the prior. That is the correct behavior for a component the
 design barely identifies, and it is worth seeing once, because the same thing
 will happen in your own two-session data. The full posterior draws for all seven
-components are on the saved `.psyrat` file under `psyrat_data.rel.out`, if you
+components are in the saved `.psyrat` file under `psyrat_data.rel.out`, if you
 want intervals rather than point estimates; see [Chapter 14](14_scripting.md).
 
 This is an illustration, not validation evidence. Thirty participants at two
 occasions cannot establish that an estimator is unbiased. PsyRAT's correctness
-claims rest on the validation suites described in `README.md`.
+claims rest on the validation suites described in
+`documentation/validation_and_testing.md`.
 
 ## 11.9 Reporting this analysis
 

@@ -30,7 +30,7 @@ classdef TestIndependentOracleAgreement < matlab.unittest.TestCase
     %   VARIANCES. Every call site below converts explicitly, so a unit error cannot pass
     %   silently between the two.
     %
-    %   Copyright (C) 2016-2025 Peter E. Clayson
+    %   Copyright (C) 2016-2026 Peter E. Clayson
     %
     %   This program is free software: you can redistribute it and/or modify it under the
     %   terms of the GNU General Public License as published by the Free Software

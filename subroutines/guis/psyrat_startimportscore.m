@@ -16,7 +16,7 @@ function psyrat_startimportscore(varargin)
 % No variables are returned to the workspace; results are saved through the
 % gui.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -273,7 +273,7 @@ set(hFig,'Visible','on');
         methods = psyrat_scoring_methods();   % shared with spec-create validation
         [idx,ok] = listdlg('PromptString','Select scoring method:', ...
             'SelectionMode','single','ListString',methods);
-        if ~ok
+        if ~ok || isempty(idx)   %F2: OK with nothing selected returns [] (listdlg copies the Value)
             return;
         end
         method = methods{idx};
@@ -508,7 +508,7 @@ end
 
 [idx,ok] = listdlg('PromptString',prompt,'SelectionMode','single', ...
     'ListString',labels,'InitialValue',preIdx);
-if ~ok
+if ~ok || isempty(idx)   %F2: OK with nothing selected returns [] (listdlg copies the Value)
     return;
 end
 specId = specs(idx).spec_id;

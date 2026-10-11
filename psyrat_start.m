@@ -7,7 +7,7 @@ function psyrat_start
 % manual (the full scripting reference).
 %
 
-%The PsyRAT toolbox uses generalizability theory as a method for evaluating
+%PsyRAT uses generalizability theory as a method for evaluating
 %reliability of ERP data. Dependability estimates (generalizability-theory
 %analog to reliability) can be computed for any number of groups or events.
 %The influence of number of trials on dependability of measurements will
@@ -59,7 +59,18 @@ function psyrat_start
 %  the user chooses, various files (data, tables, plots) could be saved
 %  from the guis initiated by this script.
 %
-%High-level matlab files contained in PsyRAT toolbox
+%Startup checks
+% The dependency and release checks (the versions of CmdStan, MatlabStan and
+%  MatlabProcessManager, the minimum CmdStan version, and the GitHub release
+%  check) run once per MATLAB session. A relaunch in the same session (the
+%  viewer Back buttons, a cancelled file dialog, a plain second psyrat_start)
+%  reuses their verdicts and says so on the console. To repeat them without
+%  restarting MATLAB, run psyrat_startgate_cache('clear') and then
+%  psyrat_start. They also rerun on their own, and say why, when the CmdStan,
+%  MatlabStan or MatlabProcessManager in use has changed (G91; see
+%  psyrat_startgate_cache).
+%
+%High-level matlab files contained in PsyRAT
 %
 % Entry points
 %  psyrat_start - this launcher gui (buttons for processing, importing and
@@ -96,7 +107,7 @@ function psyrat_start
 % CmdStan is required for the default estimation engine.
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -135,12 +146,16 @@ if exist('psyrat_startproc.m','file') ~= 2 || ...
         exist('psyrat_ptintervalplot.m','file') ~= 2 || ...
         exist('psyrat_installdependents.m','file') ~= 2 || ...
         exist('psyrat_checkversionsofdeps.m','file') ~= 2 || ...
-        exist('psyrat_locate_cmdstan.m','file') ~= 2
+        exist('psyrat_locate_cmdstan.m','file') ~= 2 || ...
+        exist('psyrat_startgate_cache.m','file') ~= 2
     %psyrat_locate_cmdstan.m is in the sentinel list because the dependency
     %gate below calls it unguarded: a stale saved path from a pre-G43
     %checkout could satisfy the other sentinels while lacking the resolver,
     %and the gate would then die on an undefined function (adversarial
-    %wave, 2026-08-29).
+    %wave, 2026-08-29). psyrat_startgate_cache.m is in the list for the same
+    %reason (G91, 2026-09-15): the dependents branch below consults the
+    %session store unguarded, and a saved path from a checkout that predates
+    %it would pass the other sentinels and die there.
 
     %find where the PsyRAT files are located and add the directory and
     %sub-directories
@@ -160,11 +175,16 @@ if exist('psyrat_startproc.m','file') ~= 2 || ...
     addpath(genpath(fullfile(udir,'subroutines')));
     addpath(genpath(fullfile(udir,'bundled_dependents')));
     psyrat_savepath_safe;
-    fprintf('Directories for PsyRAT Toolbox files added to Matlab path\n');
+    fprintf('Directories for PsyRAT files added to Matlab path\n');
 
 else
-    fprintf('PsyRAT Toolbox files found\n');
+    fprintf('PsyRAT files found\n');
 end
+
+%the session store (G91) is consulted only on the dependents-found branch
+%below; the flag is defined here so every path that reaches the release check
+%further down has it
+reusegate = false;
 
 %look for the MatlabStan/MatlabProcessManager files on the Matlab path, and
 %locate CmdStan through the single toolbox resolver (G43, owner ruling
@@ -188,7 +208,7 @@ if exist('mcmc.m','file') ~= 2 || ...
         isempty(psyrat_locate_cmdstan)
 
 
-    dlg = {'Warning: Dependencies for the PsyRAT toolbox were not found.';...
+    dlg = {'Warning: Dependencies for PsyRAT were not found.';...
         'Please include the folders containing the scripts for';...
         'MatlabProcessManager and MatlabStan in your Matlab path, and';...
         'install CmdStan where the toolbox can find it (on the Matlab';...
@@ -209,9 +229,60 @@ else
     fprintf('CmdStan, MatlabProcessManager, and MatlabStan files found\n');
 
     %check if the most up-to-date releases are being used for each of the
-    %dependents
+    %dependents -- ONCE PER MATLAB SESSION (G91, owner ruling 2026-09-15).
+    %
+    %psyrat_start is relaunched from 23 bare `psyrat_start;` sites (the
+    %viewer Back buttons, cancelled file dialogs, the installer and updater
+    %arms), and until G91 every one of them paid for the whole gate again:
+    %psyrat_checkversionsofdeps spawns `stanc --version` (behind a
+    %whole-second processManager wait, and a second time when the captured
+    %output is empty), psyrat_require_min_cmdstan below spawns it again, and
+    %the release check further down asks the GitHub API with an 8 s timeout
+    %-- around ten seconds per Back click on a firewalled machine.
+    %
+    %What is reused: the three verdicts (depvercheck, the minimum-version
+    %logical, the release status code). What is NOT: everything above this
+    %line. The sentinel chain, the MatlabStan/MatlabProcessManager exist()
+    %checks and the psyrat_locate_cmdstan call in the gate above are cheap
+    %and stay live, so a launch that fails the gate reuses nothing (the
+    %not-found branch returns before this lookup; a record from an earlier
+    %launch stays until the fingerprint or a clear decides) and a CmdStan
+    %removed mid-session still reaches psyrat_ask2install. The reuse is keyed to a fingerprint of what
+    %the checks read (toolbox location and version, the resolved CmdStan home
+    %and its stanc file, the MatlabStan and MatlabProcessManager copies on the
+    %path; see psyrat_startgate_cache), so an install, an update or an
+    %environment change that alters the resolved CmdStan home reruns the
+    %checks on its own and the line printed below says why (a variable that
+    %names a non-CmdStan folder is skipped by the resolver and changes nothing).
+    %The store lives in psyrat_startgate_cache, not here and not in the leaf
+    %functions -- the unit suite calls those live under changing state and
+    %the updater and estimation need fresh answers from them. A reused launch
+    %prints one line naming the reuse and the recheck command, so the state
+    %is never hidden; the three version lines that follow print from the
+    %reused struct through the same code as a fresh launch. The modal update
+    %prompts at the end of this function fire from the reused verdicts
+    %exactly as they fire from fresh ones (B44/G87 are unchanged; the
+    %ruling's option A). Cross-references: B44 KNOWN COST, G87, G19 (the
+    %gate's file list, untouched here), G91.
+    [reusegate, gatecache, gatekey, gatewhy] = psyrat_startgate_cache('lookup');
 
-    depvercheck = psyrat_checkversionsofdeps;
+    if reusegate
+        depvercheck = gatecache.depvercheck;
+        fprintf(['Dependency and release checks reused from this MATLAB session ' ...
+            '(checked %s; release check: %s). To repeat them now, run ' ...
+            'psyrat_startgate_cache(''clear'') and then psyrat_start; ' ...
+            'restarting MATLAB also rechecks.\n'], ...
+            gatecache.checked_at, gatecache.release_status);
+    else
+        %an automatic recheck (the fingerprint changed) is announced; the
+        %first launch of a session is silent about the store and prints
+        %exactly what it always printed
+        if ~strcmp(gatewhy, 'no earlier check this MATLAB session')
+            fprintf(['Dependency and release checks rerun: %s since the ' ...
+                'last check in this MATLAB session.\n'], gatewhy);
+        end
+        depvercheck = psyrat_checkversionsofdeps;
+    end
 
     switch depvercheck.cmdstan
         case 0
@@ -220,14 +291,27 @@ else
             fprintf('CmdStan version is current\n');
         case 2
             warning(strcat('Installed CmdStan version is newer than the',...
-                ' version tested for the Toolbox.',...
-                ' Toolbox may not work properly as a result'));
+                ' version tested for PsyRAT.',...
+                ' PsyRAT may not work properly as a result'));
     end
 
     %warn (rather than block the GUI) if the installed CmdStan is below the
     %minimum PsyRAT can compile against. Estimation re-checks this and errors
     %before compiling, so the user still gets a clear message at run time.
-    psyrat_require_min_cmdstan('2.26.0','warn');
+    %On a reused launch the verdict comes from the session store (G91): the
+    %full warning printed on the fresh check, and a one-line reminder keeps
+    %a failing state visible without spawning stanc again.
+    if reusegate
+        mincmdstan_ok = gatecache.mincmdstan_ok;
+        if ~mincmdstan_ok
+            fprintf(['Reminder: the CmdStan found earlier this session is ' ...
+                'below the minimum PsyRAT requires (see the warning from ' ...
+                'the first launch); estimation will refuse to compile until ' ...
+                'a newer CmdStan is installed.\n']);
+        end
+    else
+        mincmdstan_ok = psyrat_require_min_cmdstan('2.26.0','warn');
+    end
 
     switch depvercheck.matlabprocessmanager
         case 0
@@ -236,8 +320,8 @@ else
             fprintf('MatlabProcessManager version is current\n');
         case 2
             warning(strcat('Installed MatlabProcessManager version is newer than the',...
-                ' version tested for the Toolbox.',...
-                ' Toolbox may not work properly as a result'));
+                ' version tested for PsyRAT.',...
+                ' PsyRAT may not work properly as a result'));
     end
 
     switch depvercheck.matlabstan
@@ -248,8 +332,8 @@ else
             fprintf('MatlabStan version is current\n');
         case 2
             warning(strcat('Installed MatlabStan version is newer than the',...
-                ' version tested for the Toolbox.',...
-                ' Toolbox may not work properly as a result'));
+                ' version tested for PsyRAT.',...
+                ' PsyRAT may not work properly as a result'));
         case 3
             %G56d: the in-tree bundled copy with a would-be-old stamp. A
             %dependents update cannot replace the bundle (its removal is
@@ -265,19 +349,37 @@ else
 
 end
 
-%pull version for the PsyRAT Toolbox
+%pull version for PsyRAT
 psyratver = psyrat_defineversion;
 
-%Output info about PsyRAT Toolbox
+%Output info about PsyRAT
 fprintf('\n\n\nPsyRAT Version %s\n\n',psyratver);
 
-%check whether running the newest release of the toolbox
-if exist('psyrat_checkgithubreleases','file') == 2
+%check whether running the newest release of the toolbox -- once per MATLAB
+%session (G91): a reused launch takes the verdict from the session store and
+%does not repeat the release check's own message (the reuse line above names
+%the status it is reusing). An "unable to check" outcome is reused like any
+%other (owner ruling 2026-09-15): no update prompt can fire from it, and it
+%is exactly the offline user who paid the timeout on every relaunch.
+if reusegate
+    psyratvercheck = gatecache.psyratvercheck;
+elseif exist('psyrat_checkgithubreleases','file') == 2
     releaseinfo = psyrat_checkgithubreleases('currentversion',psyratver,...
         'verbose',true);
     psyratvercheck = releaseinfo.statusCode;
+    release_status = releaseinfo.status;
 else
     psyratvercheck = psyrat_updatecheck(psyratver);
+    release_status = 'legacy check (psyrat_updatecheck)';
+end
+
+%keep the fresh verdicts for the rest of the session. This is the ONLY store
+%and it sits here on purpose: after every live check has returned, so a check
+%that throws stores nothing, and before the home screen is built, so no
+%button callback can run on a launch whose verdicts were not stored.
+if ~reusegate
+    psyrat_startgate_cache('store', gatekey, depvercheck, mincmdstan_ok, ...
+        psyratvercheck, release_status);
 end
 
 fprintf('\n');
@@ -347,7 +449,7 @@ psyrat_gui.Tag = 'psyrat_gui';
 %display gui
 set(psyrat_gui,'Visible','on');
 
-%if applicable, ask the user whether PsyRAT Toolbox should be updated
+%if applicable, ask the user whether PsyRAT should be updated
 if psyratvercheck == 0
 
     psyrat_ask2updatetoolbox;
@@ -363,7 +465,7 @@ end
 end
 
 function psyrat_ask2install
-%gui to ask the user whether the PsyRAT Toolbox dependents should be installed
+%gui to ask the user whether the PsyRAT dependents should be installed
 
 %define parameters for figure position
 figwidth = 400;
@@ -383,7 +485,7 @@ psyrat_gui= psyrat_newfigure('unit','pix','Visible','off',...
 
 movegui(psyrat_gui,'center');
 
-str = ['PsyRAT Toolbox dependents were not located. Would you like'...
+str = ['PsyRAT dependents were not located. Would you like'...
     ' to install the dependents?'];
 
 %Write text
@@ -415,7 +517,7 @@ set(psyrat_gui,'Visible','on');
 end
 
 function psyrat_ask2updatetoolbox
-%gui to ask the user whether the PsyRAT Toolbox dependents should be installed
+%gui to ask the user whether the PsyRAT dependents should be installed
 
 %define parameters for figure position
 figwidth = 400;
@@ -451,17 +553,22 @@ row = figheight - rowspace*2;
 %
 %KNOWN COST, accepted with the ruling. This prompt fires whenever the release
 %check returns 0 -- every launch AND every relaunch, and psyrat_start is
-%invoked from EIGHTEEN sites across nine files including the viewer Back
-%buttons (this said "ten" until 2026-08-22; the figure was never derived). A modal traps keyboard and mouse
+%invoked from 23 bare `psyrat_start;` sites across nine files, including the
+%viewer Back buttons (census 2026-09-23; recount rather than copy). A modal traps keyboard and mouse
 %across MATLAB while it is visible, so a user several releases behind must
 %now answer it every time instead of ignoring it. Being ignorable was the
 %defect, so this is the intended direction, but it is a real increase in how
 %often the user is interrupted and it lands hardest on the half whose reason
 %is consistency rather than blast radius.
 %
-%psyrat_ask2install is deliberately NOT converted: it is raised at :172 and
-%psyrat_start returns at :173 without ever building the home screen, so there
-%is no window for a modal to bind and the B20 precondition does not hold.
+%Since G91 (2026-09-15) the release check itself runs once per MATLAB
+%session and a relaunch reuses its verdict, so what remains of the cost is
+%the prompt, not the wait: a reused 0 raises this prompt exactly as a fresh
+%0 did (owner ruling, option A).
+%
+%psyrat_ask2install is deliberately NOT converted: the dependency gate's
+%not-found branch raises it and then returns, never building the home screen,
+%so there is no window for a modal to bind and the B20 precondition does not hold.
 psyrat_gui_update = psyrat_newfigure('unit','pix','Visible','off',...
   'position',[400 400 figwidth figheight],...
   'menub','no',...
@@ -471,7 +578,7 @@ psyrat_gui_update = psyrat_newfigure('unit','pix','Visible','off',...
 
 movegui(psyrat_gui_update,'center');
 
-str = ['You are using an old version of the PsyRAT Toolbox.'...
+str = ['You are using an old version of PsyRAT.'...
     ' It is recommended that you update the toolbox.'...
     ' Would you like to do so now?'];
 
@@ -504,7 +611,7 @@ set(psyrat_gui_update,'Visible','on');
 end
 
 function psyrat_ask2updatedeps(depvercheck)
-%gui to ask the user whether the PsyRAT Toolbox dependents should be installed
+%gui to ask the user whether the PsyRAT dependents should be installed
 
 %define parameters for figure position
 figwidth = 500;
@@ -658,7 +765,7 @@ set(psyrat_gui_update,'Visible','on');
 end
 
 function donotupdatepsyrat(varargin)
-%if the user does not what the PsyRAT toolbox updated, just continue on
+%if the user does not what PsyRAT updated, just continue on
 %check if psyrat_gui_update is open.
 psyrat_gui_update = findobj('Tag','psyrat_gui_update');
 
@@ -666,12 +773,12 @@ if ~isempty(psyrat_gui_update)
     close(psyrat_gui_update);
 end
 
-fprintf('\nPsyRAT Toolbox will not be updated\n\n');
+fprintf('\nPsyRAT will not be updated\n\n');
 
 end
 
 function donotupdatedeps(varargin)
-%if the user does not what the PsyRAT toolbox updated, just continue on
+%if the user does not what PsyRAT updated, just continue on
 %check if psyrat_gui_update is open.
 psyrat_gui_update = findobj('Tag','psyrat_gui_update');
 
@@ -685,12 +792,20 @@ end
 
 function updatepsyrat(varargin)
 %if the user wants the toolbox updated, begin updating
+%forget this session's verdicts first (G91): the updater relaunches
+%psyrat_start when it finishes, and that relaunch must recheck
+psyrat_startgate_cache('clear');
 psyrat_closepsyratfigs;
 psyrat_updatepsyrat;
 end
 
 function updatedeps(varargin)
 %if the user wants the dependents updated, begin updating
+%forget this session's verdicts first (G91): the installer relaunches
+%psyrat_start when it finishes, and that relaunch must recheck -- this is
+%the prompt whose Yes deletes directories, so the fingerprint alone is not
+%trusted to notice
+psyrat_startgate_cache('clear');
 psyrat_closepsyratfigs;
 depvercheck = varargin{3};
 psyrat_installdependents('depvercheck',depvercheck);
@@ -705,6 +820,9 @@ end
 
 function installdeps(varargin)
 %if the user wants the dependents installed, begin the installation
+%forget this session's verdicts first (G91): the installer relaunches
+%psyrat_start when it finishes, and that relaunch must recheck
+psyrat_startgate_cache('clear');
 psyrat_closepsyratfigs;
 psyrat_installdependents;
 end
@@ -721,9 +839,9 @@ function psyrat_closepsyratfigs
 %
 %Scoped by Tag PREFIX rather than by an explicit list, because the set of
 %PsyRAT windows open at these moments is not fixed: psyrat_start is invoked
-%from EIGHTEEN sites across nine files (counted, not inherited -- an earlier
-%draft of this comment said "ten", copied from the note at
-%psyrat_ask2updatetoolbox, and that figure is wrong), including the viewer
+%from 23 bare `psyrat_start;` sites across nine files (census 2026-09-23; the
+%note at psyrat_ask2updatetoolbox carries the same figure, so recount both
+%rather than copy either), including the viewer
 %Back buttons, so psyrat_output tables and plots, psyrat_import_gui,
 %psyrat_gui_trialbrowser and the selector guis can all still be up.
 %TestModalRejectionDialogs pins the Tags of the windows that were untagged

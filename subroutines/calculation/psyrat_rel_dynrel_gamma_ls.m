@@ -33,7 +33,7 @@ function out = psyrat_rel_dynrel_gamma_ls(varargin)
 %a mean-level effect with a dispersion effect and cannot be read as a statement
 %about precision alone. Here the residual is decoupled from the mean surface, so
 %b_sigma is a pure residual-SD slope. Owner ruling 2026-08-03; see
-%documentation/gamma_scale_submodel_decision.md.
+%manual section 15.4.
 %
 %THE MEAN SLOPE DOES NOT CANCEL HERE, AND THAT IS THE POINT.
 %Under the log-nu sibling EVERY observed-scale term - including the residual -
@@ -52,12 +52,21 @@ function out = psyrat_rel_dynrel_gamma_ls(varargin)
 %the coefficient under gammascale = 2, and any user-facing text carried over
 %from the log-nu path ("only the dispersion slope moves it") is false here.
 %
-%ESTIMAND. The observation-variance term is MARGINALIZED over the person
-%population's residual-SD heterogeneity, E[sigma_p^2] over w_p ~ N(0, s_sd^2),
-%so the components sum to the observed-score variance by the law of total
-%variance. This is the same marginal convention the log-nu sibling and the
-%static gamma family use, and there is no typical-person / population-average
-%toggle (the marginal argument of psyrat_rel_dynrel).
+%ESTIMAND (two surface targets, Q9/GUI-1, owner rulings 9-12 and 2026-09-13).
+%Both targets keep every population mean component at z, including the
+%person x trial mean-surface term M(z); they differ only in the observation
+%part of the residual:
+%  'population_marginal' (default, the PRIMARY): M + C_pop, the observation
+%      variance MARGINALIZED over the person residual-SD population,
+%      E[sigma_p^2] = exp(2 log sigma(z) + 2 s_sd^2) over w_p ~ N(0, s_sd^2),
+%      on each draw before the coefficient is formed. This is the surface every
+%      earlier version reported.
+%  'typical_person' (the COMPANION): M + C_typ, C_typ = exp(2 log sigma(z)),
+%      w_p = 0 (owner ruling 10). Equal to the primary exactly when s_sd = 0.
+%The Gaussian marginal argument of psyrat_rel_dynrel is a different mechanism
+%(delta_p) and is not accepted here. 'surface_target' selects between the two;
+%any other value errors (psyrat_gamma_surface_target). out.surface_target
+%records the one used.
 %
 %NOTE there is deliberately NO rho / cov_pv input, and the log-nu sibling's
 %single cov_pv computation outside the grid loop has no counterpart here. The
@@ -139,6 +148,9 @@ obs     = psyrat_req(varargin,'obs','Please input obs (n'' trial count).');
 ciperc  = psyrat_req(varargin,'CI','Please input CI.');
 
 z2      = psyrat_opt(varargin,'z2',[]);
+%surface target (Q9): 'population_marginal' (default, the primary) or
+%'typical_person' (companion). Validated, never coerced.
+surface_target = psyrat_gamma_surface_target(psyrat_opt(varargin,'surface_target',[]));
 
 if ~any(ndim == [1 2])
     error('varargin:ndim','WARNING: ndim must be 1 or 2.\n');
@@ -209,15 +221,31 @@ for a = 1:nz1
         %cov argument exists: the residual never touches mu.
         vc = psyrat_gamma_varcomps_ls(alpha_z, sig_p, sig_i, logsig_z, sig_sd);
 
+        %residual at this z for the SELECTED surface target (Q9). Both targets
+        %keep the population person x trial mean-surface term M = var_mu -
+        %sigma_p2 - sigma_i2 (the S17-FIX pi_mean) and differ only in the
+        %observation part:
+        %  population_marginal: M + C_pop = vc.sigma_pi_e2, C_pop =
+        %      exp(2 log sigma(z) + 2 s_sd^2) marginalized over the person
+        %      residual-SD population BEFORE the coefficient is formed;
+        %  typical_person:      M + C_typ, C_typ = exp(2 log sigma(z)), w_p = 0
+        %      (owner ruling 10). Equal to the primary exactly when s_sd = 0.
+        if strcmp(surface_target,'typical_person')
+            M_z = max(vc.var_mu - vc.sigma_p2 - vc.sigma_i2, 0);
+            resid_z = M_z + exp(2.*logsig_z);
+        else
+            resid_z = vc.sigma_pi_e2;
+        end
+
         %SD-equivalents in the production one-facet convention: bp = sigma_p(z);
         %total-within wp = sqrt(sigma_pi,e^2(z) + sigma_i^2(z)); i = sigma_i(z).
         %psyrat_rel_sing subtracts i^2 to recover the relative residual for G and
         %keeps it for D, matching the log-nu sibling and Rocha Table 2.
         bp_z = sqrt(vc.sigma_p2);
         i_z  = sqrt(vc.sigma_i2);
-        wp_z = sqrt(vc.sigma_pi_e2 + vc.sigma_i2);
+        wp_z = sqrt(resid_z + vc.sigma_i2);
 
-        sige_pt(a,c) = mean(sqrt(vc.sigma_pi_e2));
+        sige_pt(a,c) = mean(sqrt(resid_z));
 
         [G.ll(a,c),G.pt(a,c),G.ul(a,c)] = psyrat_rel_sing(...
             'gcoeff',2,'metric','global','bp',bp_z,'wp',wp_z,'i',i_z,...
@@ -236,6 +264,7 @@ out = struct();
 out.ndim = ndim;
 out.obs = obs;
 out.ci = ciperc;
+out.surface_target = surface_target;
 out.z1 = z1;
 if ndim == 2
     out.z2 = z2;

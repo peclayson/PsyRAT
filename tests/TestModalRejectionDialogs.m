@@ -18,7 +18,7 @@ classdef TestModalRejectionDialogs < PsyRATTestBase
     %
     %The four post-computation NOTIFICATION sites in psyrat_criterionfigures /
     %psyrat_relfigures are deliberately NOT in this rollout (separate ruling;
-    %see B21 in PSYRAT_AUDIT_FINDINGS.md).
+    %see finding B21).
     %
     %WAVE 2 (2026-08-17): the titled two-argument errordlg sites classified as
     %INPUT/CONFIG REJECTIONS on interactive paths -- 67 sites across nine
@@ -158,24 +158,30 @@ classdef TestModalRejectionDialogs < PsyRATTestBase
                 'psyrat_startproc.m'));
             code = testCase.readCode(fullfile('subroutines', 'guis', ...
                 'psyrat_startproc.m'));
-            %36 rejection errordlg + the end-of-batch failure report + the
+            %39 rejection errordlg (the 36 below plus the three F1 refusals of an
+            %empty multi-select Save on the Select Groups / Events / Occasions
+            %screens, 2026-09-16) + the end-of-batch failure report + the
             %B20 modal warndlg + the B28 DoD single-measurement advisory + the
             %G8 preflight-warnings advisory (pre-beta batch, 2026-09-05: the
             %few-participants / low-median-trials / incomplete-cell warnings
             %the preflight computes, raised modally before the fit so a long
             %run does not start on a design the user never saw flagged; the
-            %same precondition class as B28) = 40.
-            %The 36th rejection is the B33 GUI follow-up: difference-of-
+            %same precondition class as B28) + the queue row 3a RESTRICTED
+            %design-maturity notice (2026-09-21: the gamma two-facet designs
+            %14, 25 and 27 are disclosed at selection, uiwait + modal before
+            %the save dialog so Cancel there still backs out; the same
+            %precondition class as B28) = 44.
+            %The B33 GUI follow-up rejection (the last of the 36) is difference-of-
             %differences combined with residual covariance, rejected inside
             %psyrat_exec BEFORE the uiputfile save dialog so the engine's
             %varargin:familyconcurrent (analysis 9) and varargin:dynrel
             %(analyses 28/29) stop surfacing through the per-measurement catch
             %only after the user has already chosen an output location.
-            testCase.verifyEqual(testCase.countRe(code, testCase.ModalArg), 40, ...
-                ['the 36 startproc input-rejection dialogs plus the ' ...
-                'end-of-batch failure report must be modal (37 errordlg + ' ...
+            testCase.verifyEqual(testCase.countRe(code, testCase.ModalArg), 44, ...
+                ['the 39 startproc input-rejection dialogs plus the ' ...
+                'end-of-batch failure report must be modal (40 errordlg + ' ...
                 'the B20 warndlg + the B28 advisory + the G8 preflight ' ...
-                'advisory = 40); a different count ' ...
+                'advisory + the row 3a RESTRICTED notice = 44); a different count ' ...
                 'means a site was missed, dropped, or an allowlisted site ' ...
                 'was converted without its ruling']);
             %B28 (ruled 2026-08-18, after the live click-through CONFIRMED the
@@ -356,8 +362,10 @@ classdef TestModalRejectionDialogs < PsyRATTestBase
                 testCase.verifyEqual(testCase.countOf(code, ...
                     'errordlg(errorstr,''Cutoff not calculable'');'), 1, ...
                     sprintf('%s: the trlcutoff notice must be titled, non-modal', f{1}));
+                %G88: a calculable projection is a warning, not a failed
+                %calculation. The existing non-modal notification ruling holds.
                 testCase.verifyEqual(testCase.countOf(code, ...
-                    'errordlg(errorstr,''Extrapolation beyond data'');'), 1, ...
+                    'warndlg(errorstr,''Extrapolation beyond data'');'), 1, ...
                     sprintf('%s: the trlmax notice must be titled, non-modal', f{1}));
                 %tolerant regex, not a substring: a ==0 pin whose violation
                 %could otherwise hide behind a line continuation (B35, under-count)

@@ -40,7 +40,7 @@ function datatable = psyrat_normalize_label_columns(datatable,convertnumeric)
 % labels:convertnumeric  - convertnumeric was not a logical scalar
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -220,9 +220,11 @@ for ii = 1:numel(labelcols)
     %
     %What this adds is a BETTER FAILURE: it fires in psyrat_loadfile, before
     %preflight runs, and it names the offending column and row and says why a
-    %label cannot be imputed -- where the preflight message says only that the
-    %data include missing cells, without locating them. A usability
-    %improvement on an existing guard, not a new correctness guarantee.
+    %label cannot be imputed -- the preflight message locates the cell too
+    %(column, row of the prepared table and id, since G96) but cannot explain
+    %the imputation rule.
+    %A usability improvement on an existing guard, not a new correctness
+    %guarantee.
     local_reject_missing(coldata,thiscol);
 
     datatable.(thiscol) = local_to_cellstr(coldata,thiscol);

@@ -6,8 +6,8 @@ sample: A generalizability and decision analysis of the ERN and Pe.
 *Psychophysiology*, *52*(6), 790-800. https://doi.org/10.1111/psyp.12401
 
 Carbine, K. A., Clayson, P. E., Baldwin, S. A., LeCheminant, J. D., & Larson,
-M. J. (2021). Using generalizability theory and the ERP reliability analysis
-(ERA) toolbox for assessing test-retest reliability of ERP scores part 2:
+M. J. (2021). Using generalizability theory and the ERP Reliability Analysis
+(ERA) Toolbox for assessing test-retest reliability of ERP scores part 2:
 Application to food-based tasks and stimuli. *International Journal of
 Psychophysiology*, *166*, 188-198.
 https://doi.org/10.1016/j.ijpsycho.2021.02.015

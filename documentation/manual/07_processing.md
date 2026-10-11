@@ -32,7 +32,7 @@ figures and tables, covered in [Chapter 9](09_viewing-results.md).
 Selecting the Process New Data button opens a file picker before it opens
 anything else. Its default filter, All Readable Files, matches `.xlsx`, `.xls`,
 `.csv`, `.dat`, `.txt`, and `.ods`, and the file-type popup offers a separate
-filter for each of those types. Section 6.6 lists the extensions the reader accepts beyond
+filter for each of those types. Section 6.6 lists the extensions PsyRAT reads beyond
 the filter.
 
 The Command Window prints `Loading Data...` and a note that this may take a
@@ -58,7 +58,7 @@ sub-screens for narrowing what gets processed.
 
 Everything on this screen is a declaration about your data. Everything in
 Preferences (Section 7.4) is a declaration about the fit. The two interact,
-which is why some controls here are greyed out until Preferences is saved.
+which is why some controls here are grayed out until Preferences is saved.
 
 ### The eleven popups
 
@@ -102,9 +102,10 @@ alongside Dimension 1. Selecting Dimension 2 on its own is rejected at Analyze
 rather than silently ignored.
 
 Residual correlation: whether the residual correlation in the subject-level
-concurrent dynamic difference design is shared across participants (Population
-(shared)) or estimated separately for each participant (Per-subject). The
-default is Population (shared). This popup is greyed out unless three
+concurrent dynamic difference design is shared across participants or
+estimated separately for each participant. The options are Population (shared)
+and Per-subject, and the default is Population (shared). This popup is grayed
+out unless three
 Preferences are all set: difference scores on Yes: 2-event difference,
 subject-specific error variances on Yes, and residual covariance for co-occurring
 events on Yes. It is inert for every other run, and a stale Per-subject
@@ -126,8 +127,10 @@ while Nonparallel fits the weighted observed-design model, which is identified
 only by variation in n_i.
 
 Estimation engine: which engine estimates the variance components. Automatic
-(recommended) is the default and uses CmdStan whenever it is installed, falling
-back to a native MATLAB engine only when it is not. The other three choices,
+(recommended) is the default. It uses CmdStan when it is installed and falls
+back to a native MATLAB engine that supports your design only when CmdStan is
+absent; a CmdStan older than the supported minimum stops the run with an
+upgrade message instead of falling back. The other three choices,
 CmdStan only, Native HMC, and Native fitlme, force one engine and error clearly
 at run time if that engine is missing or cannot handle the design. A native
 option whose required toolbox is absent is annotated on screen with
@@ -151,7 +154,10 @@ column.
 The sentinel is also the trap under the selection buttons. Clicking Select
 Groups, Select Events, or Select Occasions while the matching popup still reads
 `(none)` raises an error dialog naming the missing column, because there is no
-column to list levels from. Set the popup first, then click the button.
+column to list levels from. Set the popup first, then click the button. A subset
+chosen through one of those buttons is used only while its popup still names
+that column: set the popup back to `(none)` and the facet is not used at all,
+whatever the subset said.
 
 ### Select Measurements
 
@@ -175,6 +181,8 @@ Clicking Select Groups opens Specify Which Groups to Process, a multi-select lis
 of the distinct values found in your Group ID column, prompted "Select which
 groups you would like to be processed:". Everything is selected the first time.
 Deselect the groups you want left out of this run.
+Saving with nothing selected raises a No Groups Selected dialog: choose at least one
+group, or click Back to leave the selection as it was.
 
 You do not have to open this screen at all. When you never touch it, PsyRAT
 processes every group it finds. Changing the Group ID popup to a different column
@@ -189,6 +197,8 @@ behavior applied to your Event Type column, prompted "Select which events you
 would like to be processed:". This is the screen that matters most for difference
 scores, which require exactly two selected events, and for the four-event
 difference-of-differences (DoD) contrast, which requires exactly four.
+Saving with nothing selected raises a No Events Selected dialog: choose at least one
+event, or click Back to leave the selection as it was.
 
 Saving here can discard work elsewhere. If the saved event set differs from the
 previous one, or if the event column itself changed, a configured
@@ -201,9 +211,11 @@ the same set of events selected, in any order, keeps the contrast intact.
 ![The Specify Which Occasions to Process screen.](images/sub_select_occasions.png)
 
 Clicking Select Occasions opens Specify Which Occasions to Process, prompted
-"Select which occasions you would like to be processed:", and behaves exactly as
-the group and event screens do. Use it to drop a third session from a design you
+"Select which occasions you would like to be processed:", and works like the
+group screen. Use it to drop a third session from a design you
 want analyzed as two occasions.
+Saving with nothing selected raises a No Occasions Selected dialog: choose at least
+one occasion, or click Back to leave the selection as it was.
 
 ### DoD Contrast...
 
@@ -216,7 +228,7 @@ ERP_1 (first minuend), ERP_2 (first subtrahend), ERP_3 (second minuend), and
 ERP_4 (second subtrahend). Each ERP must be a different event, and Save refuses a
 mapping that repeats one.
 
-The button is greyed out until you set Estimate internal consistency of
+The button is grayed out until you set Estimate internal consistency of
 difference scores to Yes: 4-event DoD in Preferences and click Save there. It
 also refuses to open until an Event Type column is chosen and exactly four events
 are selected, naming whichever precondition is unmet. The button's tooltip
@@ -248,9 +260,9 @@ assignments with it.
 Clicking the Preferences button opens Specify Processing Preferences. Fourteen
 rows, then Save and Back. Save writes the settings and redraws Specify Inputs;
 Back returns without writing. Nothing on this screen touches your data file.
-The settings live for the current MATLAB session only: PsyRAT rebuilds its
-defaults every time it starts, so a changed chain count or family has to be
-entered again after a restart. The settings a run actually used are recorded in
+The settings last only until you leave this processing session: the home
+screen rebuilds PsyRAT's defaults every time it opens, so a changed chain count
+or family has to be entered again on the next Process New Data run. The settings a run actually used are recorded in
 its run-config sidecar (Section 7.6), which `psyrat_run` can replay.
 
 The defaults are the ones I run, and the entries below say where a default is a
@@ -279,8 +291,9 @@ defaults it never appears, because 5,000 plus 5,000 is exactly 10,000.
 
 Random seed: the random number generator (RNG) seed handed to CmdStan. The
 default is 12345. Reusing the
-same seed on the same data at the same settings reproduces the same draws and
-therefore the same estimates to the last digit, which is what makes a PsyRAT
+same seed on the same data at the same settings, with within-chain
+parallelization off, reproduces the same draws and therefore the same
+estimates to the last digit, which is what makes a PsyRAT
 analysis reproducible rather than merely repeatable. Record it. The sidecar in
 Section 7.6 records it for you. Changing it is a legitimate robustness check and
 should be reported as one.
@@ -288,16 +301,21 @@ should be reported as one.
 Adapt delta (blank = model default): the target acceptance rate of the
 No-U-Turn Sampler (NUTS). Leave it blank, which is the default. Blank means the
 model's own default: most designs carry a tuned value (0.90 to 0.98, chosen per
-model rather than picked once), and the plain one-facet designs (analyses 1
-through 4) run at CmdStan's default of 0.80. Enter a value between 0 and 1, typically 0.95 or 0.99, to
+model rather than picked once), while the plain one-facet designs (analyses 1
+through 4), the subject-level one-facet design (analysis 6), the one-facet
+dynamic designs (11 and 26), and the single-occasion nonparallel splits design
+(23) run at CmdStan's default of 0.80. Enter a value between 0 and 1, typically 0.95 or 0.99, to
 reduce divergent transitions at the cost of slower sampling. A malformed entry is
 refused with an Invalid Adapt Delta dialog.
 
 Max tree depth (blank = 10): the NUTS maximum tree depth. Leave it blank, which
-is the default and means CmdStan's own default of 10. Raise it to 12 or 15 when a
-hard posterior is terminating trajectories early. Both this and adapt delta
-change step-size adaptation during warmup, so a run that sets either one does not
-reproduce a run at the same seed that did not.
+is the default and means CmdStan's own default of 10, except on the concurrent
+gamma difference designs (Gamma with residual covariance for co-occurring
+events), which run at 12 by design. Raise it to 12 or 15 when a hard posterior
+is terminating trajectories early. Adapt delta changes step-size adaptation
+during warmup, so a run that sets it does not reproduce a run at the same seed
+that left it blank; max tree depth is a cap on each trajectory rather than an
+adaptation setting, so it changes the draws only when the cap actually binds.
 
 Verbose Stan output (print each iteration): whether CmdStan's raw console log is
 echoed into the MATLAB Command Window. The default is Yes. If yes, you see
@@ -306,11 +324,12 @@ Window goes quiet for the length of the fit, which on a long model is
 indistinguishable from a hang.
 
 View trace plots prior to saving Stan output: whether trace plots are drawn
-before the result is saved, with a chance to rerun. The default is No, and the
-limitation is worth stating plainly: plots are rendered only for the plain
-one-facet internal-consistency analysis. For every other analysis, setting this
-to Yes prints a console line saying trace plots are not supported or not
-rendered for that analysis, and continues without plotting. Section 7.5 covers
+before the result is saved, with a chance to rerun. The default is No. Plots
+are rendered only for the plain one-facet internal-consistency analysis, and
+only when a sampler produced it: a Native fitlme run has no chains to plot, and
+the console says so. For every other analysis, setting this to Yes prints a
+console line saying trace plots are not supported or not rendered for that
+analysis, and continues without plotting. Section 7.5 covers
 what you see when plots are rendered.
 
 Estimate subject-specific error variances: whether the model estimates a separate
@@ -325,8 +344,8 @@ Observation likelihood family: the likelihood for the single-trial scores. The
 options are Gaussian and Gamma, and the default is Gaussian. Gaussian suits ERP
 amplitudes, which are routinely negative. Gamma is the scaled chi-square,
 log-linked family for strictly positive, right-skewed data such as single-trial
-time-frequency power, it is available for a specific subset of designs, and it
-always runs on CmdStan. Non-positive scores are rejected under Gamma before
+time-frequency power. It is available for a subset of designs and always runs
+on CmdStan. Non-positive scores are rejected under Gamma before
 estimation starts. [Chapter 15](15_advanced-designs.md) sets out which designs
 accept it.
 
@@ -347,12 +366,16 @@ estimated for a difference score, and of which kind. The options are No, Yes:
 difference estimates the reliability of X minus Y and needs exactly two selected
 events. Yes: 4-event DoD estimates the four-event contrast and needs exactly four
 selected events plus the mapping from the DoD Contrast... screen (Section 7.3).
-Difference-score modes are available for single-session data, with the
-dynamic-reliability designs as the documented exception.
+Yes: 2-event difference also accepts an occasion column, either with
+subject-specific error variances on No (the two-facet test-retest difference,
+analysis 10) or with a Dimension 1 column selected (the dynamic designs). Yes:
+4-event DoD with an occasion column is available only as the person-specific
+dynamic design (a Dimension 1 column and subject-specific error variances on
+Yes).
 
 Use within-chain parallelization: whether CmdStan splits each chain's likelihood
-across threads. The default is No. If yes, PsyRAT picks threads per chain
-automatically so at least two CPU cores stay free after chains times threads. If
+across threads. The default is No. If yes, PsyRAT picks the threads per chain
+automatically so that chains times threads leaves at least two CPU cores free. If
 no, each chain runs single-threaded. Turning it on helps most on large datasets
 and least on small ones, where the threading overhead can outweigh the gain.
 Threaded runs are not bit-reproducible: the partition of the likelihood sum is
@@ -377,11 +400,17 @@ starts estimation. The order matters, and it is not the order most people expect
 
 Every check below runs before the save dialog opens, so a failure here costs
 you a click and nothing else. Most test your selections; the numeric-column and
-event-count checks read the loaded table. The remaining data checks (section
-6.5) run later, after you have named the output; those later checks can also
-raise the non-fatal Preflight warnings dialog described there, which waits for
-OK and then lets estimation start. Each dialog names its remedy on a "How to
-fix" line. The table gives the dialog title and the condition.
+event-count checks read the loaded table. The remaining data checks (Section
+6.5) run later, after you have named the output, once per measurement. A
+failure there does not raise its own dialog: the measurement is marked failed,
+and its message goes to the Command Window and to the `_error.txt` report
+described in Section 7.6 (if no measurement succeeded, an All Measurements
+Failed dialog appears over a reopened Specify Inputs). Those later checks can
+also raise the non-fatal Preflight warnings dialog described in Section 6.5,
+which waits for OK and then lets estimation start; in a batch it can appear
+again before each measurement's fit, and the run waits there each time. Each
+dialog in the table below names its remedy on a "How to fix" line. The table
+gives the dialog title, the condition that raises it, and the fix.
 
 | Dialog title | What tripped it | How to fix |
 |---|---|---|
@@ -395,20 +424,28 @@ fix" line. The table gives the dialog title and the condition.
 | Single-subject error variance not supported for retest | Subject-specific error variances plus difference scores plus an occasion column, outside dynamic reliability | Turn off subject-level estimation, remove the occasion facet, or turn off difference scores. |
 | Difference score reliability is not supported for retest | Difference-of-differences plus an occasion column, outside the dynamic person-specific design | Use a two-event difference score, set difference scores to No, or remove the occasion facet. |
 | Event column not specified | Difference scores requested with no Event Type column | Choose the column that stores event labels. |
-| Only 1 event / Only 2 events for difference score | Not exactly two events selected for a two-event difference | Select exactly two events. |
+| Only 1 event / Only 2 events for difference score | Fewer than two events selected for a two-event difference (first title) or more than two (second) | Select exactly two events. |
 | Need 4 events for difference-of-differences / Need exactly 4 events for difference-of-differences | Fewer than four events selected for the DoD contrast (first title) or more than four (second) | Select exactly four events. |
 | Residual covariance not supported for DoD | Residual covariance requested with the four-event contrast | Set Estimate residual covariance for co-occurring events to No. |
 | Configure DoD contrast before Analyze | Four-event mode with no saved ERP_1 to ERP_4 mapping | Click DoD Contrast... and assign four unique events. |
 
 Read one row to see the pattern. Unique variable names not provided lists the
-offending column by name and puts the cursor back on the first popup that claims
-it, so the fix is one click away rather than a hunt.
+offending column by name and, when one of the ID, Group, Event, or Occasion
+popups claims it, puts the cursor back on the first of those, so the fix is one
+click away rather than a hunt.
 
 ### Naming the output, and the whitespace rule
 
+If the likelihood family is Gamma and the run is one of the three Restricted
+two-facet designs (an occasion column together with a Dimension 1 column, with
+subject-specific error variances, or with both: analyses 14, 25, and 27), a
+modal notice titled Restricted design: gamma two-facet opens once the checks
+pass. It names the analysis, summarizes the finding of Section 5.4, and waits
+for OK; Cancel at the save dialog that follows backs out of the run.
+
 Once the checks pass, a save dialog titled Save output file as opens on the
 folder your input file came from, filtered to `*.psyrat`. Choose a name and a
-folder. Cancelling raises a File Error dialog and leaves you on Specify Inputs
+folder. Canceling raises a File Error dialog and leaves you on Specify Inputs
 with nothing lost.
 
 THE PATH MUST CONTAIN NO WHITESPACE, filename and folders alike. CmdStan does not
@@ -423,26 +460,29 @@ discovering the rule at the save dialog. On macOS,
 If you selected several measurements and set the four-event contrast, a modal
 notice tells you that this mode processes one measurement at a time and names the
 one it will use, which is the first in your selection. You must dismiss it before
-the run starts.
+the run starts. Because only one measurement runs, the output keeps the name
+you typed in the save dialog, with no measurement suffix, and the viewer opens
+as it does for any single-measurement run.
 
 ### The run itself
 
 There is no progress bar. PsyRAT reports progress to the MATLAB Command Window
 and nowhere else, so the only place to look is the console. You will see
-`Preparing data for analysis...`; then, for multi-event and multi-group
+`Preparing data for analysis...` first. For multi-event and multi-group
 designs, a `Working on event 1 of 4` line (or `Working on group ...` or
-`Working on event/group ...`, depending on the design) as each chunk starts;
-then `Model is being run in cmdstan`, repeated per chunk (most designs precede
-it with a warning that this may take a while; some print the announcement
-alone). With Verbose Stan output on you also get CmdStan's own per-iteration
-log.
+`Working on event/group ...`, depending on the design) follows as each chunk
+starts. Each chunk then prints `Model is being run in cmdstan`; most designs
+precede it with a warning that this may take a while, and some print the
+announcement alone. With Verbose Stan output on you also get CmdStan's own
+per-iteration log.
 
-Every run includes a compilation step. PsyRAT generates a Stan model specific
-to your design and names it uniquely per run, and CmdStan compiles that model
-to C++ before it can sample, so the console sits at the compile step for
-several seconds per generated model (about 8 s was measured on the capture
-machine; a run over several events compiles one model per event) with nothing
-else to show. This happens on every run, not just the
+Every CmdStan run includes a compilation step. PsyRAT generates a Stan model
+specific to your design and names it uniquely per run, and CmdStan compiles
+that model to C++ before it can sample, so the console sits at the compile
+step for several seconds per generated model with nothing else to show (about
+8 s per generated model on the machine this manual was written on; a run that
+fits its events in separate models compiles one per event). This happens on
+every run, not just the
 first ([Chapter 18](18_troubleshooting.md) lists it among the expected slow
 points).
 
@@ -458,11 +498,11 @@ estimate a correlation matrix through its Cholesky factor, an occasional
 early-warmup draw pushes a diagonal element to zero, and the sampler discards
 that proposal and continues. CmdStan may also print a warning that the data file
 is being read as an `RDump` file and that the format is deprecated. Neither
-message affects the reported variance components, coefficients, SEMs, or
-convergence diagnostics. [Chapter 18](18_troubleshooting.md) collects the console
+message affects the reported variance components, coefficients, standard
+errors of measurement (SEMs), or convergence diagnostics. [Chapter 18](18_troubleshooting.md) collects the console
 messages that DO mean something.
 
-> CAUTION. Terminating MATLAB's processing with ctrl+c does not terminate the
+> CAUTION. Interrupting MATLAB with Ctrl+C does not terminate the
 > models. They run in C++, as separate CmdStan processes, one per chain.
 > Interrupting MATLAB leaves those processes sampling in the background,
 > consuming cores and writing output nobody will read. To stop a run for real,
@@ -474,10 +514,16 @@ messages that DO mean something.
 
 ![The rerun dialog raised when the chains did not converge.](images/dlg_convergence_rerun.png)
 
-When sampling finishes, PsyRAT checks convergence on every monitored parameter.
-Two conditions must hold: no potential scale reduction factor (R-hat) may reach
-1.1, and no effective sample size may fall below ten times the number of chains.
-Failing either one marks the fit as not converged.
+When sampling finishes, PsyRAT checks convergence on every monitored parameter
+that the model does not fix by construction (correlation-matrix diagonals and
+disabled terms are excluded, and the result records their names). Two
+conditions must hold: no potential scale reduction factor (R-hat) may reach
+1.1, and no effective sample size may fall below ten times the number of
+chains, where the effective sample size read is the smaller of CmdStan's bulk
+and tail values. Failing either one marks the fit as not converged. A native
+HMC fit also fails when a chain accepted fewer than 10% of its proposals. The
+check is an early-workflow screen: the console says so when it passes, and
+passing it does not certify the estimates for final inference.
 
 Divergent transitions are counted separately and reported in the console when
 there are any. They never trigger a rerun on their own, and they never block
@@ -492,10 +538,13 @@ buttons, Do Not Rerun and Rerun. Clicking Rerun DOUBLES both warmup and
 sampling and fits again from scratch (a doubled total below 1,000 is raised to
 500 warmup and 500 sampling instead). The offer repeats after each attempt, so a run that starts at 5,000 and
 5,000 and needs three reruns ends at 40,000 and 40,000, and takes correspondingly
-longer each time. Clicking Do Not Rerun saves the non-converged result and prints
-a console line saying so; closing the dialog with the window's close box counts
-as Do Not Rerun. That result is still written to disk, and it is still not
-trustworthy.
+longer each time. Closing the dialog with the window's close box counts as Do
+Not Rerun. On a single-measurement run, Do Not Rerun saves the non-converged
+result and prints a console line saying so; that result is still written to
+disk, and it is still not trustworthy. In a batch of several measurements the
+dialog appears for each measurement that fails the check, and Do Not Rerun
+instead fails that measurement: nothing is saved for it, an error report is
+written (Section 7.6), and the run moves on to the next measurement.
 
 ### Trace plots
 
@@ -505,19 +554,23 @@ If View trace plots prior to saving Stan output is set to Yes and the analysis i
 the plain one-facet internal-consistency one, a window titled Trace Plots of Stan
 Parameters opens before saving. Each panel plots one parameter's draws against
 iteration number, with one line per chain. What you want is a dense, stationary
-band in which the chains overlap each other and neither drifts across the
+band in which the chains overlap each other and none drifts across the
 x-axis. Wandering, or one chain sitting apart from the rest, means the fit has
 not settled, whatever R-hat said.
 
 A second prompt follows, "Would you like to rerun with more iterations?", with
-the same Do Not Rerun and Rerun buttons and the same doubling behavior. This is
-the one place the toolbox lets you refit on visual evidence rather than on the
-convergence rule alone.
+the same Do Not Rerun and Rerun buttons and the same doubling behavior. Answer
+it with one of the buttons: unlike the rerun dialog, closing this prompt with
+the window's close box does not count as Do Not Rerun, and the run stops with
+an error without saving. This is the one place the toolbox lets you refit on
+visual evidence rather than on the convergence rule alone.
 
 For every other analysis, setting this to Yes prints a console line instead of
 plotting: family-specific text for the test-retest, subject-level,
 difference-score, and dynamic-reliability designs, and a generic line naming
-the analysis for anything else. The run then continues to saving.
+the analysis for anything else. A native fitlme fit never plots, because its
+bootstrap refits are not chains, and the console says so. The run then
+continues to saving.
 
 ### After the run
 
@@ -527,14 +580,19 @@ single measurement that succeeded, PsyRAT opens the viewer for you.
 One thing on that path looks like a hang and is not. The viewer raises up to two
 notices before it draws anything: one titled Native estimation engine, when a
 native MATLAB engine rather than CmdStan produced the fit, and one titled
-Estimation diagnostics, when the fit failed to converge or produced divergent
-transitions. Each blocks until dismissed.
+Estimation diagnostics, when the fit failed the convergence check, produced
+divergent transitions, excluded a parameter from the check, or read its
+diagnostics from a degraded summary. Each blocks until dismissed. Every other
+result, a clean CmdStan run included, gets the same Estimation diagnostics
+dialog AFTER the viewer opens; that one does not block and only repeats the
+two scope lines the console printed (on a native fitlme result the first names
+the REML validity and bootstrap-count check instead).
 
-> CAUTION. The post-run notice, titled Estimation diagnostics, blocks MATLAB
-> until it is dismissed, and it can open behind another window or on a second
-> display. MATLAB then reads as busy at near-zero CPU with the output file
-> already written, which looks exactly like a hang. It is not one. Check your
-> other windows and displays for the dialog, click OK, and the viewer opens.
+> CAUTION. A blocking Estimation diagnostics notice can open behind another
+> window or on a second display. MATLAB then reads as busy at near-zero CPU
+> with the output file already written, which looks exactly like a hang. It is
+> not one. Check your other windows and displays for the dialog, click OK, and
+> the viewer opens.
 
 ## 7.6 What gets saved
 
@@ -544,7 +602,13 @@ The result is a MAT-file carrying the `.psyrat` extension, holding one variable,
 `psyrat_data`. Everything the viewer needs is inside it: the loaded data, the
 column mapping, the posterior draws for every variance component, the convergence
 tables, and the reliability output. You can load it from the command line with
-`load('myrun.psyrat','-mat')` if you want to work with the draws directly.
+`load('myrun.psyrat','-mat')` if you want to work with the draws directly. For
+a native fitlme result, read a column with
+`psyrat_draw_column(psyrat_data.rel.out.sig_u, k)` rather than indexing it:
+when the fits kept different numbers of successful bootstrap replicates, each
+column is stored as its own vector
+([the native bootstrap contract](../native_bootstrap_contract.md) explains the
+layout).
 
 Expect it to be large. A one-facet single-session fit runs from a few hundred
 kilobytes to a few megabytes. A test-retest fit runs to a few megabytes. The
@@ -553,12 +617,14 @@ four-event difference-of-differences designs are the extreme case: recorded runs
 of the person-specific contrast have produced files of roughly 150 MB
 single-occasion and 300 MB with an occasion facet. Size scales with the number of
 retained draws times the number of monitored parameters, so doubling iterations
-through the rerun dialog roughly doubles the file. Plan disk accordingly before a
-DoD run.
+through the rerun dialog roughly doubles the file. Plan disk space accordingly
+before a DoD run.
 
 A temporary directory named `psyrat_stan_` plus a random suffix appears next to
-your output while CmdStan works, and is removed when the run finishes. That is
-the other reason the save folder must be writable and free of whitespace.
+your output while CmdStan works, and is removed when the run finishes normally.
+A run that fails with an error or is interrupted leaves it behind; delete it
+once the run is over. That is the other reason the save folder must be
+writable and free of whitespace.
 
 ### The run-config sidecar
 
@@ -567,27 +633,43 @@ human-readable JSON file recording what produced the fit. This is the file to
 keep with a manuscript, and the file to attach to a bug report.
 
 It records the schema version, a UTC timestamp, the PsyRAT, MATLAB, and
-detected CmdStan versions, and the source revision of the toolbox tree that
-ran. It records the analysis that ran and the output location. Under `columns`
-it stores your source column names for every role,
-including the dimension and items-per-split columns, plus the group, event, and
-occasion selections. Under `data` it stores the input file name, a SHA-256 hash
-of that file, a content hash of the loaded table, and the number of rows that
-entered estimation. Under `estimation` it stores the seed, chains, warmup,
-sampling, total iterations, verbose and within-chain settings, adapt delta, max
-tree depth, the bootstrap and gradient settings the native engines use, and
-both the requested engine and the engine that actually ran. Under `design` it
-stores every design flag: subject-level estimation, difference-score mode,
-residual covariance, dynamic reliability, splits, residual-correlation
-parameterization, dispersion, likelihood family, gamma scale parameterization,
-and the DoD mapping. Under `view` it stores the coefficient selectors in
-effect. Under `priors` it stores the complete prior set the run fit (a partial override is
-merged over the defaults before fitting, and the merged result is recorded).
+detected CmdStan versions, and, when the toolbox runs from a git checkout, the
+source revision of the tree that ran (the field is empty in a released copy).
+It records the analysis that ran and the output location. Under `columns`
+it stores your source column names for every role, including the dimension and
+items-per-split columns, plus the group, event, and occasion selections. Under
+`data` it stores the input file name and its full path on your machine, a
+SHA-256 hash of that file, a content hash of the loaded table, and the number
+of rows in that table, counted before your group, event, and occasion
+selections are applied. Under `estimation` it stores the seed, chains, warmup,
+sampling, total iterations, verbose and within-chain settings, the resolved
+threads per chain, adapt delta, max tree depth, the bootstrap and gradient
+settings the native engines use (with the bootstrap success and failure counts
+on a fitlme run), both the requested engine and the engine that actually ran,
+and `priors_applied` and `mcmc_settings_applied`, which read false on a native
+fitlme run because REML uses neither. Under `design` it stores every design
+flag: subject-level estimation, difference-score mode, residual covariance,
+dynamic reliability, splits, residual-correlation parameterization,
+dispersion, likelihood family, gamma scale parameterization, and the DoD
+mapping. Under `diagnostics` it stores the convergence record: the scope of
+the check and its thresholds, the verdict, any parameters excluded as
+constants, the source and precision of each fit's diagnostics, the
+final-inference status, and the divergence count; that block is a record
+only, and a replay recomputes it. Under `view` it stores the coefficient
+selectors, the occasion convention, and the reliability cutoffs in effect.
+Under `priors` it stores the complete prior set the run fit (a partial
+override is merged over the defaults before fitting, and the merged result is
+recorded). Because the sidecar records full local paths for the input file and
+the output folder, read it before sharing it; a replay needs a save location
+in any case, so pass `savepath` explicitly if you remove the recorded one.
 
-That is enough to replay the run. `psyrat_run('config', '<name>_runconfig.json')`
-reads it back and re-executes the same settings; see
-[Chapter 14](14_scripting.md). Two honest limits. The viewer block is
-record-only, because the scripted runner exposes no options for it, and it
+That is enough to replay the run. `psyrat_run('config', '<name>_runconfig.json',
+'file', datafile)` reads the settings back and re-executes them on the data
+file you name: the sidecar records the data file's name and hash, not the data,
+so you always supply the data source. The output location is filled in from
+the sidecar too, so pass a new `savename` unless you mean to replace the
+original output; see [Chapter 14](14_scripting.md). Two honest limits. The
+`view` block is record-only, because the scripted runner exposes no options for it, and it
 captures the viewer settings in effect AT ESTIMATION TIME, so changing a
 coefficient in the viewer afterwards is not re-recorded. Writing the sidecar is
 also best-effort: if it fails, the console says so and your results are kept
@@ -597,20 +679,73 @@ regardless.
 
 Selecting several measurements runs them in sequence, and each gets its own
 output file. The names are built from the one you typed by appending the
-measurement's column name, sanitized for filesystem use, so saving as
-`study.psyrat` with `ERN` and `Pe` selected produces `study_ERN.psyrat` and
-`study_Pe.psyrat`, each with its own sidecar.
+measurement's column name, sanitized for filesystem use, so saving as `study`
+(the dialog supplies the `.psyrat` extension) with `ERN` and `Pe` selected
+produces `study_ERN.psyrat` and `study_Pe.psyrat`, each with its own sidecar.
+The names are kept distinct without regard to case. A name whose `.psyrat`,
+`_runconfig.json`, or `_error.txt` is already in the folder takes the first
+free numeric suffix, so a second batch saved as `study` in the same folder
+produces `study_ERN_2.psyrat` and `study_Pe_2.psyrat` (each name is suffixed
+on its own, and a difference in case does not make a name free). The save dialog confirmed
+only the name you typed, so an existing batch output is never replaced. To
+replace one, run that measurement on its own and confirm its exact name in the
+save dialog.
 
 A measurement that fails does not stop the batch. PsyRAT catches the failure,
-writes a `.txt` error report next to where the output would have gone, and moves
-to the next measurement. The console prints the measurement name, the reason, and
-the report path. The report itself records the measurement, the requested output
+writes an error report named after the output with an `_error.txt` suffix next
+to where the output would have gone, and moves to the next measurement. The console prints the measurement name, the reason, and
+the report path. An existing file is never overwritten: when that name is
+already taken (by an earlier report, or by an input file that happens to carry
+it), the report gets the first free numeric suffix, such as `study_ERN_error_2.txt`.
+When a report of that name cannot be created in the output folder (for example,
+the name is too long), the report is written there as
+`psyrat_error_<date>_<time>.txt` instead. When the output folder refuses the
+write altogether, the report goes to the system temporary folder, with its path
+printed to the console. If no report can
+be written anywhere, the full diagnostic is printed to the console and the
+closing dialog says so. The report itself records the measurement, the requested output
 filename, a timestamp, the error identifier, the full message, and the stack
 trace, which is exactly what makes a bug report actionable.
 
+Before a measurement is estimated, PsyRAT checks that a file can be created in
+the output folder under each name the run will write: the output itself, its
+`_runconfig.json` sidecar, and its `_error.txt` report. If the check finds
+that the folder cannot hold a name, that measurement stops before its fit; so
+does an existing subfolder that has the output's or the sidecar's name. The
+error names the file and says what to change, and the other measurements in
+the batch run as usual. Nothing is shortened or renamed for you. In a batch,
+the usual cause is a long column header, because each output name is the typed
+name plus the header. Shorten the header or the typed name and run that
+measurement again.
+
+The check works by briefly creating, and then removing, a test folder or a
+test file with a name of the same length in that folder, plus one short-named
+test file for comparison when a name is refused; it never creates or opens the
+names themselves. If a test entry cannot be removed (for example, because
+something else wrote into it), the console names it so you can check it before
+deleting it. Names that already exist there, such as an output you chose to
+replace, are left alone. How long a name may be depends on the disk, not on a
+fixed number of characters, and the check never alters a name, so accented or
+other non-English characters in the name you typed stay as they are.
+
+The check is about file names in a folder that accepts new files. A folder
+that does not accept new files at all, or any other write error, is reported
+through the console and the error report described above. When the check
+cannot decide (for example, a test folder was refused and MATLAB has no Java
+runtime to make the test file), it refuses nothing: processing continues, and
+a name the folder cannot hold then fails when the output is saved, with the
+usual error handling. Passing the check does not guarantee the later save: a
+disk that fills up, or a folder whose permissions change, can still make the
+save fail after the fit.
+
 When the batch ends, a Processing Complete box reports how many runs completed,
-how many succeeded, how many failed, and the folder they went to. If every
+how many succeeded, how many failed, and the folder they went to. It also names
+the error reports written in that folder: the first five, with a count of the
+rest (the console lists every report). If every
 measurement failed, an All Measurements Failed dialog points you at the `.txt`
 reports instead. A single-measurement run that succeeds skips the summary box
 and opens the viewer directly, which is the ordinary single-measurement path
-Section 7.5 describes.
+Section 7.5 describes. When at least one measurement succeeded, no PsyRAT
+window stays open after a batch. To inspect the outputs, run `psyrat_start`
+and click View Results, then open each `.psyrat` file in turn
+([Chapter 9](09_viewing-results.md)).

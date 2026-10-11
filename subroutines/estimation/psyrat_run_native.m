@@ -21,7 +21,7 @@ function fit = psyrat_run_native(chosen,nativespec,varargin)
 %See also: psyrat_resolve_engine, psyrat_native_fitlme, psyrat_native_hmc,
 % PsyRATNativeFit
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

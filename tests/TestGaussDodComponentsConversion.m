@@ -7,7 +7,7 @@ classdef TestGaussDodComponentsConversion < matlab.unittest.TestCase
     % not re-pinned here.
     %
     % These tests pin the two IDENTITY-LINK THEOREMS the Gaussian arm rests on
-    % (SCIENTIFIC_FORMULA_AUDIT.md section 26):
+    % (development formula audit, section 26):
     %  - THE RESIDUAL CHANNEL IS EXACTLY DIAGONAL. Under the identity link
     %    there is no induced mean-surface interaction, and the six
     %    observation-level residual covariances are zero by estimand, so the

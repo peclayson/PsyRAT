@@ -16,7 +16,7 @@ function psyrat_startproc(varargin)
 %  the data
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -115,9 +115,9 @@ collist = dataraw.Properties.VariableNames;
 %is what psyrat_loadfile and psyrat_write_runconfig consume. Changing the label
 %is therefore safe; changing the INDEX convention is not.
 %
-%Cost, accepted by owner ruling 2026-08-18: documentation/UserManual.pdf still
-%says to select 'none' in three places and has no source in this repo to
-%regenerate from. Tracked as B32.
+%Cost, accepted by owner ruling 2026-08-18: the legacy PDF manual (withheld
+%from the release since 2026-08-23) says to select 'none' in three places and
+%has no source in this repo to regenerate from. Tracked as B32.
 vcollist = collist;
 vcollist{end+1} = '(none)';
 
@@ -156,8 +156,8 @@ end
 function psyrat_startproc_gui(varargin)
 %
 %Inputs
-% psyrat_prefs - preferences for PsyRAT toolbox
-% psyrat_data - PsyRAT toolbox data structure
+% psyrat_prefs - preferences for PsyRAT
+% psyrat_data - PsyRAT data structure
 %
 %Optional Inputs:
 % procprefs - prefences for processing in stan
@@ -1619,7 +1619,8 @@ end
 %ensure the 'none' sentinel (the last collist entry) is not selected. If it
 %is, spit out an error and go back to psyrat_startproc_gui. The check keys on
 %the sentinel INDEX, not the name, so a real column named 'none' stays
-%selectable (B25).
+%selectable (B25). Sound only because psyrat_store_inputchoices ran first
+%above, so this tests the LIVE popup value, not a stale preference (G92).
 if psyrat_prefs.proc.inp.group == length(psyrat_data.proc.collist)
     psyrat_startproc_gui('psyrat_prefs',psyrat_prefs,'psyrat_data',psyrat_data);
     errordlg({'No group column is selected.';...
@@ -1739,6 +1740,13 @@ function psyrat_whichgroups_save_call(varargin)
 %find glist and gnames
 ind = find(strcmp('glist',varargin),1);
 glist = varargin{ind+1}.Value;
+%F1 (2026-09-16): an empty multi-select Save used to store {} silently and every level was processed
+if isempty(glist)
+    errordlg({'No groups were selected.';...
+        'How to fix: choose one or more groups and click Save, or click Back to leave the current selection unchanged.'},...
+        'No Groups Selected','modal');
+    return;
+end
 ind = find(strcmp('gnames',varargin),1);
 gnames = varargin{ind+1};
 
@@ -1920,6 +1928,13 @@ function psyrat_whichevents_save_call(varargin)
 %find elist and enames
 ind = find(strcmp('elist',varargin),1);
 elist = varargin{ind+1}.Value;
+%F1 (2026-09-16): an empty multi-select Save used to store {} silently and every level was processed
+if isempty(elist)
+    errordlg({'No events were selected.';...
+        'How to fix: choose one or more events and click Save, or click Back to leave the current selection unchanged.'},...
+        'No Events Selected','modal');
+    return;
+end
 ind = find(strcmp('enames',varargin),1);
 enames = varargin{ind+1};
 
@@ -2323,6 +2338,13 @@ function psyrat_whichtimes_save_call(varargin)
 %find tlist and tnames
 ind = find(strcmp('tlist',varargin),1);
 tlist = varargin{ind+1}.Value;
+%F1 (2026-09-16): an empty multi-select Save used to store {} silently and every level was processed
+if isempty(tlist)
+    errordlg({'No occasions were selected.';...
+        'How to fix: choose one or more occasions and click Save, or click Back to leave the current selection unchanged.'},...
+        'No Occasions Selected','modal');
+    return;
+end
 ind = find(strcmp('tnames',varargin),1);
 tnames = varargin{ind+1};
 
@@ -2541,9 +2563,15 @@ end
 %check whether particular events were specified to process. If not, process
 %all event types. Also, if event was changed, overwrite the old and replace
 %with all the new event types.
-if (isempty(psyrat_prefs.proc.inp.whicheventscol) && ...
-        psyrat_prefs.proc.inp.event ~= length(psyrat_data.proc.collist)) || ...
-        (~isempty(psyrat_prefs.proc.inp.whicheventscol) && ...
+%G92 (beta-tester report 2026-09-16): the sentinel test guards the WHOLE
+%condition. Only the first arm carried it before, so a stale which*col
+%(written when the Select dialog opened, or by this block on an earlier
+%Analyze whose all-failed relaunch handed the prefs back) fired the second
+%arm with the popup at (none) and dereferenced the display-only sentinel as
+%a table variable. The sentinel comparison stays on ONE physical line:
+%TestStartprocNoneSentinel counts it verbatim.
+if psyrat_prefs.proc.inp.event ~= length(psyrat_data.proc.collist) && ...
+        (isempty(psyrat_prefs.proc.inp.whicheventscol) || ...
         psyrat_prefs.proc.inp.whicheventscol ~= psyrat_prefs.proc.inp.event)
 
     %pull a list of events from the file based on the input from psyrat_gui
@@ -2558,9 +2586,9 @@ end
 %check whether particular group were specified to process. If not, process
 %all group types. Also, if group was changed, overwrite the old and replace
 %with all the new group types.
-if (isempty(psyrat_prefs.proc.inp.whichgroupscol) &&...
-        psyrat_prefs.proc.inp.group ~= length(psyrat_data.proc.collist)) || ...
-        (~isempty(psyrat_prefs.proc.inp.whichgroupscol) && ...
+%G92: same guard shape as the event block above
+if psyrat_prefs.proc.inp.group ~= length(psyrat_data.proc.collist) && ...
+        (isempty(psyrat_prefs.proc.inp.whichgroupscol) || ...
         psyrat_prefs.proc.inp.whichgroupscol ~= psyrat_prefs.proc.inp.group)
 
     %pull a list of groups from the file based on the input from psyrat_gui
@@ -2575,9 +2603,9 @@ end
 %check whether particular occasions were specified to process. If not, process
 %all occasions. Also, if occasion was changed, overwrite the old and replace
 %with all the new occasion types.
-if (isempty(psyrat_prefs.proc.inp.whichtimescol) &&...
-        psyrat_prefs.proc.inp.time ~= length(psyrat_data.proc.collist)) || ...
-        (~isempty(psyrat_prefs.proc.inp.whichtimescol) && ...
+%G92: same guard shape as the event block above
+if psyrat_prefs.proc.inp.time ~= length(psyrat_data.proc.collist) && ...
+        (isempty(psyrat_prefs.proc.inp.whichtimescol) || ...
         psyrat_prefs.proc.inp.whichtimescol ~= psyrat_prefs.proc.inp.time)
 
     %pull a list of occasions from the file based on the input from psyrat_gui
@@ -2896,6 +2924,47 @@ if any(psyrat_prefs.proc.diffest == [2 3])
 
 end
 
+%RESTRICTED design-maturity notice for the gamma two-facet designs (queue row
+%3a, owner rulings 2-4 of 2026-09-21): analyses 14, 25 and 27 under the gamma
+%family, location-scale and log-nu alike. The GUI never sees the analysis
+%number (psyrat_computevarcomp resolves it, lines ~1160-1183 and ~1236), so the
+%condition here MIRRORS the resolver from the settings this callback has already
+%read: with no splits (psyrat_prefs.proc.splits == 1, set just above), an
+%occasion column, no difference scores (diffest == 1) and either a Dimension 1
+%column (dynrel == 2: 14 with subject-level off, 27 with it on) or subject-level
+%on without a dimension (25). gammascale is deliberately not read: both arms
+%carry the label, and the field is stamped on every run. A legacy prefs struct
+%with no family field is Gaussian (the family backfill in the measurement loop
+%below makes the same call), so it gets no notice.
+%
+%Fired HERE, before the uiputfile save dialog, so the user learns of the
+%restriction before choosing an output file and can still back out (Cancel at
+%the save dialog returns without a run). uiwait + modal for the B28 reason
+%documented at the DoD notice below: warndlg returns immediately, and only
+%uiwait makes the acknowledgment real before execution continues. The words
+%come from psyrat_gamma_twofacet_restriction, the same source as the viewers'
+%on-screen note and the export header, so the three surfaces cannot drift.
+%TestStartprocAnalyzeDrive drives this through the real callback (three
+%positives naming the design, six neighbors silent); TestModalRejectionDialogs
+%counts the site.
+isgammafam = isfield(psyrat_prefs.proc,'family') && ...
+    ~isempty(psyrat_prefs.proc.family) && ...
+    strcmpi(strtrim(char(string(psyrat_prefs.proc.family))),'gamma');
+hastime = psyrat_prefs.proc.inp.time ~= length(psyrat_data.proc.collist);
+if isgammafam && hastime && psyrat_prefs.proc.splits == 1 && ...
+        psyrat_prefs.proc.diffest == 1 && ...
+        (psyrat_prefs.proc.dynrel == 2 || psyrat_prefs.proc.ssubjrel == 2)
+    if psyrat_prefs.proc.dynrel == 2 && psyrat_prefs.proc.ssubjrel == 2
+        restricted_design = 27;
+    elseif psyrat_prefs.proc.dynrel == 2
+        restricted_design = 14;
+    else
+        restricted_design = 25;
+    end
+    R = psyrat_gamma_twofacet_restriction(restricted_design);
+    uiwait(warndlg(R.dialog, R.dialogtitle, 'modal'));
+end
+
 %cmdstan cannot handle paths with white space. User will be required to
 %provide a path to working directory that does not include a space.
 %space will be checked for each selection
@@ -2963,7 +3032,7 @@ if psyrat_prefs.proc.diffest == 3 && numel(run_measheaders) > 1
         'DoD mode: single measurement only','modal'));
 end
 
-outputsavename = psyrat_measurement_savenames(savename,run_measheaders);
+outputsavename = psyrat_measurement_savenames(savename,run_measheaders,savepath);
 
 %all input checks have passed; close the gui before starting analysis
 psyrat_gui = findobj('Tag','psyrat_gui');
@@ -2973,6 +3042,9 @@ end
 
 runsuccess = 0;
 runfail = 0;
+unreported = 0; %failed runs whose error report could not be written anywhere
+relocated = 0;  %failed runs whose error report went outside the save folder
+savedreports = {}; %names of the error reports written in the save folder
 lastsuccess = [];
 nmeas = length(run_measheaders);
 
@@ -3000,6 +3072,8 @@ for i = 1:nmeas
         if ~isfield(psyrat_prefs.proc,'family') || isempty(psyrat_prefs.proc.family)
             psyrat_prefs.proc.family = 'gaussian';
         end
+        %checkOutputNames (row 31) refuses this member, before its fit, when a
+        %file named after its output cannot be created in the save folder.
         preflight = psyrat_preflight_validate(...
             'datatable', run_data.proc.data, ...
             'sserrvar', psyrat_prefs.proc.ssubjrel, ...
@@ -3012,10 +3086,18 @@ for i = 1:nmeas
             'savename', run_data.proc.savename, ...
             'savepath', run_data.proc.savepath, ...
             'requireSaveName', true, ...
-            'requireSavePath', true);
+            'requireSavePath', true, ...
+            'checkOutputNames', true);
         if ~preflight.ok
+            %G96 (beta-tester report 2026-09-16): raise EVERY error under the
+            %first error's id. A file with a missing score and an Inf score
+            %produced two errors, but only the first was thrown, so the
+            %located non-finite message stayed hidden behind the generic
+            %missing-cells one. The other preflight consumers still read
+            %errors(1); this is the interactive route the tester used.
             diag = preflight.errors(1);
-            error(diag.id,'%s',diag.message);
+            msgs = arrayfun(@(e) e.message, preflight.errors, 'UniformOutput', false);
+            error(diag.id,'%s',strjoin(msgs(:)', [newline newline]));
         end
 
         %Non-fatal preflight warnings were dropped here before the pre-beta
@@ -3045,11 +3127,31 @@ for i = 1:nmeas
 
     catch runME
         runfail = runfail + 1;
-        reportfile = psyrat_write_measurement_error(run_data.proc.savepath,...
-            run_data.proc.savename,run_data.proc.measheader,runME);
+        [reportfile, insavefolder] = psyrat_write_measurement_error(...
+            run_data.proc.savepath,run_data.proc.savename,...
+            run_data.proc.measheader,runME);
         fprintf('\nMeasurement failed: %s\n',run_data.proc.measheader);
         fprintf('Reason: %s\n',runME.message);
-        fprintf('Wrote error report: %s\n',reportfile);
+        if isempty(reportfile)
+            %every destination refused (G94 residual): the writer printed
+            %the whole diagnostic above; say so instead of naming a report
+            unreported = unreported + 1;
+            fprintf('No error report could be written; the full diagnostic is printed above.\n');
+        else
+            if ~insavefolder
+                %the save folder refused the write and the report went to
+                %the temp folder; the closing dialogs must not send the
+                %user to the save folder for it. The writer says which
+                %destination served: a path-prefix test would miss a temp
+                %folder that lies beneath the refusing save folder (a drive
+                %root chosen as the save folder; review 2026-09-21).
+                relocated = relocated + 1;
+            else
+                [~,reportstem,reportext] = fileparts(reportfile);
+                savedreports{end+1} = [reportstem reportext]; %#ok<AGROW>
+            end
+            fprintf('Wrote error report: %s\n',reportfile);
+        end
     end
 end
 
@@ -3057,11 +3159,27 @@ if runsuccess == 0
     %relaunch FIRST, create the dialog LAST (B20): modality binds only the
     %windows that exist at the dialog's creation, so a dialog fired before
     %the relaunch would be covered by the new screen AND escape its modality
+    %the how-to-fix line is chosen BEFORE the relaunch so the dialog
+    %literal below stays the last thing created (the B20 source pin reads
+    %that adjacency). G94 residual: a report that could not be written, or
+    %that went to the temp folder, is not in the save folder, so those
+    %cases send the user to the Command Window, which printed the full
+    %diagnostic and named every report that was written.
+    if unreported > 0
+        howtofix = sprintf(['How to fix: %d error report(s) could not be written; ' ...
+            'the full diagnostic is in the Command Window, which also names ' ...
+            'every report that was written.'],unreported);
+    elseif relocated > 0
+        howtofix = ['How to fix: the save folder refused the error report(s); ' ...
+            'the Command Window names each report''s path.'];
+    else
+        howtofix = ['How to fix: inspect the generated .txt error reports in ' ...
+            psyrat_data.proc.savepath];
+    end
     psyrat_startproc_gui('psyrat_prefs',psyrat_prefs,'psyrat_data',psyrat_data);
     errordlg({...
         sprintf('All %d selected measurements failed to process.',nmeas);...
-        ['How to fix: inspect the generated .txt error reports in ' ...
-        psyrat_data.proc.savepath]},...
+        howtofix},...
         'All Measurements Failed','modal');
     return;
 end
@@ -3074,8 +3192,27 @@ else
         sprintf('Successful: %d',runsuccess); ...
         sprintf('Failed: %d',runfail); ...
         ['Outputs saved in: ' psyrat_data.proc.savepath]};
-    if runfail > 0
-        str{end+1} = 'Failed runs produced .txt error reports with matching filenames.'; %#ok<AGROW>
+    if ~isempty(savedreports)
+        %name the reports actually written (row 31). A report falls back to a
+        %timestamped name when its own name cannot be created, so the old
+        %"named after their output files" sentence could be false. Bounded;
+        %the Command Window still names every report, as before.
+        nshown = min(numel(savedreports),5);
+        str{end+1} = sprintf('Error reports written in that folder (%d):', ...
+            numel(savedreports)); %#ok<AGROW>
+        str = [str; reshape(savedreports(1:nshown),[],1)]; %#ok<AGROW>
+        if numel(savedreports) > nshown
+            str{end+1} = sprintf('...and %d more; the Command Window names each.', ...
+                numel(savedreports) - nshown); %#ok<AGROW>
+        end
+    end
+    if relocated > 0
+        str{end+1} = sprintf(['%d error report(s) went to the temp folder because the save ' ...
+            'folder refused the write; the Command Window names each path.'],relocated); %#ok<AGROW>
+    end
+    if unreported > 0
+        str{end+1} = sprintf(['%d error report(s) could not be written; ' ...
+            'the full diagnostic is in the Command Window.'],unreported); %#ok<AGROW>
     end
     msgbox(str,'Processing Complete');
 end
@@ -3422,9 +3559,13 @@ end
 
 end
 
-function savenames = psyrat_measurement_savenames(basesavename,measheaders)
+function savenames = psyrat_measurement_savenames(basesavename,measheaders,savepath)
 %build one output filename per measurement, adding _measurement suffixes
-%when multiple measurement columns are processed.
+%when multiple measurement columns are processed. In a batch of two or
+%more, every name is unique and, when the batch starts, unused in savepath:
+%the save dialog confirmed only the base name, so a derived output already
+%in the folder is never replaced. A single measurement keeps the name the
+%dialog confirmed.
 
 if ~iscell(measheaders)
     measheaders = cellstr(measheaders);
@@ -3436,7 +3577,12 @@ if nmeas <= 1
     return;
 end
 
-[basename,~,ext] = fileparts(basesavename);
+%fileparts returns [folder, name, ext]; the name is the SECOND output. G93
+%(beta-tester report 2026-09-16): the first output, the folder, was bound to
+%basename here, so the fallback below substituted the whole typed name with
+%its extension and macOS saves (the dialog supplies .psyrat) came out as
+%<stem>.psyrat_<token>.psyrat.
+[~,basename,ext] = fileparts(basesavename);
 if isempty(basename)
     basename = basesavename;
 end
@@ -3444,20 +3590,52 @@ if isempty(ext)
     ext = '.psyrat';
 end
 
+%G93 residual (release review 2026-09-20): the collision key used to be
+%makeValidName(lower(candidate)), and the suffixed name emitted on a
+%collision was never registered, so headers readtable keeps distinct (A,
+%a, a_2) yielded the same name twice and a later measurement's save
+%replaced an earlier one's output and sidecar. Now every EMITTED name is
+%reserved together with its derived names, case-insensitively (a
+%case-insensitive filesystem would merge the files), and so is every
+%derived output already in the save folder: <name><ext>, its
+%<name>_runconfig.json sidecar and a <name>_error.txt report from an
+%earlier run (a folder of such a name counts too; a save onto it would
+%fail). The save dialog confirmed only the base name, so an existing batch
+%output must not be replaced; the single-measurement return above keeps
+%the consented base name. A free name is used as is; a taken one gets the
+%first free numeric suffix (<name>_2, _3, ...), the suffix convention the
+%error reports use (psyrat_fopen_unused). The derived names of a member
+%are reserved because the dialog lets any extension through: saved as
+%study.json, a header ERN_runconfig would otherwise name its output exactly
+%like ERN's sidecar.
+taken = {};
+if nargin >= 3 && ~isempty(savepath) && isfolder(savepath)
+    d = dir(savepath);
+    taken = lower({d.name});
+end
+
 savenames = cell(1,nmeas);
-used = struct;
 for i = 1:nmeas
     token = psyrat_measurementtoken(measheaders{i});
-    basecandidate = [basename '_' token];
-    key = matlab.lang.makeValidName(lower(basecandidate));
-    if isfield(used,key)
-        used.(key) = used.(key) + 1;
-        basecandidate = sprintf('%s_%d',basecandidate,used.(key));
-    else
-        used.(key) = 1;
+    stem = [basename '_' token];
+    candidate = stem;
+    n = 1;
+    while any(ismember(psyrat_batchname_derived(candidate,ext),taken))
+        n = n + 1;
+        candidate = sprintf('%s_%d',stem,n);
     end
-    savenames{i} = [basecandidate ext];
+    taken = [taken psyrat_batchname_derived(candidate,ext)]; %#ok<AGROW>
+    savenames{i} = [candidate ext];
 end
+
+end
+
+function derived = psyrat_batchname_derived(candidate,ext)
+%the lowercase names a batch member occupies: its output, its run-config
+%sidecar and its error report (the writers derive the last two from the
+%output name's stem: psyrat_write_runconfig, psyrat_write_measurement_error)
+
+derived = lower({[candidate ext], [candidate '_runconfig.json'], [candidate '_error.txt']});
 
 end
 
@@ -3477,10 +3655,16 @@ end
 
 end
 
-function reportfile = psyrat_write_measurement_error(savepath,savename,measheader,runME)
-%write a per-measurement text report when processing fails.
+function [reportfile, insavefolder] = psyrat_write_measurement_error(savepath,savename,measheader,runME)
+%write a per-measurement text report when processing fails. reportfile is
+%'' when no destination accepted it; insavefolder is true when the report
+%sits in savepath (under its own or the timestamped name) and false when it
+%went to the temp folder, so the caller need not infer that from the path.
 
-[basename,~,~] = fileparts(savename);
+%fileparts returns [folder, name, ext]; the name is the SECOND output (G94,
+%beta-tester report 2026-09-16: the folder was bound here, so the report was
+%named <stem>.psyrat.txt).
+[~,basename,~] = fileparts(savename);
 if isempty(basename)
     basename = savename;
 end
@@ -3488,21 +3672,60 @@ if isempty(basename)
     basename = ['psyrat_' psyrat_measurementtoken(measheader)];
 end
 
-reportfile = fullfile(savepath,[basename '.txt']);
-fid = fopen(reportfile,'w');
-if fid == -1
-    reportfile = fullfile(savepath,...
-        ['psyrat_error_' datestr(now,'yyyymmdd_HHMMSS') '.txt']);
-    fid = fopen(reportfile,'w');
-    if fid == -1
-        warning('psyrat:errorReportWriteFailed',...
-            'Could not write error report for measurement ''%s'' in %s.',...
-            measheader,savepath);
-        return;
+%'_error' keeps the report out of the raw-input namespace: the save dialog
+%opens in the input file's folder and .txt is an accepted input format, so a
+%bare <stem>.txt could be the user's input file (G94). The suffix is not a
+%namespace of its own, though: the loaded input can itself be named
+%<stem>_error.txt, and an earlier report of that name can already sit in
+%the folder, so the name is allocated without ever truncating an existing
+%file (G94 residual, release review 2026-09-20): <stem>_error.txt when it
+%is free, otherwise the first free numeric suffix (<stem>_error_2.txt, ...).
+%When the folder refuses the write, the same rule is applied to a
+%timestamped name there and then to the system temp folder, so a report is
+%persisted wherever it can be. Nothing is pre-checked for writability; a
+%refused destination is simply the next one's turn.
+destinations = {savepath, [basename '_error']; ...
+    savepath, ['psyrat_error_' datestr(now,'yyyymmdd_HHMMSS')]; ...
+    tempdir, [basename '_error']};
+fid = -1;
+insavefolder = false;
+for d = 1:size(destinations,1)
+    [fid, reportfile] = psyrat_fopen_unused(destinations{d,1},...
+        destinations{d,2},'.txt');
+    if fid ~= -1
+        insavefolder = d <= 2;   %the first two destinations are savepath
+        break;
     end
 end
 
+if fid == -1
+    %every destination refused: do not pretend. The whole diagnostic goes
+    %to the Command Window (the same lines the report would carry), the
+    %warning names the failure, and the empty reportfile tells the caller
+    %that no report exists.
+    reportfile = '';
+    fprintf('\nNo error report could be written for measurement ''%s'' ',...
+        measheader);
+    fprintf('(%s refused, and so did the temp folder %s).\n',savepath,tempdir);
+    fprintf('The report that would have been written follows.\n\n');
+    psyrat_print_measurement_error(1,savename,measheader,runME);
+    warning('psyrat:errorReportWriteFailed',...
+        'Could not write error report for measurement ''%s'' in %s.',...
+        measheader,savepath);
+    return;
+end
+
 cleanupobj = onCleanup(@() fclose(fid));
+
+psyrat_print_measurement_error(fid,savename,measheader,runME);
+
+clear cleanupobj
+
+end
+
+function psyrat_print_measurement_error(fid,savename,measheader,runME)
+%print the per-measurement error report to an open file (or to the Command
+%Window when fid is 1, the route taken when no report file could be written)
 
 fprintf(fid,'PsyRAT measurement processing error\n');
 fprintf(fid,'Measurement: %s\n',measheader);
@@ -3517,8 +3740,6 @@ if ~isempty(runME.stack)
         fprintf(fid,'  %s (line %d)\n',runME.stack(i).file,runME.stack(i).line);
     end
 end
-
-clear cleanupobj
 
 end
 

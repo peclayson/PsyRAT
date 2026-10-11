@@ -7,7 +7,7 @@ function relplot = psyrat_trt_relvtrialsplot(varargin)
 %
 %
 %Inputs
-% psyrat_data - PsyRAT Toolbox data structure array. Variance components should
+% psyrat_data - PsyRAT data structure array. Variance components should
 %  be included.
 % trials - range of trials to plot
 % relcutoff - reliability threshold for deeming data reliable (used for
@@ -27,7 +27,7 @@ function relplot = psyrat_trt_relvtrialsplot(varargin)
 %  number of trials retained for averaging stratified by group and
 %  condition
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ if ~isempty(varargin)
     else 
         error('varargin:psyrat_data',... %Error code and associated error
             strcat('WARNING: psyrat_data not specified \n\n',... 
-            'Please input psyrat_data (PsyRAT Toolbox data structure array).\n',...
+            'Please input psyrat_data (PsyRAT data structure array).\n',...
             'See help psyrat_trt_relvtrialsplot for more information \n'));
     end
     
@@ -255,7 +255,8 @@ for eloc=1:nevents
                     'obs',[trials(1) trials(2)],...
                     'nocc',nocc,...
                     'CI',ciperc);
-                plottitle = 'Lower Limit of 95% Credible Interval';
+                plottitle = sprintf('Lower Limit of %g%% %s',100*ciperc, ...
+                    psyrat_interval_label(psyrat_data.rel,'title'));
             case 2 %point estimate
                 [~,plotrel(1:numel(x),gloc),~] = psyrat_rel_trt(...
                     'gcoeff',psyrat_data.relsummary.gcoeff,...
@@ -285,7 +286,8 @@ for eloc=1:nevents
                     'obs',[trials(1) trials(2)],...
                     'nocc',nocc,...
                     'CI',ciperc);
-                plottitle = 'Upper Limit of 95% Credible Interval';
+                plottitle = sprintf('Upper Limit of %g%% %s',100*ciperc, ...
+                    psyrat_interval_label(psyrat_data.rel,'title'));
         end
     end
     

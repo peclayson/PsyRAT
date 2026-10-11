@@ -73,7 +73,7 @@ function out = psyrat_rel_diffdynrel_trt_gamma_ls(varargin)
 %location-facet effect and must not be described as a fully facet-marginalized
 %residual covariance. That labeling requirement comes from the reference bundle
 %and is carried through every output surface; see
-%documentation/modular_cut_copula_workflow.md.
+%manual section 15.5 and the exported provenance header.
 %
 %DEVELOPMENT-ONLY. The two-facet configuration has no empirical anchor. The
 %reference bundle's own two-facet runs were prepared against a SIMULATED second

@@ -32,7 +32,7 @@ function vc = psyrat_gamma_varcomps(alpha, s_p, s_i, nu, s_v, cov_pv)
 % This model is not invalid -- it is a coherent constant-CV model. It simply does
 % not support an absolute residual-precision reading. PSYRAT_GAMMA_VARCOMPS_LS is
 % the direct-residual-SD alternative; see
-% documentation/gamma_scale_submodel_decision.md.
+% manual section 15.4.
 %
 % Because mu is on the log scale, the Stan/brms group-level SDs (s_p, s_i) are
 % on the LOG expected-score scale and are NOT the G-theory variance components.
@@ -78,7 +78,7 @@ function vc = psyrat_gamma_varcomps(alpha, s_p, s_i, nu, s_v, cov_pv)
 %
 % See also PSYRAT_GAMMA_CROSSCOV, PSYRAT_REL_SING.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

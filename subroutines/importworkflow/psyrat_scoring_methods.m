@@ -7,7 +7,7 @@ function methods = psyrat_scoring_methods()
 % validation) and the import/scoring GUI (method picker), so the two cannot
 % drift out of sync. Order is the display order used in the GUI.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

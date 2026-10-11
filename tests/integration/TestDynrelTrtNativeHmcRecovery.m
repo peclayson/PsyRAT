@@ -83,6 +83,7 @@ classdef TestDynrelTrtNativeHmcRecovery < PsyRATTestBase
 
             testCase.verifyEqual(rel.analysis, 'ic_dynrel_trt');
             testCase.verifyEqual(rel.engine, 'hmc');
+            psyrat_test_record_native_diagnostics(testCase,rel);
 
             % ---- posterior means ----
             gro = cell2mat(rel.out.gro_sds{1});        % draws x 2 (sigma_p, sigma_dp)

@@ -39,7 +39,7 @@ function [mu, sigma] = psyrat_gamma_margin_predictors(draws, standata, d, m)
 % parameters: the fitted intercepts are deviations from them, so omitting them
 % silently rescales every mean and residual SD. This is the trap recorded for
 % the earlier external-validation harness in
-% documentation/gamma_locationscale_rollout.md.
+% the location-scale rollout record (not shipped).
 %
 % Separated from PSYRAT_GAMMA_CUT_COPULA_STAGE so it can be pinned directly, and
 % because the person-specific reliability stage needs the same reconstruction.

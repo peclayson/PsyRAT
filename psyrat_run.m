@@ -80,8 +80,12 @@ function psyrat_data = psyrat_run(varargin)
 %  engine is unavailable or cannot handle the requested design. The native
 %  fitlme engine supports only the simple one-facet/test-retest/splits designs
 %  and reports approximate (non-Bayesian) intervals.
-% bootstrap_reps - parametric-bootstrap resamples for the native fitlme engine
-%  (default 1000). Ignored by the CmdStan and HMC engines.
+% bootstrap_reps - parametric-bootstrap resamples REQUESTED from the native
+%  fitlme engine (default 1000). Ignored by the CmdStan and HMC engines. A
+%  replicate whose refit fails is dropped and disclosed (a warning, the
+%  'Bootstrap replicates' line of every export header, and bootstrap_ok in the
+%  runconfig sidecar); the run is refused when fewer than 90% of the requested
+%  replicates succeed, or fewer than 200 when 200 or more were requested.
 % hmc_gradient - gradient method for the native HMC engine: 'auto' (default),
 %  'ad' (automatic differentiation; needs the Deep Learning Toolbox), or
 %  'numer' (numerical). Ignored by the CmdStan and fitlme engines.
@@ -210,7 +214,7 @@ function psyrat_data = psyrat_run(varargin)
 %  to fullfile(savepath, savename). Open it later with the GUI "View Results"
 %  button or pass psyrat_data.rel to the calculation/table functions.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

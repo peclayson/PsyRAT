@@ -49,7 +49,7 @@ function mats = psyrat_dod_components(varargin)
 %              residual excluded - the same structural meaning as the gamma
 %              sibling's log-scale v_total)
 %
-% THE IDENTITY-LINK THEOREMS (SCIENTIFIC_FORMULA_AUDIT.md section 26), which
+% THE IDENTITY-LINK THEOREMS (development formula audit, section 26), which
 % are what make this assembler nearly arithmetic-free:
 %  (1) Signal components are the model covariance blocks DIRECTLY:
 %      variances sd_*.^2, covariances sd_a.*sd_b.*cor_ab. Location parameters

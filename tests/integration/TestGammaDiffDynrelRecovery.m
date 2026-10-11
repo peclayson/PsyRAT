@@ -16,7 +16,7 @@ classdef TestGammaDiffDynrelRecovery < PsyRATTestBase
     % The trial facet is simulated on PsyRAT's own definition: t indexes the
     % within-person, within-event trial POSITION (psyrat_withinrunindex), so
     % position t of event 1 pairs with position t of event 2. See S3 in
-    % PSYRAT_AUDIT_FINDINGS.md - the owner-supplied reference instead uses global
+    % the findings ledger - the owner-supplied reference instead uses global
     % trial identity, an open convention question. Simulating on the toolbox's
     % definition keeps the generative model matched to the estimand under test.
     %
@@ -125,7 +125,7 @@ classdef TestGammaDiffDynrelRecovery < PsyRATTestBase
                 mean(bd(:,2)), b_dim(2)));
 
             % (3) log-NU dimension slopes: the dispersion side is data-hungry under
-            % the mean-coupled residual (SCIENTIFIC_FORMULA_AUDIT.md section 20), and
+            % the mean-coupled residual (development formula audit, section 20), and
             % event 1 carries only n1 trials, so these shrink toward 0. Assert the
             % SIGN and a generous magnitude only - a tight bound here would encode a
             % known identification limit as a regression trip-wire.

@@ -152,7 +152,7 @@ function RELout = psyrat_computevarcomp(varargin)
 %graciously provided me with all of his code. This Matlab code is based
 %off of his R code.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -552,7 +552,7 @@ if ~isempty(varargin)
     %random effect (matching them would require log nu to carry 2*u_i, which it
     %does not), so results are not comparable across the setting and gamma case 11
     %no longer reduces to case 1 at zero slopes under 2. See
-    %documentation/gamma_scale_submodel_decision.md.
+    %manual section 15.4.
     %WHY THE DEFAULT IS NOT RESOLVED HERE (rulings 33-36, 2026-08-07). Since
     %2026-08-07 the default is location-scale for the designs that support it, but
     %that set is keyed on ANALYSIS, and the analysis is not determined until the
@@ -1297,7 +1297,7 @@ end
 %quadrature. That supplies exactly the "observed-scale conversion" this comment
 %requires; 17/18 and 21/22 do not have one (group-level has no per-person means
 %to evaluate the mean-matched map at, and per-subject rho has no derived
-%conversion at all). See documentation/modular_cut_copula_workflow.md.
+%conversion at all). See the development cut-copula workflow note.
 %(NOTE: 12 and 15 are GROUP-level, not subject-level; an earlier version of this
 %comment mislabeled them.)
 %
@@ -1308,7 +1308,7 @@ end
 %posterior), converted per participant via psyrat_gamma_dod_components_ls +
 %psyrat_dod_composite. Location-scale only; the dedicated guard below rejects
 %gammascale=1 (a log-nu fit has no matching person-specific residual-SD
-%extraction). See SCIENTIFIC_FORMULA_AUDIT.md section 25.
+%extraction). See development formula audit, section 25.
 if strcmp(family,'gamma') && ~any(analysis == [1 2 3 4 5 6 7 8 9 10 11 12 13 14 19 20 25 26 27 28 29])
     error('varargin:familyunsupported',... %Error code and associated error
         ['The Gamma / scaled-chi-square family is currently supported only '...
@@ -1347,8 +1347,8 @@ end
 %for ANY contrast. A static design has no dimension SLOPE, but its event/cell and
 %person log-nu CONTRASTS blend amplitude with absolute residual SD exactly as a
 %slope does. One parameterization issue, three different predictors. See finding
-%S16 in PSYRAT_AUDIT_FINDINGS.md and section H of
-%documentation/gamma_scale_submodel_decision.md.
+%S16 and section H (owner ruling H) of the
+%scale-submodel decision record.
 %
 %Analyses 1-5 remain correctly excluded, and NOT merely as unbuilt work: they are
 %single-mean designs in which every observed-scale component carries a common
@@ -1383,7 +1383,7 @@ end
 %to the subject-level NON-difference designs (25 with a time column, else 6),
 %silently discarding the DoD request. That fall-through is PRE-EXISTING and
 %parameterization-independent - it bites Gaussian runs identically - and is
-%recorded in PSYRAT_CODEX_TODOS.md rather than fixed here, since changing design
+%recorded in the development tracker rather than fixed here, since changing design
 %routing is outside a gammascale increment.
 %
 %The two-facet DYNAMIC designs (14, and 27 with sserrvar==2) were added next, per
@@ -1396,7 +1396,7 @@ end
 %rollout. It is location-scale ONLY - the one design in the family supported in a
 %single parameterization - so it appears in the list below but NOT as a log-nu
 %option; the dedicated guard further down rejects that combination. Two reasons,
-%both in gamma_scale_submodel_decision.md section J.9: the external reference
+%both in the scale-submodel decision record, section J.9: the external reference
 %bundle defines no person + log-nu estimand, and the downstream contract
 %(local_subj_ssrel_table in psyrat_dynrel_summary) adds the STORED scale-submodel
 %slope to a z = 0 log-residual, which is readable off a location-scale fit -
@@ -1414,8 +1414,8 @@ end
 %promotes to analysis 15 when a time/occasion column is present (see the dynrel
 %selector above), and gamma is barred from 15 by the family guard, so a
 %location-scale run with an occasion column is rejected there rather than here.
-%That gap predates this option and is recorded in gamma_scale_submodel_decision.md
-%section I.3.
+%That gap predates this option and is recorded in the scale-submodel decision
+%record, section I.3.
 %
 %CONTEXT-AWARE DEFAULT (rulings 33-36, 2026-08-07). This is where the provisional
 %1 set at option-parse time becomes the real default, because it is the first
@@ -1543,7 +1543,7 @@ end
 %selector cannot desynchronize it.
 %
 %The restriction is scientific, not merely unbuilt work; see
-%gamma_scale_submodel_decision.md section J.9. The log-nu per-subject residual is
+%the scale-submodel decision record, section J.9. The log-nu per-subject residual is
 %derived through 2*exp(2*(b+u) + 2*sd_trl^2 - (b_nu+v)). Its 0.5*log encoding IS
 %affine in z - that is not the problem - but the per-subject dimension offset it
 %implies is (b_dim - 0.5*b_nu_dim).X(z), a BLEND of the mean and dispersion slopes,
@@ -1586,7 +1586,7 @@ if strcmp(family,'gamma') && any(analysis == [19 20]) && gammascale ~= 2
 end
 
 %The person-specific dynamic NONCONCURRENT difference-of-differences (28/29)
-%exists in TWO families: gamma location-scale (SCIENTIFIC_FORMULA_AUDIT.md
+%exists in TWO families: gamma location-scale (development formula audit,
 %section 25) and, since the 2026-08-20 owner ruling, Gaussian (section 26).
 %The FAMILY guard that stood here until that ruling ("no Gaussian model of
 %this estimand has been derived") is gone because its premise is: both case
@@ -1643,7 +1643,7 @@ end
 %it: the flags are stamped into REL and the run-config sidecar regardless, so
 %an ignored request would save provenance recording a concurrent model that
 %was never fit. (The sserrvar==2 sibling fall-through for diffest==3 is
-%ROUTE-1 in PSYRAT_CODEX_TODOS.md: moot, preflight rejects it upstream.)
+%tracker item ROUTE-1: moot, preflight rejects it upstream.)
 if analysis == 9 && (diffrescor == 2 || diffwpcov == 2)
     error('varargin:familyconcurrent',... %Error code and associated error
         ['The four-event difference-of-differences (case 9) supports only '...
@@ -1811,6 +1811,7 @@ native_key = '';
 %sets this to e.g. struct('priors',priors.<family>) right after its model
 %builder, so the engine receives that design's configurable priors.
 native_extra = struct();
+bootstrap_fits = struct([]); % PBA-05: retain every independent fit's evidence
 
 switch analysis
     case 1 %no groups or event types to consider
@@ -1892,6 +1893,7 @@ switch analysis
 
         %don't let the user continue to use the Matlab command window
         fit.block();
+        bootstrap_fits = psyrat_bootstrap_fit_records(bootstrap_fits,fit);
 
         %extract and store cmdstan output
         if strcmp(REL.family,'gamma')
@@ -1921,7 +1923,7 @@ switch analysis
         end
 
         %record which engine produced this fit (provenance)
-        REL.engine = psyrat_fit_engine(fit);
+        [REL.engine,REL.engine_meta] = psyrat_fit_engine(fit);
 
 
     case 2 %possible multiple groups
@@ -2024,6 +2026,7 @@ switch analysis
 
         %block user from using Matlab command window
         fit.block();
+        bootstrap_fits = psyrat_bootstrap_fit_records(bootstrap_fits,fit);
 
         %create fields for storing parsed cmdstan outputs
         REL.out = [];
@@ -2048,25 +2051,25 @@ switch analysis
             for i=1:ngroup
                 measname = sprintf('mu_G%d',i);
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.mu(:,end+1) = measvalue;
+                REL.out.mu = psyrat_append_draws(REL.out.mu,measvalue);
             end
 
             for i=1:ngroup
                 measname = sprintf('sig_u_G%d',i);
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_u(:,end+1) = measvalue;
+                REL.out.sig_u = psyrat_append_draws(REL.out.sig_u,measvalue);
             end
 
             for i=1:ngroup
                 measname = sprintf('sig_trl_G%d',i);
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_trl(:,end+1) = measvalue;
+                REL.out.sig_trl = psyrat_append_draws(REL.out.sig_trl,measvalue);
             end
 
             for i=1:ngroup
                 measname = sprintf('sig_e_G%d',i);
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_e(:,end+1) = measvalue;
+                REL.out.sig_e = psyrat_append_draws(REL.out.sig_e,measvalue);
             end
         end
 
@@ -2082,7 +2085,7 @@ switch analysis
         end
 
         %record which engine produced this fit (provenance)
-        REL.engine = psyrat_fit_engine(fit);
+        [REL.engine,REL.engine_meta] = psyrat_fit_engine(fit);
 
     case 3 %possible event types but no groups to consider
 
@@ -2212,6 +2215,7 @@ switch analysis
 
         %block user from using Matlab command window
         fit.block();
+        bootstrap_fits = psyrat_bootstrap_fit_records(bootstrap_fits,fit);
 
 
         %create fields to store cmdstan output
@@ -2236,25 +2240,25 @@ switch analysis
             for i=1:nevent
                 measname = sprintf('mu_E%d',i);
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.mu(:,end+1) = measvalue;
+                REL.out.mu = psyrat_append_draws(REL.out.mu,measvalue);
             end
 
             for i=1:nevent
                 measname = sprintf('sig_u_E%d',i);
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_u(:,end+1) = measvalue;
+                REL.out.sig_u = psyrat_append_draws(REL.out.sig_u,measvalue);
             end
 
             for i=1:nevent
                 measname = sprintf('sig_trl_E%d',i);
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_trl(:,end+1) = measvalue;
+                REL.out.sig_trl = psyrat_append_draws(REL.out.sig_trl,measvalue);
             end
 
             for i=1:nevent
                 measname = sprintf('sig_e_E%d',i);
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_e(:,end+1) = measvalue;
+                REL.out.sig_e = psyrat_append_draws(REL.out.sig_e,measvalue);
             end
         end
 
@@ -2270,7 +2274,7 @@ switch analysis
         end
 
         %record which engine produced this fit (provenance)
-        REL.engine = psyrat_fit_engine(fit);
+        [REL.engine,REL.engine_meta] = psyrat_fit_engine(fit);
 
     case 4 %possible groups and event types to consider
 
@@ -2443,6 +2447,7 @@ switch analysis
 
             %block user from using Matlab command window
             fit.block();
+        bootstrap_fits = psyrat_bootstrap_fit_records(bootstrap_fits,fit);
 
             %parse cmdstan outputs
             if strcmp(REL.family,'gamma')
@@ -2457,25 +2462,25 @@ switch analysis
                 for i=1:ngroup
                     measname = sprintf('mu_G%d',i);
                     measvalue = fit.extract('pars',measname).(measname);
-                    REL.out.mu(:,end+1) = measvalue;
+                    REL.out.mu = psyrat_append_draws(REL.out.mu,measvalue);
                 end
 
                 for i=1:ngroup
                     measname = sprintf('sig_u_G%d',i);
                     measvalue = fit.extract('pars',measname).(measname);
-                    REL.out.sig_u(:,end+1) = measvalue;
+                    REL.out.sig_u = psyrat_append_draws(REL.out.sig_u,measvalue);
                 end
 
                 for i=1:ngroup
                     measname = sprintf('sig_trl_G%d',i);
                     measvalue = fit.extract('pars',measname).(measname);
-                    REL.out.sig_trl(:,end+1) = measvalue;
+                    REL.out.sig_trl = psyrat_append_draws(REL.out.sig_trl,measvalue);
                 end
 
                 for i=1:ngroup
                     measname = sprintf('sig_e_G%d',i);
                     measvalue = fit.extract('pars',measname).(measname);
-                    REL.out.sig_e(:,end+1) = measvalue;
+                    REL.out.sig_e = psyrat_append_draws(REL.out.sig_e,measvalue);
                 end
             end
 
@@ -2753,6 +2758,7 @@ switch analysis
 
             %block user from using Matlab command window
             fit.block();
+        bootstrap_fits = psyrat_bootstrap_fit_records(bootstrap_fits,fit);
 
             %refresh is computed from sampling iterations and is always >= 1
 
@@ -2793,35 +2799,35 @@ switch analysis
             else
                 measname ='pop_int';
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.mu(:,end+1) = measvalue;
+                REL.out.mu = psyrat_append_draws(REL.out.mu,measvalue);
 
                 measname = 'sig_id';
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_id(:,end+1) = measvalue;
+                REL.out.sig_id = psyrat_append_draws(REL.out.sig_id,measvalue);
 
                 measname = 'sig_occ';
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_occ(:,end+1) = measvalue;
+                REL.out.sig_occ = psyrat_append_draws(REL.out.sig_occ,measvalue);
 
                 measname = 'sig_trl';
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_trl(:,end+1) = measvalue;
+                REL.out.sig_trl = psyrat_append_draws(REL.out.sig_trl,measvalue);
 
                 measname = 'sig_trlxid';
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_trlxid(:,end+1) = measvalue;
+                REL.out.sig_trlxid = psyrat_append_draws(REL.out.sig_trlxid,measvalue);
 
                 measname = 'sig_occxid';
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_occxid(:,end+1) = measvalue;
+                REL.out.sig_occxid = psyrat_append_draws(REL.out.sig_occxid,measvalue);
 
                 measname = 'sig_trlxocc';
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_trlxocc(:,end+1) = measvalue;
+                REL.out.sig_trlxocc = psyrat_append_draws(REL.out.sig_trlxocc,measvalue);
 
                 measname = 'sig_err';
                 measvalue = fit.extract('pars',measname).(measname);
-                REL.out.sig_err(:,end+1) = measvalue;
+                REL.out.sig_err = psyrat_append_draws(REL.out.sig_err,measvalue);
 
                 REL.out.conv.data{end+1} = psyrat_storeconv(fit,1);
             end
@@ -3378,8 +3384,9 @@ switch analysis
             if strcmp(family,'gamma')
                 %scaled chi-square subject-level test-retest: convert the
                 %log-scale fit to OBSERVED-score-scale SD-equivalents (per-subject
-                %CONDITIONAL residual from each person's own log-mean and log-nu)
-                %so the Gaussian subject-level path (psyrat_ssrel_trt) is reused
+                %residual = population mean-surface remainder R plus each
+                %person's own observation variance, Q8 ruling 2026-09-13) so the
+                %Gaussian subject-level path (psyrat_ssrel_trt) is reused
                 %unchanged. See psyrat_gamma_extract_trt_sserr. The field shapes
                 %match the Gaussian extraction below.
                 if gammascale == 2
@@ -3415,26 +3422,29 @@ switch analysis
                 %these fields make checkable.
                 %
                 %Under LOCATION-SCALE none of s_v / rho_pv / nu / V_w exists: the
-                %residual is exp(2*(Intercept_sigma + w_p)) with no facet average
-                %to take, so V_w has no counterpart at all. The LS branch reports
-                %the quantities that DO exist (s_sd, rho_ps) under their own names
-                %rather than borrowing the log-nu ones, which would make the
-                %provenance writer print a "person log-nu SD" for a model with no
-                %nu. The log-mean facet SDs are kept so that the same after-the-fact
-                %checkability argument COULD be made on this path.
+                %observation variance is exp(2*(Intercept_sigma + w_p)) with no
+                %facet average to take, so V_w has no counterpart at all. The LS
+                %branch reports the quantities that DO exist (s_sd, rho_ps) under
+                %their own names rather than borrowing the log-nu ones, which
+                %would make the provenance writer print a "person log-nu SD" for
+                %a model with no nu. The log-mean facet SDs are kept because,
+                %since the Q8 ruling (2026-09-13), the LS residual is ALSO
+                %composite: R + exp(2*(Intercept_sigma + w_p)), with R the
+                %population highest-order mean-surface remainder built from
+                %alpha and those SDs.
                 %
-                %BUT IT IS NOT MADE YET, and the earlier wording here claimed it was.
-                %On the log-nu path TestGammaTrtSserrRecovery asserts two exact
-                %identities on V_w and nu; that test runs 'gammascale',1, and neither
-                %V_w nor nu exists under location-scale, so those identities cannot
-                %transfer. log_sigma and sigma_pot_e2_pop are stored just below and
-                %NO test reads them: all five *LsRecovery classes assert only recovery
-                %bounds and cross-fit direction, with zero RelTol/AbsTol assertions
-                %between them. The substantive lognormal math IS pinned, in the
-                %offline lane, against the top-level converters (psyrat_gamma_varcomps_ls,
-                %_trt_ls, psyrat_gamma_crosscov at RelTol 1e-12). What is unpinned is
-                %this extractor's ASSEMBLY GLUE - which converter output lands in which
-                %slot. A slot transposition here survives every gate in the repo.
+                %gamma_disp is assigned once per stratum and therefore holds the
+                %LAST stratum only (a legacy carrier for psyrat_provenance_lines).
+                %Its sigma_pot_e2_pop VALUE is, since Q8, the ENCODED reference
+                %R + C_typ (what pop_sdlog encodes), not the raw observation
+                %variance; the raw C_typ is gamma_resid{s}.obs_var_typ, and the
+                %per-stratum raw pieces live in REL.out.gamma_resid below. The
+                %assembly glue of both extractors is pinned offline by
+                %tests/TestGammaTwoFacetResidualPooling (encoding through
+                %psyrat_ssrel_trt against frozen anchors, plus source pins on the
+                %helper call and the R + C forms); the live lane is the
+                %*TrtSserr*Recovery classes, which read pop_sdlog/ind_sdlog and
+                %the gamma_resid raw fields.
                 if gammascale == 2
                     REL.out.gamma_disp = struct('s_sd', gout.gamma.s_sd, ...
                         'rho_ps', gout.gamma.rho_ps, ...
@@ -3455,6 +3465,28 @@ switch analysis
                     's_ot', gout.gamma.s_ot, 'nu', gout.gamma.nu, ...
                     'sigma_pot_e2_pop', gout.gamma.sigma_pot_e2_pop);
                 end
+                %Q8 (gamma_target_version 2, 2026-09-13): pop_sdlog/ind_sdlog
+                %above encode the COMPOSITE residual R + C (population mean-
+                %surface remainder plus observation variance), so the fitted
+                %scale draws are no longer recoverable from them. Keep the raw
+                %pieces PER STRATUM (gamma_disp is overwritten each loop pass
+                %and holds only the last stratum) so a saved result can be
+                %re-encoded or audited without a refit: R and the two
+                %observation variances the encoding was built from, plus the
+                %raw scale intercept/person draws (Intercept_nu/ind_nu under
+                %log-nu; Intercept_sigma/ind_sd under location-scale). Column
+                %order of the [ndraws x NSUB] blocks is id2, as for ind_sdlog.
+                %Absent from any result produced before this version.
+                if ~isfield(REL.out,'gamma_resid')
+                    REL.out.gamma_resid = {};
+                end
+                REL.out.gamma_resid{end+1} = struct( ...
+                    'mean_remainder', gout.gamma.mean_remainder, ...
+                    'obs_var_typ', gout.gamma.obs_var_typ, ...
+                    'obs_var_ss', gout.gamma.obs_var_ss, ...
+                    'scale0', gout.gamma.scale0, ...
+                    'ind_scale', gout.gamma.ind_scale, ...
+                    'parameterization', gout.gamma.parameterization);
             else
                 measname = 'Intercept'; %population intercept
                 measvalue = fit.extract('pars',measname).(measname);
@@ -3528,6 +3560,33 @@ switch analysis
         end
 
         REL.out.labels = darray.names;
+
+        if strcmp(family,'gamma')
+            %Explicit, versioned residual-target contract for the gamma
+            %subject-level test-retest design (Q8/PBA-08 owner ruling
+            %2026-09-13). Consumers key on this stamp, never on the presence
+            %of gamma SD fields: a saved gamma analysis-25 result WITHOUT it
+            %was encoded under the earlier observation-dispersion-only
+            %scheme (E_p = C_p, no mean-surface remainder) and must not be
+            %silently relabeled or re-pooled. count_source names the
+            %subject-count reduction psyrat_relsummary's trt_sserr branch
+            %applies (unchanged by this ruling).
+            if gammascale == 2
+                gparam = 'ls';
+            else
+                gparam = 'lognu';
+            end
+            REL.out.gamma_target = struct( ...
+                'gamma_target_version', 2, ...
+                'surface_target', 'not_applicable', ...
+                'reference_target', 'typical_person_zero_person_effects', ...
+                'subject_target', 'own_observation_variance_with_population_mean_components_at_own_z', ...
+                'remainder_scheme', 'population_highest_order_plus_person_observation_v2', ...
+                'parameterization', gparam, ...
+                'count_source', 'mean_trials_per_occupied_occasion', ...
+                'surface_count_source', 'not_applicable', ...
+                'analysis', 'trt_sserrvar');
+        end
 
     case 7 %estimate the internal consistency of difference scores
 
@@ -3624,7 +3683,7 @@ switch analysis
             % the model loop (psyrat_build_diff_pairs); that pairing is positional
             % within id, so it assumes the two events are CONCURRENT (paired by
             % design). For non-concurrent events the pairing is order-dependent
-            % (see S3/S4 in PSYRAT_AUDIT_FINDINGS) and within-pair residual
+            % (see findings S3/S4) and within-pair residual
             % covariance should be interpreted with that caveat.
             warray = sortrows(warray,{'id','event'});
             warray.id2 = psyrat_seqid(warray.id);
@@ -5423,6 +5482,42 @@ switch analysis
 
         REL.out.labels = darray.names;
 
+        if strcmp(REL.family,'gamma')
+            %Explicit, versioned Q8/Q9 target contract for the gamma one-facet
+            %dynamic designs (11 group-level, 26 subject-level), 2026-09-13.
+            %Stored draws are RAW log-scale parameters (unchanged); the stamp
+            %records the scheme they are to be summarized under. A saved
+            %gamma result WITHOUT it predates gamma_target_version 2 and is
+            %summarized as legacy (psyrat_dynrel_summary flags it, never
+            %relabels it). surface_target records the primary the summary
+            %defaults to; the viewer/report may select the companion at
+            %summary time without changing this stamp.
+            if gammascale == 2
+                gparam = 'ls';
+            else
+                gparam = 'lognu';
+            end
+            if analysis == 26
+                gsubj = 'own_observation_variance_with_population_mean_components_at_own_z';
+                gscheme = 'population_mean_remainder_plus_person_observation_v1';
+                gcount = 'median_trials_per_occupied_occasion';
+            else
+                gsubj = 'not_applicable';
+                gscheme = 'population_mean_remainder_plus_selected_surface_observation_v1';
+                gcount = 'not_applicable';
+            end
+            REL.out.gamma_target = struct( ...
+                'gamma_target_version', 2, ...
+                'surface_target', 'population_marginal', ...
+                'reference_target', 'not_applicable', ...
+                'subject_target', gsubj, ...
+                'remainder_scheme', gscheme, ...
+                'parameterization', gparam, ...
+                'count_source', gcount, ...
+                'surface_count_source', 'default_stratum_median', ...
+                'analysis', REL.analysis);
+        end
+
     case 12 %dynamic/conditional reliability of a two-event difference score,
         %group-level (fixed-per-event residual), non-concurrent. Mirrors case 7
         %(difference scores) plus the global dimension standardization of case
@@ -5467,7 +5562,7 @@ switch analysis
         %below. Unlike cases 7/8 this moves no reported value -- the dynamic
         %difference family summarizes through psyrat_dynrel_summary and nothing
         %reachable reads REL.events at all (traced 2026-08-16; B23's closing
-        %bullet in PSYRAT_AUDIT_FINDINGS.md) -- it aligns the STORED field so a
+        %bullet in the findings ledger) -- it aligns the STORED field so a
         %future consumer joining REL.events positionally cannot inherit the B23
         %defect the way psyrat_relsummary did on cases 7/8. The sortrows above
         %carries NO 'event' key, which is why sorted and 'stable' can differ
@@ -5627,7 +5722,7 @@ switch analysis
                     %branch consumes them. There is no cov_pv counterpart under
                     %location-scale: the residual never touches mu, so the person
                     %mean<->log-sigma correlation cannot enter E[sigma_p^2] (see
-                    %gamma_scale_submodel_decision.md section I.2). cor_id is still
+                    %the scale-submodel decision record, section I.2). cor_id is still
                     %extracted in full, and the two WITHIN-event correlations
                     %(1,3)/(2,4) are surfaced by the variance-component table; the
                     %cross-event ones (1,4)/(2,3)/(3,4) are estimated but not
@@ -5897,7 +5992,7 @@ switch analysis
         %below. Unlike cases 7/8 this moves no reported value -- the dynamic
         %difference family summarizes through psyrat_dynrel_summary and nothing
         %reachable reads REL.events at all (traced 2026-08-16; B23's closing
-        %bullet in PSYRAT_AUDIT_FINDINGS.md) -- it aligns the STORED field so a
+        %bullet in the findings ledger) -- it aligns the STORED field so a
         %future consumer joining REL.events positionally cannot inherit the B23
         %defect the way psyrat_relsummary did on cases 7/8. The sortrows above
         %carries NO 'event' key, which is why sorted and 'stable' can differ
@@ -5968,7 +6063,7 @@ switch analysis
             %effects this design reads. The Gaussian pair is the opposite - case 12
             %is 2-wide and psyrat_build_stan_diffdynrel_sserr widens it to 4 - which
             %is why the two families need different builders here. See
-            %gamma_scale_submodel_decision.md section J.1.
+            %the scale-submodel decision record, section J.1.
             if strcmp(REL.family,'gamma')
                 stan_in = psyrat_build_stan_diffdynrel_sserr_chisq(priors,...
                     threading.enabled,gammascale);
@@ -6064,7 +6159,7 @@ switch analysis
                     %As in case 12, cor_id's slots 3-4 have no cov_pv counterpart
                     %under location-scale - the residual never touches mu, so the
                     %person mean<->log-sigma correlation cannot enter E[sigma_p^2]
-                    %(gamma_scale_submodel_decision.md section J.3). It is extracted
+                    %(scale-submodel decision record, section J.3). It is extracted
                     %in full so the variance-component table can surface the two
                     %within-event correlations.
                     REL.out.b = {};
@@ -6132,7 +6227,7 @@ switch analysis
             %the branch below mirrors the case-12 one field for field, so the two
             %blocks stay diffable; only the per-subject residual is extra here.
             %There is no log-nu arm, because analysis 13 is location-scale ONLY
-            %(guarded in the option block; gamma_scale_submodel_decision.md J.9).
+            %(guarded in the option block; scale-submodel decision record J.9).
             if strcmp(REL.family,'gamma')
                 %gamma LOCATION-SCALE. The emitted model is case 12's verbatim, so
                 %it exposes cor_id / cor_i and does NOT emit the Gaussian
@@ -6192,7 +6287,7 @@ switch analysis
                 %what is reported here is conditional on the realized trial set
                 %rather than marginal over resampled trials. The log-nu twin omits
                 %the same term, so the two parameterizations stay comparable. See
-                %gamma_scale_submodel_decision.md sections J.5 and J.6 - J.6 records
+                %the scale-submodel decision record, sections J.5 and J.6 - J.6 records
                 %the size of the omission, which is NOT small.
                 %
                 %The absence of a trial average further REQUIRES two things that are
@@ -6202,7 +6297,7 @@ switch analysis
                 %check). Either failing would produce a real trial average.
                 %Same absence, same reason, as psyrat_gamma_extract_diff_sserr_ls
                 %(analysis 8). sd_trl is never read here, and that is the observable
-                %signature. See gamma_scale_submodel_decision.md section J.5.
+                %signature. See the scale-submodel decision record, section J.5.
                 %
                 %Stored at z = 0, matching the Gaussian convention: the dimension
                 %contribution b_sigma_dim[e].X(z_p) is added PER SUBJECT downstream.
@@ -6927,6 +7022,41 @@ switch analysis
 
         REL.out.labels = darray.names;
 
+        if strcmp(REL.family,'gamma')
+            %Explicit, versioned Q8/Q9 target contract for the gamma two-facet
+            %dynamic designs (14 group-level, 27 subject-level), 2026-09-13.
+            %Stored draws are RAW log-scale parameters (unchanged); for 27 the
+            %stamp is what authorizes psyrat_dynrel_summary to pool the
+            %population highest-order remainder R into each participant's
+            %residual (Q8 v2). A saved analysis-27 result WITHOUT it is
+            %summarized under the legacy observation-only scheme until an
+            %explicit migration stamps it; a fresh fit is v2 from here.
+            if gammascale == 2
+                gparam = 'ls';
+            else
+                gparam = 'lognu';
+            end
+            if analysis == 27
+                gsubj = 'own_observation_variance_with_population_mean_components_at_own_z';
+                gscheme = 'population_highest_order_plus_person_observation_v2';
+                gcount = 'median_trials_per_occupied_occasion';
+            else
+                gsubj = 'not_applicable';
+                gscheme = 'population_mean_remainder_plus_selected_surface_observation_v1';
+                gcount = 'not_applicable';
+            end
+            REL.out.gamma_target = struct( ...
+                'gamma_target_version', 2, ...
+                'surface_target', 'population_marginal', ...
+                'reference_target', 'not_applicable', ...
+                'subject_target', gsubj, ...
+                'remainder_scheme', gscheme, ...
+                'parameterization', gparam, ...
+                'count_source', gcount, ...
+                'surface_count_source', 'default_stratum_median', ...
+                'analysis', REL.analysis);
+        end
+
     case 15 %dynamic/conditional reliability of a trial + occasion two-facet
         %difference score, group-level (fixed-per-event residual), non-concurrent.
         %Mirrors case 12 (one-facet dynamic difference) for the dimension handling
@@ -7548,7 +7678,7 @@ switch analysis
         %below. Unlike cases 7/8 this moves no reported value -- the dynamic
         %difference family summarizes through psyrat_dynrel_summary and nothing
         %reachable reads REL.events at all (traced 2026-08-16; B23's closing
-        %bullet in PSYRAT_AUDIT_FINDINGS.md) -- it aligns the STORED field so a
+        %bullet in the findings ledger) -- it aligns the STORED field so a
         %future consumer joining REL.events positionally cannot inherit the B23
         %defect the way psyrat_relsummary did on cases 7/8. The sortrows above
         %carries NO 'event' key, which is why sorted and 'stable' can differ
@@ -8049,7 +8179,7 @@ switch analysis
         %below. Unlike cases 7/8 this moves no reported value -- the dynamic
         %difference family summarizes through psyrat_dynrel_summary and nothing
         %reachable reads REL.events at all (traced 2026-08-16; B23's closing
-        %bullet in PSYRAT_AUDIT_FINDINGS.md) -- it aligns the STORED field so a
+        %bullet in the findings ledger) -- it aligns the STORED field so a
         %future consumer joining REL.events positionally cannot inherit the B23
         %defect the way psyrat_relsummary did on cases 7/8. The sortrows above
         %carries NO 'event' key, which is why sorted and 'stable' can differ
@@ -8118,7 +8248,7 @@ switch analysis
             %a full joint one. That is a deliberate computational trade - the
             %full joint gamma likelihood is months per chain at this data size -
             %and it must be disclosed, which is what REL.out.copula's labels do.
-            %See documentation/modular_cut_copula_workflow.md.
+            %See manual section 15.5 and the development cut-copula workflow note.
             if strcmp(REL.family,'gamma')
                 stan_in = psyrat_build_stan_diffdynrel_sserr_margins_chisq(...
                     priors,threading.enabled);
@@ -8293,7 +8423,7 @@ switch analysis
                 %offsets, so storing them raw would make REL.out.b mean something
                 %different here than in every other gamma design and would silently
                 %rescale any downstream reconstruction - the trap recorded in
-                %gamma_locationscale_rollout.md. The offsets themselves are stored
+                %the location-scale rollout record. The offsets themselves are stored
                 %alongside so the decomposition remains auditable.
                 b_dev = fit.extract('pars','b').b;
                 bsig_dev = fit.extract('pars','b_sigma').b_sigma;
@@ -8918,7 +9048,7 @@ switch analysis
         %below. Unlike cases 7/8 this moves no reported value -- the dynamic
         %difference family summarizes through psyrat_dynrel_summary and nothing
         %reachable reads REL.events at all (traced 2026-08-16; B23's closing
-        %bullet in PSYRAT_AUDIT_FINDINGS.md) -- it aligns the STORED field so a
+        %bullet in the findings ledger) -- it aligns the STORED field so a
         %future consumer joining REL.events positionally cannot inherit the B23
         %defect the way psyrat_relsummary did on cases 7/8. The sortrows above
         %carries NO 'event' key, which is why sorted and 'stable' can differ
@@ -9542,6 +9672,7 @@ switch analysis
 
         %don't let the user continue to use the Matlab command window
         fit.block();
+        bootstrap_fits = psyrat_bootstrap_fit_records(bootstrap_fits,fit);
 
         %extract and store cmdstan output
         REL.out.mu = fit.extract('pars','mu').mu;
@@ -9823,6 +9954,7 @@ switch analysis
 
             %block user from using Matlab command window
             fit.block();
+        bootstrap_fits = psyrat_bootstrap_fit_records(bootstrap_fits,fit);
 
             %refresh is computed from sampling iterations and is always >= 1
 
@@ -9844,41 +9976,41 @@ switch analysis
 
             measname ='pop_int';
             measvalue = fit.extract('pars',measname).(measname);
-            REL.out.mu(:,end+1) = measvalue;
+            REL.out.mu = psyrat_append_draws(REL.out.mu,measvalue);
 
             measname = 'sig_id';
             measvalue = fit.extract('pars',measname).(measname);
-            REL.out.sig_id(:,end+1) = measvalue;
+            REL.out.sig_id = psyrat_append_draws(REL.out.sig_id,measvalue);
 
             measname = 'sig_occ';
             measvalue = fit.extract('pars',measname).(measname);
-            REL.out.sig_occ(:,end+1) = measvalue;
+            REL.out.sig_occ = psyrat_append_draws(REL.out.sig_occ,measvalue);
 
             measname = 'sig_trl';
             measvalue = fit.extract('pars',measname).(measname);
-            REL.out.sig_trl(:,end+1) = measvalue;
+            REL.out.sig_trl = psyrat_append_draws(REL.out.sig_trl,measvalue);
 
             measname = 'sig_trlxid';
             measvalue = fit.extract('pars',measname).(measname);
-            REL.out.sig_trlxid(:,end+1) = measvalue;
+            REL.out.sig_trlxid = psyrat_append_draws(REL.out.sig_trlxid,measvalue);
 
             measname = 'sig_occxid';
             measvalue = fit.extract('pars',measname).(measname);
-            REL.out.sig_occxid(:,end+1) = measvalue;
+            REL.out.sig_occxid = psyrat_append_draws(REL.out.sig_occxid,measvalue);
 
             measname = 'sig_trlxocc';
             measvalue = fit.extract('pars',measname).(measname);
-            REL.out.sig_trlxocc(:,end+1) = measvalue;
+            REL.out.sig_trlxocc = psyrat_append_draws(REL.out.sig_trlxocc,measvalue);
 
             %person x occasion x split interaction (constant variance),
             %separated by the weighted model from the per-item residual below.
             measname = 'sig_posxid';
             measvalue = fit.extract('pars',measname).(measname);
-            REL.out.sig_posxid(:,end+1) = measvalue;
+            REL.out.sig_posxid = psyrat_append_draws(REL.out.sig_posxid,measvalue);
 
             measname = 'sig_err';
             measvalue = fit.extract('pars',measname).(measname);
-            REL.out.sig_err(:,end+1) = measvalue;
+            REL.out.sig_err = psyrat_append_draws(REL.out.sig_err,measvalue);
 
             REL.out.conv.data{end+1} = psyrat_storeconv(fit,24);
 
@@ -9900,7 +10032,7 @@ switch analysis
         %score), NOT case 19's paired layout, which errors on unequal per-cell
         %counts. TWO FAMILIES reach here: gamma location-scale (gammascale=2
         %by the dedicated guard above; scaled chi-square, offsets as data,
-        %modular priors; SCIENTIFIC_FORMULA_AUDIT.md section 25) and, since
+        %modular priors; development formula audit, section 25) and, since
         %the 2026-08-20 owner ruling, Gaussian (identity link, no offsets,
         %Gaussian dynrel priors; section 26). The family forks below are the
         %builder, the offsets, the two data-block offset fields, the
@@ -10324,7 +10456,7 @@ switch analysis
         %estimand, the constituent cell order, the two families with their
         %per-family offset and prior conventions, the absolute-scale storage
         %convention, and the family fork points - is case 28's, documented
-        %there. See SCIENTIFIC_FORMULA_AUDIT.md sections 25 (gamma) and 26
+        %there. See development formula audit, sections 25 (gamma) and 26
         %(Gaussian).
 
         fprintf('\nPreparing data for analysis...\n');
@@ -10707,7 +10839,29 @@ end
 %run use the same engine, so the last fit is representative.
 if exist('fit','var') && ~isempty(fit) && ...
         (~isfield(REL,'engine') || isempty(REL.engine))
-    REL.engine = psyrat_fit_engine(fit);
+    [REL.engine,REL.engine_meta] = psyrat_fit_engine(fit);
+end
+
+%Complete per-fit bootstrap metadata; aggregate counts are totals, never the
+%last fit or an intersection of independent success masks.
+if ~isempty(bootstrap_fits)
+    bootstrap_labels = cellstr(REL.out.labels);
+    for k = 1:numel(bootstrap_fits)
+        bootstrap_fits(k).label = bootstrap_labels{k};
+    end
+    m = REL.engine_meta;
+    stale = intersect(fieldnames(m),{'point','points','nstrata','suffix','formula','original','bootstrap_success_mask', ...
+        'bootstrap_draw_indices','bootstrap_records','bootstrap_fail_ids'});
+    if numel(bootstrap_fits)>1; m = rmfield(m,stale); end
+    m.fits = bootstrap_fits;
+    m.bootstrap_reps = sum([bootstrap_fits.bootstrap_reps]);
+    m.bootstrap_ok = sum([bootstrap_fits.bootstrap_ok]);
+    m.bootstrap_failed = sum([bootstrap_fits.bootstrap_failed]);
+    m.draw_layout = 'numeric columns (equal successful counts)';
+    if iscell(REL.out.mu); m.draw_layout = 'cell vectors (unequal successful counts)'; end
+    m.draw_dependence = 'joint components within fit; no cross-fit coupling inferred';
+    m.warning_capture = 'last warning per fit/refit';
+    REL.engine_meta = m;
 end
 
 REL.psyratver = psyratver;
@@ -10904,7 +11058,7 @@ for i = 1:ndchunks
     %stamp engine provenance here: case 8 dispatches to this separate function, so
     %the main-function fallback (which reads the inline-case `fit`) never sees this
     %fit. Cmdstan fits report 'cmdstan'; native fits carry their own .engine.
-    REL.engine = psyrat_fit_engine(fit);
+    [REL.engine,REL.engine_meta] = psyrat_fit_engine(fit);
 
     if i == 1
         REL.out = [];
@@ -11452,7 +11606,7 @@ for i = 1:ndchunks
         stan_thread_args{:}, stan_user_ctrl_args{:});
 
     fit.block();
-    REL.engine = psyrat_fit_engine(fit);
+    [REL.engine,REL.engine_meta] = psyrat_fit_engine(fit);
 
     if i == 1
         REL.out = [];
@@ -11566,13 +11720,18 @@ spec = struct('engine',engine, ...
     'opts',struct('bootstrap_reps',bootstrap_reps,'hmc_gradient',hmc_gradient));
 end
 
-function name = psyrat_fit_engine(fit)
-%Provenance helper: report which engine produced a fit. Native fits carry an
-%.engine label; anything else is a CmdStan fit.
+function [name,meta] = psyrat_fit_engine(fit)
+%Provenance helper: report which engine produced a fit, and the engine's own
+%record beside it (fit.meta for a native fit, e.g. the parametric-bootstrap
+%counts of the fitlme engine that psyrat_provenance_lines, psyrat_engine_notice
+%and the runconfig sidecar disclose since Q3, 2026-09-11; an empty struct for
+%CmdStan). Native fits carry an .engine label; anything else is a CmdStan fit.
 if isa(fit,'PsyRATNativeFit')
     name = fit.engine;
+    meta = fit.meta;
 else
     name = 'cmdstan';
+    meta = struct();
 end
 end
 
@@ -11841,7 +12000,7 @@ if gammascale == 2
     %DIFFERENT ESTIMANDS, not reparameterizations, and results are not comparable
     %across the setting: notably the log-nu residual carries a trial-averaging
     %factor exp(2*s_i^2) that has no counterpart here, because sigma has no trial
-    %term. See documentation/gamma_scale_submodel_decision.md section H.
+    %term. See the scale-submodel decision record, section H.
     %
     %All local declarations precede the statements that fill them (nu cannot be
     %declared with an initializer after mu is exponentiated) so the emitted model
@@ -12007,7 +12166,7 @@ function out = psyrat_gamma_extract_sserr_ls(fit)
 %S17-FIX this extractor passed Intercept_sigma/ind_sd through untouched, so
 %each participant was charged their conditional variance ALONE; that behavior
 %and its design-dependent magnitude are finding S17
-%(gamma_scale_submodel_decision.md section J.6).
+%(scale-submodel decision record, section J.6).
 %
 %TWO ESTIMAND DIFFERENCES, both deliberate, neither a simplification:
 % (1) NO exp(2*s_i^2) TRIAL-AVERAGING FACTOR. The log-nu residual is
@@ -12339,20 +12498,24 @@ function out = psyrat_gamma_extract_trt_sserr(fit)
 %     and the log-mean SDs, never on nu/s_v/cov_pv - so the marginal-vs-conditional
 %     distinction does not touch them. Only sigma_res2 (which this function does
 %     NOT use) carries the dispersion estimand.
-% (2) The PER-SUBJECT residual: the CONDITIONAL (per-person) expected observation
-%     variance, using each participant's own log-mean (u_p = ind_bs) and log-nu
-%     (v_p = ind_nu),
-%       sigma_pot_e2(p) = 2*exp(2*(Intercept + u_p) + 2*V_w
-%                               - (Intercept_nu + v_p)),
-%     where V_w = s_o^2 + s_t^2 + s_po^2 + s_pt^2 + s_ot^2 is the WITHIN-person
-%     log-mean variance: the sum of every log-mean variance EXCEPT the person main
-%     effect s_p^2, which is dropped because u_p has been conditioned on. This is
-%     the case-6 formula with 2*s_i^2 generalized to 2*V_w (case 6's only
-%     within-person mean facet is the trial main effect). It is EXACT under the
-%     ID-only nu structure (nu is subject-constant, so E_ot[2*mu^2/nu_p | p]
-%     carries no lognormal-approximation error). It is the subject-level
-%     COMPLEMENT of the group estimand #2, which instead MARGINALIZES
-%     E[2*mu^2/nu_p] over the person dispersion population.
+% (2) The PER-SUBJECT residual (Q8/PBA-08 owner ruling 2026-09-13,
+%     gamma_target_version 2): E_p = R + C_p, where
+%       C_p = 2*exp(2*(Intercept + u_p) + 2*V_w - (Intercept_nu + v_p))
+%     is the CONDITIONAL (per-person) expected observation variance at each
+%     participant's own log-mean (u_p = ind_bs) and log-nu (v_p = ind_nu), and
+%     R = K_PIO is the POPULATION highest-order (person x occasion x trial)
+%     mean-surface remainder (psyrat_gamma_mean_remainder_trt), built from alpha
+%     and the six log-mean SDs only. V_w = s_o^2 + s_t^2 + s_po^2 + s_pt^2 +
+%     s_ot^2 is the WITHIN-person log-mean variance: every log-mean variance
+%     EXCEPT the person main effect s_p^2, dropped because u_p is conditioned
+%     on. C_p is the case-6 formula with 2*s_i^2 generalized to 2*V_w and is
+%     EXACT under the ID-only nu structure (nu is subject-constant, so
+%     E_ot[2*mu^2/nu_p | p] carries no lognormal-approximation error). R is the
+%     two-facet counterpart of the one-facet pi_mean pooled under S17/S20: the
+%     group residual sigma_res2 carries it by subtraction, so a residual without
+%     it was optimistically biased. The result is a deliberately MIXED target -
+%     population mean structure at the participant's z, person-conditional
+%     observation dispersion - not a fully person-conditioned decomposition.
 %
 %NOTE the 2*V_w term is a second-MOMENT scaling factor (E_ot[mu^2 | p]), not a
 %variance component: Var(Y | mu, nu) is proportional to mu^2, and mu varies across
@@ -12360,23 +12523,32 @@ function out = psyrat_gamma_extract_trt_sserr(fit)
 %components returned alongside it, which are the G-theory facet variances. Same
 %construction as case 6 (psyrat_gamma_extract_sserr) and case 8.
 %
-%NOTE also that this residual and the group-level sig_err of analysis 5 are
-%DIFFERENT estimands on purpose: psyrat_gamma_varcomps_trt's sigma_res2 is
-%recovered by SUBTRACTION from total_var, so it bundles the higher-order lognormal
-%leftover of the mean surface with the dispersion, whereas the conditional formula
-%above is the pure per-person dispersion. Case 6 vs case 1 already has the
-%identical, maintainer-sanctioned mismatch. Do not "reconcile" them.
+%NOTE also what R is NOT. It is not the person-conditional remainder R_p and not
+%the conditional occasion x trial component H_p (both would change PI/PO and the
+%absolute-error cross terms as well); it is the same population term that
+%psyrat_gamma_varcomps_trt's sigma_res2 = R + e_cond_var carries. The earlier
+%header claim that the six mean components are "estimand-invariant" holds for
+%switching the observation-dispersion target while retaining population mean
+%components (what this extractor does), not for a full person-conditional
+%decomposition. The earlier "do not reconcile" paragraph predates S17/S20 and
+%the Q8 ruling and is withdrawn.
 %
 %Fields mirror the Gaussian analysis-25 extraction so psyrat_relsummary ->
 %psyrat_ssrel_trt is unchanged (it forms err_ss = exp(pop_sdlog + ind_sdlog)):
 %  mu          - observed-score grand mean E[mu]                     [ndraws x 1]
 %  ind_bs      - per-subject log-mean effects u_p (provenance)   [ndraws x NSUB]
 %  gro_sds     - [sqrt(sigma_p2), s_v]; col 1 = observed person SD   [ndraws x 2]
-%  pop_sdlog   - 0.5*log(sigma_pot_e2_pop): population residual log-SD
-%  ind_sdlog   - per-subject 0.5*log(sigma_pot_e2(p)) - pop_sdlog [ndraws x NSUB]
+%  pop_sdlog   - 0.5*log(R + C_typ): typical-subject (u_p = v_p = 0) reference
+%                residual log-SD
+%  ind_sdlog   - per-subject 0.5*log(R + C_p) - pop_sdlog          [ndraws x NSUB]
 %  sig_occ/sig_trl/sig_trlxid/sig_occxid/sig_trlxocc - observed-score
 %                SD-equivalents for the five remaining crossed components
-%  gamma       - raw log-scale draws + converted quantities (provenance)
+%  gamma       - raw log-scale draws + converted quantities (provenance),
+%                including the raw pieces of the composite residual:
+%                mean_remainder (R), obs_var_typ (C_typ), obs_var_ss (C_p,
+%                [ndraws x NSUB]), scale0 (Intercept_nu draws), ind_scale
+%                (ind_nu), parameterization 'lognu'; sigma_pot_e2_pop is the
+%                ENCODED reference R + C_typ
 %
 %gro_sds(:,1) is a STANDARD DEVIATION, not a variance - psyrat_variancet squares
 %it (RC-02) and psyrat_ssrel_trt squares it again in its own bp slot. Emitting a
@@ -12403,15 +12575,27 @@ ind_nu = fit.extract('pars','ind_nu').ind_nu;               % [ndraws x NSUB] pe
 nu = exp(b_nu(:));                                          % population nu per draw
 vc = psyrat_gamma_varcomps_trt(alpha, s_p, s_o, s_t, s_po, s_pt, s_ot, nu, s_v, cov_pv);
 
-% (2) per-subject CONDITIONAL residual variance (observed scale). V_w is the
+% (2) per-subject CONDITIONAL observation variance (observed scale). V_w is the
 % WITHIN-person log-mean variance: every facet except the person main effect,
 % because u_p is conditioned on rather than integrated out. Broadcast the
 % [ndraws x 1] intercepts/SDs across the NSUB columns of the person effects.
 V_w = s_o.^2 + s_t.^2 + s_po.^2 + s_pt.^2 + s_ot.^2;                      % [ndraws x 1]
-sig_pot_e2 = 2 .* exp(2.*(alpha + ind_bs) + 2.*V_w - (b_nu + ind_nu));    % [ndraws x NSUB]
+sig_pot_c2 = 2 .* exp(2.*(alpha + ind_bs) + 2.*V_w - (b_nu + ind_nu));    % C_p [ndraws x NSUB]
 
-% population (typical-subject u_p = v_p = 0) residual, for the pop_sdlog reference
-sig_pot_e2_pop = 2 .* exp(2.*alpha + 2.*V_w - b_nu);                      % [ndraws x 1]
+% typical-subject (u_p = v_p = 0) observation variance, the reference C_typ
+sig_pot_c2_typ = 2 .* exp(2.*alpha + 2.*V_w - b_nu);                      % [ndraws x 1]
+
+% Q8 (owner ruling 2026-09-13, gamma_target_version 2): the per-subject residual
+% is E_p = R + C_p, the POPULATION highest-order (person x occasion x trial)
+% mean-surface remainder plus the participant's own observation variance. R is
+% built from alpha and the six log-mean SDs only - never from ind_bs/ind_nu -
+% exactly as the one-facet S17/S20 pooling builds pi_mean from population
+% quantities. [ndraws x 1], broadcast across the NSUB columns.
+R = psyrat_gamma_mean_remainder_trt(alpha, s_p, s_o, s_t, s_po, s_pt, s_ot);
+sig_pot_e2 = R + sig_pot_c2;                                              % E_p   [ndraws x NSUB]
+
+% typical-subject reference residual E_typ = R + C_typ, what pop_sdlog encodes
+sig_pot_e2_pop = R + sig_pot_c2_typ;                                      % [ndraws x 1]
 
 % encode as log-SD-equivalents for psyrat_ssrel_trt: exp(pop_sdlog + ind_sdlog).^2
 % reproduces sigma_pot_e2(p) exactly (same trick as cases 6 and 8).
@@ -12442,25 +12626,37 @@ out.gamma   = struct( ...
     'sigma_p2', vc.sigma_p2(:), 'sigma_o2', vc.sigma_o2(:), ...
     'sigma_t2', vc.sigma_t2(:), 'sigma_pt2', vc.sigma_pt2(:), ...
     'sigma_po2', vc.sigma_po2(:), 'sigma_ot2', vc.sigma_ot2(:), ...
-    'sigma_pot_e2_pop', sig_pot_e2_pop(:), 'mu_bar', vc.mu_bar(:));
+    'sigma_pot_e2_pop', sig_pot_e2_pop(:), 'mu_bar', vc.mu_bar(:), ...
+    'mean_remainder', R(:), 'obs_var_typ', sig_pot_c2_typ(:), ...
+    'obs_var_ss', sig_pot_c2, 'scale0', b_nu(:), 'ind_scale', ind_nu, ...
+    'parameterization', 'lognu');
 end
 
 function out = psyrat_gamma_extract_trt_sserr_ls(fit)
 %Extract a crossed test-retest SUBJECT-LEVEL scaled chi-square fit under the
 %LOCATION-SCALE parameterization (analysis 25, family = 'gamma', gammascale = 2).
 %Two-facet sibling of psyrat_gamma_extract_sserr_ls; read that header first for
-%why the residual passes through untouched and what the estimand differences are.
+%the S17-FIX pooling this path now mirrors and what the estimand differences are.
 %
-%THE V_w TERM HAS NO COUNTERPART HERE, and that is the whole two-facet story.
-%The log-nu twin's residual is E_ot[2*mu^2/nu_p | p], an expectation over the
-%within-person facets, so it picks up exp(2*V_w) with
+%THE V_w TERM HAS NO COUNTERPART HERE, and that is the whole two-facet story of
+%the OBSERVATION part. The log-nu twin's C_p is E_ot[2*mu^2/nu_p | p], an
+%expectation over the within-person facets, so it picks up exp(2*V_w) with
 %V_w = s_o^2 + s_t^2 + s_po^2 + s_pt^2 + s_ot^2. Under location-scale sigma is a
 %single per-participant quantity carrying no facet terms, so there is no
 %expectation to take and no V_w to compute:
-%   sigma_p^2 = exp(2*(Intercept_sigma + w_p)).
+%   C_p = exp(2*(Intercept_sigma + w_p)).
 %Do not "restore" a V_w factor here for symmetry with the log-nu path - it would
 %re-introduce the mean coupling this parameterization exists to remove. The
 %absence is the fix, and it is why results are not comparable across gammascale.
+%
+%WHAT IS ADDED (Q8/PBA-08 owner ruling 2026-09-13, gamma_target_version 2) is
+%not a factor but a TERM: the population highest-order mean-surface remainder R
+%(psyrat_gamma_mean_remainder_trt), so that E_p = R + C_p and the typical
+%reference is E_typ = R + C_typ. R exists because the MEAN has a log link under
+%both parameterizations; it is the same term the group residual sigma_res2
+%carries by subtraction, and the two-facet counterpart of the one-facet pi_mean
+%pooled by S17-FIX. It depends on alpha and the log-mean SDs only, so the
+%participant's own log-mean still does not enter their coefficient here.
 %
 %THE SIX GROUP COMPONENTS ARE UNCHANGED. sigma_p2/o2/t2/po2/pt2/ot2 are built
 %from alpha and the log-MEAN SDs alone (inspect psyrat_gamma_varcomps_trt: only
@@ -12501,10 +12697,20 @@ ind_sd = fit.extract('pars','ind_sd').ind_sd;                 % [ndraws x NSUB] 
 vc = psyrat_gamma_varcomps_trt(alpha, s_p, s_o, s_t, s_po, s_pt, s_ot, ...
     NaN, NaN, NaN);
 
-% (2) per-subject residual: the fitted log-SD intercept and person effects pass
-% through unchanged, so exp(pop_sdlog + ind_sdlog)^2 = sigma_p^2 by construction.
-pop_sdlog = logsig(:);
-ind_sdlog = ind_sd;
+% (2) per-subject residual (Q8/PBA-08 owner ruling 2026-09-13,
+% gamma_target_version 2): E_p = R + C_p with C_p = exp(2*(Intercept_sigma +
+% w_p)) the participant's own observation variance and R the POPULATION
+% highest-order mean-surface remainder (psyrat_gamma_mean_remainder_trt), built
+% from alpha and the six log-mean SDs only - ind_bs does not enter. The
+% reference is E_typ = R + C_typ with C_typ = exp(2*Intercept_sigma) (w_p = 0).
+% Encoded as log-SD-equivalents so exp(pop_sdlog + ind_sdlog)^2 = R + C_p, the
+% same S17-FIX encoding the one-facet twin uses with pi_mean. pop_sdlog and
+% ind_sdlog are therefore composite-residual log-SD equivalents, NOT the fitted
+% log-sigma parameters any more; the raw draws stay in .gamma (log_sigma,
+% ind_scale) and are also stored per stratum by the case-25 block.
+R = psyrat_gamma_mean_remainder_trt(alpha, s_p, s_o, s_t, s_po, s_pt, s_ot);  % [ndraws x 1]
+pop_sdlog = 0.5.*log(R + exp(2.*logsig(:)));                                  % [ndraws x 1]
+ind_sdlog = 0.5.*log(R + exp(2.*(logsig(:) + ind_sd))) - pop_sdlog;           % [ndraws x NSUB]
 
 %Same Stan-name -> varcomps-name transposition as the log-nu twin: sig_occxid is
 %the person x OCCASION component (sigma_po2) and sig_trlxid the person x TRIAL
@@ -12528,7 +12734,10 @@ out.gamma   = struct( ...
     'sigma_p2', vc.sigma_p2(:), 'sigma_o2', vc.sigma_o2(:), ...
     'sigma_t2', vc.sigma_t2(:), 'sigma_pt2', vc.sigma_pt2(:), ...
     'sigma_po2', vc.sigma_po2(:), 'sigma_ot2', vc.sigma_ot2(:), ...
-    'sigma_pot_e2_pop', exp(2.*logsig(:)), 'mu_bar', vc.mu_bar(:));
+    'sigma_pot_e2_pop', R(:) + exp(2.*logsig(:)), 'mu_bar', vc.mu_bar(:), ...
+    'mean_remainder', R(:), 'obs_var_typ', exp(2.*logsig(:)), ...
+    'obs_var_ss', exp(2.*(logsig(:) + ind_sd)), 'scale0', logsig(:), ...
+    'ind_scale', ind_sd, 'parameterization', 'ls');
 end
 
 function stan_in = psyrat_build_stan_splits_iins(priors,threaded)
@@ -13823,7 +14032,7 @@ function stan_in = psyrat_build_stan_dynrel_chisq(priors,threaded,gammascale)
 %on the standardized dimension predictor(s) z. The observed-score residual
 %variance Var(Y|mu,nu) = 2*mu(z)^2/nu(z) is therefore MEAN-COUPLED. This differs
 %from the Gaussian location-scale dynrel, whose scale submodel is a pure
-%residual-SD model; see SCIENTIFIC_FORMULA_AUDIT.md section 18.
+%residual-SD model; see development formula audit, section 18.
 %
 %CORRECTED 2026-08-04. This paragraph used to continue "a dimension effect on
 %reliability blends a mean-level effect (residual grows with mu^2) and a
@@ -13853,7 +14062,7 @@ function stan_in = psyrat_build_stan_dynrel_chisq(priors,threaded,gammascale)
 %not an implementation of it: the log link makes the universe-score variance
 %amplitude-dependent, which the paper's fixed-numerator construction never faces.
 %Cite the paper for the conditional-reliability idea, not for this model's
-%behavior. See documentation/gamma_scale_submodel_decision.md section F.
+%behavior. See the scale-submodel decision record, section F.
 %
 %Per the maintainer decision (Golden Rule 1), the person mean and person log-nu
 %effects keep the SAME coupled 2-D LKJ Cholesky block used by the static gamma
@@ -13885,7 +14094,7 @@ function stan_in = psyrat_build_stan_dynrel_chisq(priors,threaded,gammascale)
 %psyrat_gamma_varcomps. The two are different estimands, not two
 %parameterizations of one fit: matching them would require log nu to carry the
 %trial effect 2*u_i, which it does not. See
-%documentation/gamma_scale_submodel_decision.md.
+%the scale-submodel decision record.
 if nargin < 3 || isempty(gammascale)
     gammascale = 1; %default: the established log-nu dispersion model
 end
@@ -14303,13 +14512,13 @@ function stan_in = psyrat_build_stan_dynrel_trt_chisq(priors,threaded,gammascale
 %The mean submodel - all five crossed facets included - is byte-identical between
 %the two, which is what lets the observed-scale conversion reuse the same
 %six signal components. See owner ruling H,
-%documentation/gamma_scale_submodel_decision.md, and the note in the branch below.
+%the scale-submodel decision record, and the note in the branch below.
 %
 %Per the maintainer decision (Golden Rule 1), the person mean and person log-nu
 %effects keep the coupled 2-D LKJ Cholesky block used by the static gamma family
 %and the Gaussian dynrel - a DELIBERATE departure from the reference brms script.
 %The coupling is propagated into the observed-scale conversion via cov_pv
-%(estimand #2); see SCIENTIFIC_FORMULA_AUDIT.md section 18.
+%(estimand #2); see development formula audit, section 18.
 %
 %Xdim is an NOBS x KDIM design matrix shared by the mean and nu submodels (KDIM =
 %1 for one dimension; 3 columns z1,z2,z1*z2 for two dimensions). The five facet
@@ -14798,7 +15007,7 @@ function lines = psyrat_diff_prior_lines(diff)
 %difference-score models (analysis 7): the b/b_sigma/sd_id/sd_trl block with its
 %half-student-t corrections and LKJ priors. The residual-covariance variant
 %(diffrescor=2) appends an extra LKJ prior on Lrescor after this block; that
-%branch is reachable and extracted since the B10 fix (see PSYRAT_AUDIT_FINDINGS
+%branch is reachable and extracted since the B10 fix (see finding
 %B10) and is covered by tests/integration/TestRescorDiffRecovery.
 lines = {
     sprintf('target += normal_lpdf(b | 0,%g);',diff.b)
@@ -14950,7 +15159,7 @@ function stan_in = psyrat_build_stan_diff_chisq(priors,threaded,gammascale)
 %when the two events differ in AMPLITUDE even at identical residual precision, so
 %it cannot be read as a precision contrast. Under gammascale = 2 the per-event
 %b_sigma intercepts are absolute residual SDs and their difference is a pure
-%residual-SD contrast. See documentation/gamma_scale_submodel_decision.md
+%residual-SD contrast. See the scale-submodel decision record,
 %section H (owner ruling H, 2026-08-04).
 %
 %NON-CONCURRENT ONLY. The concurrent (copula) variants have no gammascale = 2
@@ -15189,7 +15398,7 @@ function stan_in = psyrat_build_stan_diffdynrel_chisq(priors,threaded,gammascale
 %mean surface at every z. The MEAN submodel is byte-identical between the two
 %branches - diff the goldens to check it - which is the structural form of the
 %argument that psyrat_gamma_crosscov is reused unchanged; see
-%gamma_scale_submodel_decision.md section I.3 for the derivation.
+%the scale-submodel decision record, section I.3, for the derivation.
 %
 %NAMING WARNING, and it differs from the non-difference dynamic builders. Here
 %'b_sigma' is the per-EVENT INTERCEPT vector and 'b_sigma_dim' the dimension-slope
@@ -15208,7 +15417,7 @@ function stan_in = psyrat_build_stan_diffdynrel_chisq(priors,threaded,gammascale
 %sigma^2_i(z), the cross-event covariances AND the residual ALL vary with z. The
 %downstream surface calculator must therefore recompute the observed-scale
 %(co)variances per z; it cannot reuse a fixed id_varcov/trl_varcov (see
-%SCIENTIFIC_FORMULA_AUDIT.md section 20 for the same point on the non-difference
+%development formula audit, section 20, for the same point on the non-difference
 %gamma dynrel).
 %
 %Per the maintainer decision carried forward from cases 7/8/11/14 (Golden Rule 1),
@@ -15524,7 +15733,7 @@ function out = psyrat_gamma_extract_diff_ls(fit)
 %fit's b_nu[2] - b_nu[1] equals 2*(b[2]-b[1]) - 2*(b_sigma[2]-b_sigma[1]) and so
 %moves with the two events' AMPLITUDE difference even at identical residual
 %precision. Under this parameterization b_sigma[2] - b_sigma[1] is a pure
-%absolute-residual-SD contrast. See gamma_scale_submodel_decision.md section H.
+%absolute-residual-SD contrast. See the scale-submodel decision record, section H.
 %
 %b_nu is deliberately NOT read - it does not exist in this model - and that
 %absence is the observable signature of the parameterization.
@@ -15737,7 +15946,7 @@ function out = psyrat_gamma_extract_diff_sserr_ls(fit)
 %     as a log SD-equivalent (exp(.)^2 = the pooled variance). Before S17-FIX
 %     the stored value was b_sigma[e] + w_{p,e} - the conditional variance
 %     ALONE; that behavior and its design-dependent magnitude are finding S17
-%     (gamma_scale_submodel_decision.md section J.6). The pooling is the
+%     (scale-submodel decision record, section J.6). The pooling is the
 %     DIAGONAL only: the cross-event mean-surface half is the per-person
 %     instance of S14, separately owner-decided ("leave at zero"), so
 %     wp_cov_ss stays 0.
@@ -16682,7 +16891,7 @@ function stan_in = psyrat_build_stan_diff_trt_chisq(priors,threaded,gammascale)
 %What is specific to THIS design is that one nu would otherwise be shared across
 %occasions and trials with every facet sitting on the log mean, so the log-nu
 %model cannot represent an occasion whose absolute error SD holds while its mean
-%shifts. See documentation/gamma_scale_submodel_decision.md section H (ruling H).
+%shifts. See the scale-submodel decision record, section H (ruling H).
 %
 %NON-CONCURRENT ONLY. The concurrent (copula) variants have no gammascale = 2
 %branch and are rejected in the option block, because the observed-scale residual
@@ -17060,7 +17269,7 @@ function out = psyrat_gamma_extract_diff_trt_ls(fit)
 %identical residual precision. The two-facet addition is that the log-nu model
 %shares one nu across occasions and trials with every facet on the log mean, so
 %it cannot represent an occasion whose absolute error SD holds while its mean
-%shifts. See gamma_scale_submodel_decision.md section H.
+%shifts. See the scale-submodel decision record, section H.
 %
 %b_nu is deliberately NOT read - it does not exist in this model - and that
 %absence is the observable signature of the parameterization.
@@ -18345,7 +18554,7 @@ function stan_in = psyrat_build_stan_diffdynrel_sserr_chisq(priors,threaded,gamm
 %13 is location-scale only, so there is one row); and there the extraction lives in
 %named functions and needs a nonlinear log-nu-to-residual-SD conversion, whereas here
 %it is inline in the case-13 block and reads r_id[,3:4] directly.
-%See gamma_scale_submodel_decision.md section J.1.
+%See the scale-submodel decision record, section J.1.
 %
 %A distinct builder keeps a distinct golden and clean analysis-13 provenance, per the
 %same convention the analysis-8 builder records.
@@ -18958,7 +19167,7 @@ function stan_in = psyrat_build_stan_dodiff_chisq(priors,threaded,gammascale)
 %cells differ in AMPLITUDE even at identical residual precision. Under
 %gammascale = 2 the per-cell b_sigma intercepts are absolute residual SDs and
 %their contrasts are pure residual-SD contrasts. See
-%documentation/gamma_scale_submodel_decision.md section H (owner ruling H,
+%the scale-submodel decision record, section H (owner ruling H,
 %2026-08-04).
 %
 %NON-CONCURRENT ONLY, and doubly so for this design. The generic
@@ -19289,7 +19498,7 @@ function out = psyrat_gamma_extract_dodiff_ls(fit)
 %log-nu fit's cell contrasts equal 2*Delta(log mu) - 2*Delta(log sigma) and move
 %with the cells' AMPLITUDE differences even at identical residual precision.
 %Under this parameterization the b_sigma contrasts are pure absolute-residual-SD
-%contrasts. See gamma_scale_submodel_decision.md section H.
+%contrasts. See the scale-submodel decision record, section H.
 %
 %b_nu is deliberately NOT read - it does not exist in this model - and that
 %absence is the observable signature of the parameterization.
@@ -20339,7 +20548,7 @@ function stan_in = psyrat_build_stan_diffdynrel_sserr_margins_chisq(priors,threa
 %hours. This program must therefore contain no gamma_lcdf, no inv_Phi, no copula
 %density and no rho_e - a property asserted directly by the Stan-boundary test,
 %because an "optimization" that rejoined the stages would silently change the
-%estimand. See documentation/modular_cut_copula_workflow.md.
+%estimand. See the development cut-copula workflow note.
 %
 %  log mu_e    = mu_offset[e]        + b[e]       + Xdim*b_dim_e       + r_id[,e] + r_trl[,e]
 %  log sigma_e = log_sigma_offset[e] + b_sigma[e] + Xdim*b_sigma_dim_e + r_id[,e+2]
@@ -20361,7 +20570,7 @@ function stan_in = psyrat_build_stan_diffdynrel_sserr_margins_chisq(priors,threa
 %completed fits were validated under; it also keeps the emitted Stan
 %data-independent, so the goldens do not move with the dataset. The downstream
 %extraction must add the offsets back - omitting them silently rescales every mean
-%and residual SD (the trap recorded in gamma_locationscale_rollout.md).
+%and residual SD (the trap recorded in the location-scale rollout record).
 %
 %Priors are the reference's, carried in priors.gamma.modular_* rather than reusing
 %the log-nu/location-scale defaults: the intercepts are deviations here, so the
@@ -20550,7 +20759,7 @@ function stan_in = psyrat_build_stan_dodiff_dynrel_margins(priors,threaded)
 %covariances exactly zero, full Bayesian posterior), the constituent cell
 %order, the 8-D person block, the 4-D location-only ordinal-trial block, and
 %the long-format layout are all stated there and carry over unchanged.
-%Derivation: SCIENTIFIC_FORMULA_AUDIT.md section 26.
+%Derivation: development formula audit, section 26.
 %
 %  mu_c    = b[c]       + Xdim*b_dim[c]'       + r_id[,c]   + r_trl[,c]
 %  sigma_c = exp(b_sigma[c] + Xdim*b_sigma_dim[c]' + r_id[,4+c])
@@ -20907,7 +21116,7 @@ function stan_in = psyrat_build_stan_dodiff_dynrel_trt_margins(priors,threaded)
 %prior scales come from the Gaussian two-facet family (priors.diff_trt, the
 %psyrat_diff_trt_prior_lines convention); the joint person block keeps the
 %one-facet split (diff.sd_id locations / diff.sd_id_sigma scales).
-%Derivation: SCIENTIFIC_FORMULA_AUDIT.md section 26.
+%Derivation: development formula audit, section 26.
 diff = priors.diff;
 dt = priors.diff_trt;
 if threaded
@@ -23293,40 +23502,56 @@ catch err
     output = psyrat_stansummary_output(fit);
 end
 
+%print(fit) can return NOTHING without an error: observed 2026-09-11 on the
+%one-chain, ten-draw CmdStan integration fits of every stratified and multi-event
+%scenario (the wrapper's captured stdout was empty although stansummary succeeds
+%on the same chain file when called directly), which used to mark those runs
+%"not converged" with a convergence_unavailable row. Ask stansummary directly
+%before giving up (Q4 hardening; the CSV route below is independent of this
+%text in any case).
 if isempty(output)
-    warning('conv:unavailable',... %Warning code and associated warning
-        ['Convergence statistics could not be extracted, so this run will be ',...
-        'marked as not converged. How to fix: rerun with ''verbose'',2 and ',...
-        'inspect CmdStan output for parsing or model issues.']);
-    convstats = {'name','n_eff','r_hat';'convergence_unavailable',0,Inf};
-    convstats{1,4} = NaN;   %divergences not assessable when summary is unavailable
-    return;
+    output = psyrat_stansummary_output(fit);
 end
-
-%define cell array that holds the r_hats
-convstats = cell(1,3);
-convstats(1,:) = {'name','n_eff','r_hat'};
 
 inp2check = psyrat_convprefix(trt);
-
-%parse each output row once instead of scanning the full output for each
-%prefix
-for i = 1:length(output)
-    pullrow = regexp(strtrim(output{i}),'\S+','match');
-    if length(pullrow) < 3
-        continue;
+keepfun = @(label) psyrat_hasprefix(label,inp2check);
+%The precise named CSV is authoritative. The two-figure console output is
+%independently parsed only as a fallback and to detect missing monitored rows.
+[rows,info] = psyrat_stansummary_csvrows(fit,keepfun);
+[textrows,textinfo] = psyrat_parse_stansummary_text(output,keepfun);
+expected = unique([rows(:,1);textrows(:,1)],'stable');
+if isempty(rows)
+    parse_error = info.parse_error;
+    rows = textrows; info = textinfo;
+    warning('conv:csvfallback',['Using degraded printed diagnostics at two ', ...
+        'significant figures. Source and limitations are saved with the result.']);
+    if ~isempty(parse_error)
+        %A malformed precise source cannot be laundered by a rounded fallback.
+        rows(end+1,:) = {'diagnostic_parse_failure',0,Inf,NaN,NaN,NaN};
+        info.degradation_reason = [info.degradation_reason ' CSV error: ' parse_error];
     end
-
-    label = pullrow{1};
-    if ~psyrat_hasprefix(label,inp2check)
-        continue;
-    end
-
-    neff = str2double(pullrow{end-2});
-    rhat = str2double(pullrow{end});
-
-    convstats(end+1,1:3) = {label,neff,rhat};
 end
+%Chain headers provide an inventory independent of either summary parser.
+try
+    [chainnames,completeness]=psyrat_stan_expected_names(fit.output_file,keepfun);
+catch
+    chainnames={}; completeness='unavailable';
+end
+expected=unique([expected(:);chainnames(:)],'stable');
+info.completeness_source=completeness;
+if ~strcmp(completeness,'chain_csv_headers')
+    info.degraded=true;
+    info.degradation_reason=[info.degradation_reason ' Required-row completeness is unassessed.'];
+    rows(end+1,:)={'diagnostic_inventory_unavailable',0,Inf,NaN,NaN,NaN};
+end
+source={}; modeldata=struct();
+try
+    source=fit.model.model_code;
+    modeldata=fit.model.data;
+catch
+    %Unavailable source/data cannot authorize deterministic exclusions.
+end
+convstats=psyrat_diagnostic_table(rows,info,source,modeldata,expected);
 
 %record the HMC divergent-transition count for this fit in the header cell
 %(column 4). It rides along with the convergence table without disturbing the
@@ -23370,6 +23595,61 @@ if isnan(ndiv)
     catch
         ndiv = NaN;   %diagnostic not available -> not assessed
     end
+end
+end
+
+function [rows,info] = psyrat_stansummary_csvrows(fit,keepfun)
+%Run stansummary once more with --csv_filename at eight significant figures and
+%parse the CSV by column name (Q4, 2026-09-11). Returns the parsed rows, or an
+%empty cell when the summary binary, the chain files or the CSV cannot be used;
+%psyrat_storeconv then falls back to the printed table. Never throws: a
+%diagnostics route must not break estimation.
+rows = cell(0,6);
+info=psyrat_diagnostic_metadata({});
+info.parse_error='';
+csvfile = '';
+try
+    if isempty(fit) || ~isprop(fit,'model') || isempty(fit.model)
+        return;
+    end
+    if ~isprop(fit.model,'stan_home') || isempty(fit.model.stan_home)
+        return;
+    end
+    if ~isprop(fit,'output_file') || isempty(fit.output_file)
+        return;
+    end
+    summary_bin = fullfile(fit.model.stan_home,'bin','stansummary');
+    if exist(summary_bin,'file') ~= 2
+        return;
+    end
+    files = fit.output_file;
+    if ischar(files)
+        files = {files};
+    end
+    if ~iscell(files) || isempty(files)
+        return;
+    end
+    quoted = cell(size(files));
+    for i = 1:length(files)
+        quoted{i} = ['"' char(files{i}) '"'];
+    end
+    csvfile = [tempname '.csv'];
+    cmd = ['"' summary_bin '" --sig_figs=8 --csv_filename="' csvfile '" ' ...
+        strtrim(strjoin(quoted,' '))];
+    [status,~] = system(cmd);
+    if status ~= 0 || exist(csvfile,'file') ~= 2
+        rows = cell(0,6);
+    else
+        [rows,info] = psyrat_parse_stansummary_csv(csvfile,keepfun);
+        info.precision_significant_digits=8;
+        info.parse_error='';
+    end
+catch err
+    rows = cell(0,6);
+    info.parse_error=[err.identifier ': ' err.message];
+end
+if ~isempty(csvfile) && exist(csvfile,'file') == 2
+    delete(csvfile);
 end
 end
 
@@ -23769,7 +24049,7 @@ elseif trt == 56
     %NOTE this design has no log-nu counterpart code, unlike every other pair in
     %this chain (37/31, 43/35, 46/45, 50/49, 54/53, 56/55). Analysis 13 is
     %location-scale ONLY - see the dedicated guard in the option block and
-    %gamma_scale_submodel_decision.md section J.9 - so it has no counterpart code.
+    %the scale-submodel decision record, section J.9 - so it has no counterpart code.
     %(Codes 57 and 58 below exist, but they belong to the modular cut-copula
     %designs, not to a log-nu analysis 13.)
     inp2check = {'lp__' 'b' 'b_sigma' 'b_dim' 'b_sigma_dim' ...

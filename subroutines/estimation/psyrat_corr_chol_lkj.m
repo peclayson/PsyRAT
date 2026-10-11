@@ -44,7 +44,7 @@ function [L, lp] = psyrat_corr_chol_lkj(y, K, eta)
 %
 %See also: psyrat_native_hmc, psyrat_hmc_sample
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

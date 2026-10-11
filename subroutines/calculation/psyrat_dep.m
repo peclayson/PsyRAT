@@ -22,7 +22,7 @@ function [ll,pt,ul] = psyrat_dep(varargin)
 % ul - upper limit of the credible interval specified by CI for
 %  dependability
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

@@ -22,12 +22,43 @@ classdef TestGammaDiffCopulaSserrRecovery < PsyRATTestBase
     %       the recovered 95% credible intervals (coverage), with the sample-mean
     %       coefficient recovered.
     %
-    % Ground truth for the per-subject residual cross-cov is a DIRECT brute-force
-    % simulation of E_i[Cov(Y1,Y2|p,i)] (independent of the extractor's mu*W
-    % factorization, which is separately validated offline in
-    % TestGammaDiffCopulaSserrReliability). CmdStan-gated (skips Incomplete when
-    % CmdStan/MatlabStan absent). LONG (copula density + per-person MC); run
-    % deliberately.
+    % SCORE, ESTIMAND, CONDITIONING, COUNTS. The score is the difference between
+    % the two events' ntrl-trial means of trial-paired (copula-coupled) gamma
+    % observations. The estimand is the per-person CONCURRENT generalizability
+    %   G_p = S / (S + (E_{1,p} + E_{2,p} - 2 K_p)/ntrl),
+    %   S = P_1 + P_2 - 2 CovP12,   E_{e,p} = M_e + C_{e,p},   K_p = E_i Cov(Y1,Y2 | p,i),
+    % relative error. S, P_e, CovP12 and M_e are POPULATION quantities at the
+    % event intercepts b(e); C_{e,p} and K_p are conditioned on the person's own
+    % (u_pe, v_pe). The copula preserves the gamma marginals, so each event's
+    % residual DIAGONAL is the non-concurrent one (S20 pooled: M_e + C_{e,p});
+    % the population mean-interaction CROSS-covariance m_1 m_2 expm1(cP12) expm1(cI12)
+    % is exactly zero here only because the trial effects are independent
+    % across events (cI12 = 0), and it is evaluated rather than assumed. The
+    % concurrent error uses the equal-count form (E1 + E2 - 2K)/ntrl, which is
+    % what psyrat_ssrel_diff forms when trls1 = trls2 = ntrl; it is not
+    % generalized to unequal counts. Allocation: nsub = 60 persons x 2 events x
+    % ntrl = 40 trial-paired trials, n' = 40 for both events.
+    %
+    % Ground truth for the signal and residual diagonals is the independent 3A
+    % reference (tests/helpers/PsyRAT3ARecoveryReference.m, pinned offline in
+    % tests/TestGamma3ARecoveryReference.m); no production converter is called
+    % for the truth. K_p is a DIRECT brute-force simulation of E_i[Cov(Y1,Y2|p,i)]
+    % (unchanged: 150000 pairs per person, seed 24680; independent of the
+    % extractor's mu*W factorization, which is separately validated offline in
+    % TestGammaDiffCopulaSserrReliability). Its Monte-Carlo standard error is
+    % derived from the influence-function variance of the sample covariance on
+    % the same draws and propagated to G_conc through dG/dK = 2S/[n (S+err)^2];
+    % it is REPORTED and stored with the truth, not used to change any threshold.
+    % Before this correction the truth took P_e/CovP12 from
+    % psyrat_gamma_varcomps/psyrat_gamma_crosscov and omitted M_e from the
+    % residual diagonals; earlier logs remain historical evidence for that stale
+    % target. Design, seed, sampler settings and every assertion tolerance are
+    % unchanged. CmdStan-gated (skips Incomplete when CmdStan/MatlabStan absent).
+    % When PSYRAT_2C_RECOVERY_CAPTURE_DIR is set, data and truth are captured
+    % BEFORE the fit, a fit failure still captures whatever CmdStan wrote, the
+    % complete run is captured BEFORE the convergence assumption, and the class
+    % teardown skips its scratch cleanup. LONG (copula density + per-person MC);
+    % run deliberately.
 
     methods (TestClassSetup)
         function configureDependencies(testCase)
@@ -37,6 +68,14 @@ classdef TestGammaDiffCopulaSserrRecovery < PsyRATTestBase
 
     methods (TestClassTeardown)
         function cleanupCmdStanArtifacts(testCase)
+            % When evidence capture is requested, leave the raw scratch untouched
+            % so it survives even a failed capture or a failed test; root's
+            % external artifact guard archives/restores the owned scratch.
+            if ~isempty(PsyRAT2CRecoveryCapture.captureDir())
+                fprintf('[diff copula sserr recovery] %s set; scratch cleanup skipped.\n', ...
+                    PsyRAT2CRecoveryCapture.EnvVar);
+                return;
+            end
             localCleanupArtifacts(localCmdStanOutputDir(testCase.projectRoot()));
         end
     end
@@ -66,30 +105,105 @@ classdef TestGammaDiffCopulaSserrRecovery < PsyRATTestBase
             [dataTbl, u_p, v_p] = localSimulateGammaDiffCopulaSserr( ...
                 nsub, ntrl, b, b_nu, s_p, s_v, s_i, rho_mean, rho_pv, rho_e_true);
 
-            % ---- Closed-form observed-scale truth ----
-            % numerator: per-event person universe variance + cross-event person cov
-            sigma_p2 = zeros(1,2);
+            % ---- Independent closed-form observed-scale truth (3A reference) ----
+            % SIGNAL (population, estimand-invariant): per event, B_e = exp(2 b(e)
+            % + s_p(e)^2 + s_i(e)^2), P_e = B_e expm1(s_p(e)^2), and the observed
+            % cross-event person covariance CovP12 = m_1 m_2 expm1(rho_mean s_p(1) s_p(2))
+            % with m_e = exp(b(e) + (s_p(e)^2 + s_i(e)^2)/2). S = P_1 + P_2 - 2 CovP12.
+            % The dispersion parameters (s_v, rho_pv) and the copula rho_e shape the
+            % planted (u_p, v_p) and the pairing only; S does not depend on them.
+            P_true = zeros(1,2); I_true = zeros(1,2); M_true = zeros(1,2); m_true = zeros(1,2);
             for e = 1:2
-                cov_pv_e = rho_pv * s_p(e) * s_v(e);
-                vc = psyrat_gamma_varcomps(b(e), s_p(e), s_i(e), exp(b_nu(e)), s_v(e), cov_pv_e);
-                sigma_p2(e) = vc.sigma_p2;
+                comp = PsyRAT3ARecoveryReference.oneFacetMeanComponents(b(e), s_p(e), s_i(e));
+                P_true(e) = comp.P; I_true(e) = comp.I; M_true(e) = comp.M;
+                m_true(e) = PsyRAT3ARecoveryReference.eventMean(b(e), s_p(e), s_i(e));
             end
-            cc = psyrat_gamma_crosscov(b(1), s_p(1), s_i(1), b(2), s_p(2), s_i(2), rho_mean, 0);
-            cov_p_obs_true = cc.cov_p_obs;
-            var_pdiff_true = sigma_p2(1) + sigma_p2(2) - 2*cov_p_obs_true;
+            cov_p_obs_true = PsyRAT3ARecoveryReference.personCrossCovariance( ...
+                m_true(1), m_true(2), rho_mean * s_p(1) * s_p(2));
+            var_pdiff_true = P_true(1) + P_true(2) - 2*cov_p_obs_true;
 
-            % per-subject residual DIAGONAL (conditional dispersion per event) and the
-            % per-person CONCURRENT residual cross-cov (direct brute-force truth).
-            wp1_true = 2 .* exp(2*(b(1) + u_p(:,1)) + 2*s_i(1)^2 - (b_nu(1) + v_p(:,1)));
-            wp2_true = 2 .* exp(2*(b(2) + u_p(:,2)) + 2*s_i(2)^2 - (b_nu(2) + v_p(:,2)));
-            wpcov_true = localTrueConcResidCrossCov(b, b_nu, s_i, u_p, v_p, rho_e_true, 1.5e5);
-            trueResid_conc = (wp1_true + wp2_true - 2*wpcov_true) ./ ntrl;
-            trueResid_nonc = (wp1_true + wp2_true) ./ ntrl;
-            trueG_conc = var_pdiff_true ./ (var_pdiff_true + trueResid_conc);   % nsub x 1
-            trueG_nonc = var_pdiff_true ./ (var_pdiff_true + trueResid_nonc);
+            % RESIDUAL DIAGONAL per event: the POOLED own residual wp_e = M_e + C_{e,p}
+            % (M_e the population person x trial mean interaction at b(e), added
+            % exactly once; C_{e,p} = 2 exp(2 (b(e) + u_pe) + 2 s_i(e)^2 - b_nu(e) - v_pe)
+            % the person's own trial-averaged observation variance). The copula
+            % preserves the marginals, so this is the non-concurrent diagonal.
+            wp1_true = PsyRAT3ARecoveryReference.pooledOwnResidual(M_true(1), ...
+                PsyRAT3ARecoveryReference.ownObservationVariance(b(1), u_p(:,1), s_i(1), b_nu(1), v_p(:,1)));
+            wp2_true = PsyRAT3ARecoveryReference.pooledOwnResidual(M_true(2), ...
+                PsyRAT3ARecoveryReference.ownObservationVariance(b(2), u_p(:,2), s_i(2), b_nu(2), v_p(:,2)));
+            % The population mean-interaction CROSS-covariance m_1 m_2 expm1(cP12)
+            % expm1(cI12) is exactly zero in THIS fixture because the trial
+            % effects are independent across events (cI12 = 0). Evaluate it rather
+            % than assume it, so adding the diagonal M_e terms provably needs no
+            % mean-interaction off-diagonal here. Not a general rule.
+            piCross_true = PsyRAT3ARecoveryReference.trialMeanCrossCovariance( ...
+                m_true(1), m_true(2), rho_mean * s_p(1) * s_p(2), 0);
+            testCase.assertEqual(piCross_true, 0, ...
+                'Population mean-interaction cross-covariance must be exactly zero at cI12 = 0.');
 
-            % ---- Fit (case 8 gamma, CONCURRENT copula) ----
-            rel = localRunDiffCopulaSserrGamma(testCase, dataTbl, 'recov_gamma_diff_sserr_copula');
+            % RESIDUAL OFF-DIAGONAL: the per-person CONCURRENT observation
+            % cross-covariance K_p = E_i[Cov(Y1,Y2|p,i)] by DIRECT simulation
+            % (unchanged distribution and design: 1.5e5 pairs per person, seed
+            % 24680), plus its Monte-Carlo standard error from the influence
+            % function of the sample covariance on the same draws.
+            [wpcov_true, wpcov_mcse] = localTrueConcResidCrossCov( ...
+                b, b_nu, s_i, u_p, v_p, rho_e_true, 1.5e5);
+            % concurrent: (wp1 + wp2 - 2 K)/ntrl (equal counts; what psyrat_ssrel_diff
+            % forms with trls1 = trls2 = ntrl); non-concurrent diagnostic: (wp1 + wp2)/ntrl
+            trueResid_conc = PsyRAT3ARecoveryReference.differenceError( ...
+                wp1_true, ntrl, wp2_true, ntrl, wpcov_true);
+            trueResid_nonc = PsyRAT3ARecoveryReference.differenceError( ...
+                wp1_true, ntrl, wp2_true, ntrl, 0);
+            trueG_conc = PsyRAT3ARecoveryReference.differenceCoefficient( ...
+                var_pdiff_true, trueResid_conc);                                % nsub x 1
+            trueG_nonc = PsyRAT3ARecoveryReference.differenceCoefficient( ...
+                var_pdiff_true, trueResid_nonc);
+            % First-order propagation of the K Monte-Carlo error to G_conc:
+            % dG/dK = 2 S / [ntrl (S + err)^2]. Reported and stored; the assertion
+            % thresholds below are unchanged.
+            trueG_conc_mcse = PsyRAT3ARecoveryReference.dGdK( ...
+                var_pdiff_true, trueResid_conc, ntrl) .* wpcov_mcse;
+            fprintf(['[diff copula sserr recovery] truth MC uncertainty: median K=%.4f ', ...
+                '(median mcse %.2e, max %.2e); max G_conc mcse=%.2e vs the unchanged ', ...
+                'sample-mean tolerance .06\n'], median(wpcov_true), median(wpcov_mcse), ...
+                max(wpcov_mcse), max(trueG_conc_mcse));
+            truth = struct('b', b, 'b_nu', b_nu, 's_p', s_p, 's_v', s_v, 's_i', s_i, ...
+                'rho_mean', rho_mean, 'rho_pv', rho_pv, 'rho_e', rho_e_true, ...
+                'nsub', nsub, 'ntrl', ntrl, ...
+                'P', P_true, 'I', I_true, 'M', M_true, 'm', m_true, ...
+                'cov_p_obs', cov_p_obs_true, 'signal', var_pdiff_true, ...
+                'pi_cross_cov', piCross_true, 'u_p', u_p, 'v_p', v_p, ...
+                'E_p', [wp1_true, wp2_true], 'K_p', wpcov_true, 'K_p_mcse', wpcov_mcse, ...
+                'error_conc_p', trueResid_conc, 'error_nonc_p', trueResid_nonc, ...
+                'G_conc_p', trueG_conc, 'G_conc_p_mcse', trueG_conc_mcse, 'G_nonc_p', trueG_nonc, ...
+                'K_simulation', 'direct: 150000 (trial, copula) pairs per person, rng(24680), sample covariance', ...
+                'K_mcse_method', 'influence function: sqrt(var((x-xbar).*(y-ybar))/N); dG/dK = 2S/[n (S+err)^2]', ...
+                'residual_definition', ['error_conc_p = (M_1 + C_{1,p} + M_2 + C_{2,p} - 2 K_p)/ntrl ', ...
+                '(population per-event mean interaction plus own observation variance, minus ', ...
+                'own concurrent cross-covariance; equal counts); G_p = S/(S + error_p), ', ...
+                'S = P_1 + P_2 - 2 CovP12'], ...
+                'generator', 'Gaussian copula on continuous gamma marginals, seed 12345');
+
+            % ---- Fit (case 8 gamma, CONCURRENT copula), with evidence capture ----
+            % (a no-op unless the capture root is set; see localCaptureStage)
+            fitTag = 'recov_gamma_diff_sserr_copula';
+            outDir = fullfile(localCmdStanOutputDir(testCase.projectRoot()), fitTag);
+            captureMeta = struct('test', 'TestGammaDiffCopulaSserrRecovery/testConcurrentSubjectLevelDifferenceReliabilityRecovered', ...
+                'analysis', 'ic_diff_sserrvar', 'diffest', 2, 'diffwpcov', 2, 'chains', 2, ...
+                'warmup', 1250, 'sampling', 750, 'seed', 12345, 'nsub', nsub, 'ntrl', ntrl, ...
+                'design', 'two-event concurrent (Gaussian copula) difference, persons x trials, subject-level');
+            localCaptureStage('static8_lognu_diff_copula_sserr_prefit', [], truth, dataTbl, outDir, ...
+                captureMeta, 'prefit');
+            try
+                rel = localRunDiffCopulaSserrGamma(testCase, dataTbl, fitTag);
+            catch fitErr
+                localCaptureStage('static8_lognu_diff_copula_sserr_fitfailed', ...
+                    struct('fit_error', getReport(fitErr, 'extended', 'hyperlinks', 'off')), ...
+                    truth, dataTbl, outDir, captureMeta, 'fitfailed');
+                rethrow(fitErr);
+            end
+            localCaptureStage('static8_lognu_diff_copula_sserr', rel, truth, dataTbl, outDir, ...
+                captureMeta, 'postfit');
             testCase.verifyEqual(rel.analysis, 'ic_diff_sserrvar');
             testCase.verifyEqual(rel.family, 'gamma');
             testCase.verifyEqual(rel.engine, 'cmdstan');
@@ -237,15 +351,22 @@ end
 tbl = table(ids, meas, evs, 'VariableNames', {'id', 'meas', 'event'});
 end
 
-function wpcov = localTrueConcResidCrossCov(b, b_nu, s_i, u_p, v_p, rho_e, NBIG)
+function [wpcov, mcse] = localTrueConcResidCrossCov(b, b_nu, s_i, u_p, v_p, rho_e, NBIG)
 % Direct brute-force truth for the per-person conditional residual cross-covariance
 % E_i[Cov(Y1,Y2|p,i)]. Trial effects are INDEPENDENT across events here, so the
 % trial-mean cross-cov Cov_i(mu1,mu2) = 0 and the sample covariance of (Y1,Y2) over
 % many (trial, copula) draws estimates E_i[Cov(Y1,Y2|p,i)] directly. Independent of
 % the extractor's mu*W factorization.
+%
+% The simulation (distribution, NBIG, seed, RNG call order) is unchanged. The
+% second output is the Monte-Carlo standard error of each person's sample
+% covariance from its influence function (PsyRAT3ARecoveryReference.covarianceMcse),
+% evaluated on the SAME draws; it consumes no random numbers, so wpcov is the
+% historical value bit for bit.
 rng(24680);
 nsub = size(u_p,1);
 wpcov = zeros(nsub,1);
+mcse  = zeros(nsub,1);
 for p = 1:nsub
     nu1 = exp(b_nu(1) + v_p(p,1));
     nu2 = exp(b_nu(2) + v_p(p,2));
@@ -259,6 +380,7 @@ for p = 1:nsub
     Y2 = gaminv(normcdf(z2), 0.5*nu2, 2*mu2/nu2);
     c = cov(Y1, Y2);
     wpcov(p) = c(1,2);
+    mcse(p) = PsyRAT3ARecoveryReference.covarianceMcse(Y1, Y2);
 end
 end
 
@@ -285,6 +407,37 @@ function outdir = localCmdStanOutputDir(projectRoot)
 outdir = fullfile(projectRoot, 'tests', 'integration', 'cmdstan_artifacts');
 if ~exist(outdir, 'dir')
     mkdir(outdir);
+end
+end
+
+function localCaptureStage(tag, rel, truth, dataTbl, outDir, meta, stage)
+% Evidence capture through the existing PsyRAT2CRecoveryCapture API (a no-op
+% unless PSYRAT_2C_RECOVERY_CAPTURE_DIR is set). Three stages, three tags:
+%   prefit    - data + truth only (no REL, no CmdStan output yet). The helper
+%               writes the MAT/CSV/JSON first and then reports the raw capture
+%               as INCOMPLETE because no chain CSV exists; that is the expected
+%               outcome here and is tolerated, so data and truth are on disk
+%               before CmdStan starts.
+%   fitfailed - the fit threw: preserve the error report with whatever CmdStan
+%               wrote (possibly partial or no chain CSVs); an incomplete raw
+%               capture is again tolerated, and the caller rethrows the fit error.
+%   postfit   - the complete REL + raw output, BEFORE any assertion; a capture
+%               failure here is a real failure and propagates (sibling pattern).
+% Any other capture error (non-absolute root, overlap with the scratch, an
+% existing destination) propagates at every stage. Nothing is deleted.
+if isempty(PsyRAT2CRecoveryCapture.captureDir())
+    return;
+end
+meta.stage = stage;
+try
+    PsyRAT2CRecoveryCapture.capture(tag, rel, truth, dataTbl, outDir, 'meta', meta);
+catch capErr
+    if strcmp(stage, 'postfit') || ...
+            ~strcmp(capErr.identifier, 'PsyRAT2CRecoveryCapture:rawCaptureIncomplete')
+        rethrow(capErr);
+    end
+    fprintf(['[3A recovery capture] %s (%s): data/truth preserved; raw CmdStan capture ', ...
+        'incomplete as expected at this stage (%s)\n'], tag, stage, capErr.message);
 end
 end
 

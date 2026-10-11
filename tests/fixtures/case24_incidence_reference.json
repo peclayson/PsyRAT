@@ -1,0 +1,3073 @@
+{
+  "provenance": "Frozen numeric projection of independent Fraction/Decimal reference, /tmp/psyrat_1c2a_science_20260913; no production/oracle imports. Full reference preserved in the local 1C/2A development evidence (not shipped).",
+  "fixtures": [
+    {
+      "name": "balanced",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 3,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6506278403583967,
+              0.70531649116253,
+              1.5920211210910489,
+              1.404290301184196
+            ],
+            [
+              0.724429622103938,
+              0.765836232459315,
+              1.3962561548655748,
+              1.251811187839444
+            ],
+            [
+              0.5280854838376963,
+              0.5977258399682458,
+              1.8906430784259625,
+              1.640741067322934
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.25,
+            0.07161458333333333
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "audit_irregular",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6755523749888184,
+              0.718964204112719,
+              1.5056144924913548,
+              1.3583077707206126
+            ],
+            [
+              0.6987647642232441,
+              0.7378141660319878,
+              1.4450346016618425,
+              1.3119641763401926
+            ],
+            [
+              0.547429646736806,
+              0.6092916984006093,
+              1.8184815093918332,
+              1.6015617378046967
+            ]
+          ],
+          "factors": [
+            0.375,
+            0.5,
+            0.1875,
+            0.094375
+          ],
+          "nsplit": 3,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "audit_missing_occasion",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.5741025233529339,
+              0.6153962635573811,
+              1.941286622320362,
+              1.7818091227738173
+            ],
+            [
+              0.5805001504344902,
+              0.6208476084117279,
+              1.9244723302765359,
+              1.7691364418834405
+            ],
+            [
+              0.4287891730733799,
+              0.484563987053056,
+              2.3083746987870057,
+              2.062727260206739
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.75,
+            0.375,
+            0.19401041666666666
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "within_person_unequal",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 8,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 8,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.5148856870142267,
+              0.5498762196009902,
+              2.1088108813578645,
+              1.9656423886353285
+            ],
+            [
+              0.5702628772775743,
+              0.5970583952235329,
+              1.9652183932920364,
+              1.8597714913397292
+            ],
+            [
+              0.4216258948570425,
+              0.4659967962720256,
+              2.342452418584705,
+              2.1409694066006644
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.3333333333333333,
+            0.2743055555555556
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "multiple_group_event_strata",
+      "rows": [
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 3,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "2",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "1",
+          "time": "2",
+          "weight": 8,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 8,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "A",
+          "event": "E1",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6506278403583967,
+              0.70531649116253,
+              1.5920211210910489,
+              1.404290301184196
+            ],
+            [
+              0.724429622103938,
+              0.765836232459315,
+              1.3962561548655748,
+              1.251811187839444
+            ],
+            [
+              0.5280854838376963,
+              0.5977258399682458,
+              1.8906430784259625,
+              1.640741067322934
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.25,
+            0.07161458333333333
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.5741025233529339,
+              0.6153962635573811,
+              1.941286622320362,
+              1.7818091227738173
+            ],
+            [
+              0.5805001504344902,
+              0.6208476084117279,
+              1.9244723302765359,
+              1.7691364418834405
+            ],
+            [
+              0.4287891730733799,
+              0.484563987053056,
+              2.3083746987870057,
+              2.062727260206739
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.75,
+            0.375,
+            0.19401041666666666
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6755523749888184,
+              0.718964204112719,
+              1.5056144924913548,
+              1.3583077707206126
+            ],
+            [
+              0.6987647642232441,
+              0.7378141660319878,
+              1.4450346016618425,
+              1.3119641763401926
+            ],
+            [
+              0.547429646736806,
+              0.6092916984006093,
+              1.8184815093918332,
+              1.6015617378046967
+            ]
+          ],
+          "factors": [
+            0.375,
+            0.5,
+            0.1875,
+            0.094375
+          ],
+          "nsplit": 3,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.5148856870142267,
+              0.5498762196009902,
+              2.1088108813578645,
+              1.9656423886353285
+            ],
+            [
+              0.5702628772775743,
+              0.5970583952235329,
+              1.9652183932920364,
+              1.8597714913397292
+            ],
+            [
+              0.4216258948570425,
+              0.4659967962720256,
+              2.342452418584705,
+              2.1409694066006644
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.3333333333333333,
+            0.2743055555555556
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "multiple_group_event_distinct_components",
+      "rows": [
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 3,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "2",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "1",
+          "time": "2",
+          "weight": 8,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "id": "2",
+          "time": "2",
+          "weight": 8,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "A",
+          "event": "E1",
+          "sd": [
+            3.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            2.0
+          ],
+          "expected": [
+            [
+              0.8170498922998791,
+              0.8575997647188575,
+              1.4752824588306246,
+              1.2704165983382512
+            ],
+            [
+              0.8641689930475293,
+              0.8933330882488099,
+              1.2615301555386353,
+              1.0995264132040363
+            ],
+            [
+              0.7367110626033868,
+              0.7940738562211642,
+              1.793448726151192,
+              1.5277297972263726
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.25,
+            0.07161458333333333
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        },
+        {
+          "group": "A",
+          "event": "E2",
+          "sd": [
+            2.0,
+            1.1,
+            1.0,
+            1.5,
+            0.7,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.5368055155460814,
+              0.5790640343063123,
+              1.941286622320362,
+              1.7818091227738173
+            ],
+            [
+              0.5998646646793102,
+              0.6794970064842245,
+              1.8489439553431575,
+              1.554780933122091
+            ],
+            [
+              0.44230204391921074,
+              0.5303391270120776,
+              2.2457946811763536,
+              1.8821115136994406
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.75,
+            0.375,
+            0.19401041666666666
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        },
+        {
+          "group": "B",
+          "event": "E1",
+          "sd": [
+            2.0,
+            0.8,
+            0.6,
+            1.8,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6630959697954166,
+              0.6804829699044873,
+              1.548588066594858,
+              1.4887074930959405
+            ],
+            [
+              0.7140778776208815,
+              0.751847179672013,
+              1.4450346016618425,
+              1.3119641763401926
+            ],
+            [
+              0.5377699352995546,
+              0.5766804829699045,
+              1.854218164078866,
+              1.7135489488193794
+            ]
+          ],
+          "factors": [
+            0.375,
+            0.5,
+            0.1875,
+            0.094375
+          ],
+          "nsplit": 3,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        },
+        {
+          "group": "B",
+          "event": "E2",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.9,
+            1.2,
+            4.0
+          ],
+          "expected": [
+            [
+              0.41101059455275507,
+              0.44054964998703655,
+              2.6007477557212058,
+              2.448241999657895
+            ],
+            [
+              0.4533837912222932,
+              0.47835105003889034,
+              2.4857370916669543,
+              2.364083096866286
+            ],
+            [
+              0.3388713700757754,
+              0.37334716100596316,
+              2.793544144789713,
+              2.5911173051193357
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.3333333333333333,
+            0.2743055555555556
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "id_occasion_delimiter_collision",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "p_;_q",
+          "time": "r",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "p_;_q",
+          "time": "r",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "p_;_q",
+          "time": "t",
+          "weight": 3,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "p_;_q",
+          "time": "t",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "p",
+          "time": "q_;_r",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "p",
+          "time": "t",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "p",
+          "time": "t",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "p",
+          "time": "t",
+          "weight": 40,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6407692851587358,
+              0.694809476347466,
+              1.626697830985624,
+              1.4398712326686254
+            ],
+            [
+              0.7131778451012509,
+              0.7544276623476194,
+              1.4356691239047155,
+              1.2915994606172096
+            ],
+            [
+              0.5204168756013932,
+              0.5888215901249713,
+              1.9199338096229603,
+              1.671295655073233
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.2916666666666667,
+            0.0791087962962963
+          ],
+          "nsplit": 2,
+          "nocc": 3,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "group_event_display_delimiter_collision",
+      "rows": [
+        {
+          "group": "A_;_B",
+          "event": "C",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A_;_B",
+          "event": "C",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A_;_B",
+          "event": "C",
+          "id": "1",
+          "time": "2",
+          "weight": 3,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A_;_B",
+          "event": "C",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A_;_B",
+          "event": "C",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A_;_B",
+          "event": "C",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A_;_B",
+          "event": "C",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A_;_B",
+          "event": "C",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "1",
+          "time": "2",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "A_;_B",
+          "event": "C",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6506278403583967,
+              0.70531649116253,
+              1.5920211210910489,
+              1.404290301184196
+            ],
+            [
+              0.724429622103938,
+              0.765836232459315,
+              1.3962561548655748,
+              1.251811187839444
+            ],
+            [
+              0.5280854838376963,
+              0.5977258399682458,
+              1.8906430784259625,
+              1.640741067322934
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.25,
+            0.07161458333333333
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        },
+        {
+          "group": "A",
+          "event": "B_;_C",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6755523749888184,
+              0.718964204112719,
+              1.5056144924913548,
+              1.3583077707206126
+            ],
+            [
+              0.6987647642232441,
+              0.7378141660319878,
+              1.4450346016618425,
+              1.3119641763401926
+            ],
+            [
+              0.547429646736806,
+              0.6092916984006093,
+              1.8184815093918332,
+              1.6015617378046967
+            ]
+          ],
+          "factors": [
+            0.375,
+            0.5,
+            0.1875,
+            0.094375
+          ],
+          "nsplit": 3,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "literal_none_is_real_group_label",
+      "rows": [
+        {
+          "group": "none",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 3,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "E1",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6506278403583967,
+              0.70531649116253,
+              1.5920211210910489,
+              1.404290301184196
+            ],
+            [
+              0.724429622103938,
+              0.765836232459315,
+              1.3962561548655748,
+              1.251811187839444
+            ],
+            [
+              0.5280854838376963,
+              0.5977258399682458,
+              1.8906430784259625,
+              1.640741067322934
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.25,
+            0.07161458333333333
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        },
+        {
+          "group": "patients",
+          "event": "E1",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6755523749888184,
+              0.718964204112719,
+              1.5056144924913548,
+              1.3583077707206126
+            ],
+            [
+              0.6987647642232441,
+              0.7378141660319878,
+              1.4450346016618425,
+              1.3119641763401926
+            ],
+            [
+              0.547429646736806,
+              0.6092916984006093,
+              1.8184815093918332,
+              1.6015617378046967
+            ]
+          ],
+          "factors": [
+            0.375,
+            0.5,
+            0.1875,
+            0.094375
+          ],
+          "nsplit": 3,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "physical_labels_shared_ordinal_model",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "1"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "2"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 3,
+          "physical_split": "1"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "2"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "1"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "2"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "1"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "2"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6506278403583967,
+              0.70531649116253,
+              1.5920211210910489,
+              1.404290301184196
+            ],
+            [
+              0.724429622103938,
+              0.765836232459315,
+              1.3962561548655748,
+              1.251811187839444
+            ],
+            [
+              0.5280854838376963,
+              0.5977258399682458,
+              1.8906430784259625,
+              1.640741067322934
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.25,
+            0.07161458333333333
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "physical_labels_disjoint_ordinal_model",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "o1_1"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "o1_2"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 3,
+          "physical_split": "o2_1"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "o2_2"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "o1_1"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "o1_2"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "o2_1"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "o2_2"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6506278403583967,
+              0.70531649116253,
+              1.5920211210910489,
+              1.404290301184196
+            ],
+            [
+              0.724429622103938,
+              0.765836232459315,
+              1.3962561548655748,
+              1.251811187839444
+            ],
+            [
+              0.5280854838376963,
+              0.5977258399682458,
+              1.8906430784259625,
+              1.640741067322934
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.25,
+            0.07161458333333333
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "label_renaming_and_noncontiguous_rows",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "zeta",
+          "time": "late_label",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "zeta",
+          "time": "early_label",
+          "weight": 3,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "alpha",
+          "time": "late_label",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "alpha",
+          "time": "early_label",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "zeta",
+          "time": "late_label",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "zeta",
+          "time": "early_label",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "alpha",
+          "time": "late_label",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "alpha",
+          "time": "early_label",
+          "weight": 40,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6506278403583967,
+              0.70531649116253,
+              1.5920211210910489,
+              1.404290301184196
+            ],
+            [
+              0.724429622103938,
+              0.765836232459315,
+              1.3962561548655748,
+              1.251811187839444
+            ],
+            [
+              0.5280854838376963,
+              0.5977258399682458,
+              1.8906430784259625,
+              1.640741067322934
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.25,
+            0.07161458333333333
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "observed_available_occasions"
+        }
+      ]
+    },
+    {
+      "name": "override_obs_only",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": 3,
+      "nocc": null,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.7415553809897879,
+              0.7879799666110183,
+              1.282575533838066,
+              1.1269427669584644
+            ],
+            [
+              0.7478352138546314,
+              0.7929883138564274,
+              1.2655697004379753,
+              1.1135528725660044
+            ],
+            [
+              0.5983545250560958,
+              0.667779632721202,
+              1.638596960817394,
+              1.4106735979665885
+            ]
+          ],
+          "factors": [
+            0.375,
+            0.5,
+            0.1875,
+            0.094375
+          ],
+          "nsplit": 3,
+          "nocc": 2,
+          "mode": "explicit_balanced_projection"
+        }
+      ]
+    },
+    {
+      "name": "override_nocc_only",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": null,
+      "nocc": 3,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.7544910179640718,
+              0.803347280334728,
+              1.207384685084989,
+              1.0472185381603338
+            ],
+            [
+              0.81646294881589,
+              0.8517632994620442,
+              1.0333333333333334,
+              0.9092121131323904
+            ],
+            [
+              0.6502890173410405,
+              0.7172743574417214,
+              1.4666666666666666,
+              1.2556538801224908
+            ]
+          ],
+          "factors": [
+            0.375,
+            0.5,
+            0.1875,
+            0.094375
+          ],
+          "nsplit": 3,
+          "nocc": 3,
+          "mode": "explicit_balanced_projection"
+        }
+      ]
+    },
+    {
+      "name": "override_both",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": 5,
+      "nocc": 4,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.8419426474847929,
+              0.877970197341925,
+              0.9047098982546836,
+              0.7784600182411425
+            ],
+            [
+              0.8660114819499855,
+              0.896093435360451,
+              0.8297590011563598,
+              0.7183313998427189
+            ],
+            [
+              0.7492741406762199,
+              0.8054772452678212,
+              1.1569356075426152,
+              0.9828529900244491
+            ]
+          ],
+          "factors": [
+            0.375,
+            0.5,
+            0.1875,
+            0.094375
+          ],
+          "nsplit": 5,
+          "nocc": 4,
+          "mode": "explicit_balanced_projection"
+        }
+      ]
+    },
+    {
+      "name": "override_fractional_rounding",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 100,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": 2.5,
+      "nocc": 1.5,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.7415553809897879,
+              0.7879799666110183,
+              1.282575533838066,
+              1.1269427669584644
+            ],
+            [
+              0.7478352138546314,
+              0.7929883138564274,
+              1.2655697004379753,
+              1.1135528725660044
+            ],
+            [
+              0.5983545250560958,
+              0.667779632721202,
+              1.638596960817394,
+              1.4106735979665885
+            ]
+          ],
+          "factors": [
+            0.375,
+            0.5,
+            0.1875,
+            0.094375
+          ],
+          "nsplit": 3,
+          "nocc": 2,
+          "mode": "explicit_balanced_projection"
+        }
+      ]
+    },
+    {
+      "name": "explicit_same_count_still_projection",
+      "rows": [
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 1,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "1",
+          "weight": 2,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 3,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "1",
+          "time": "2",
+          "weight": 4,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 10,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "1",
+          "weight": 20,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 30,
+          "physical_split": "unused"
+        },
+        {
+          "group": "none",
+          "event": "none",
+          "id": "2",
+          "time": "2",
+          "weight": 40,
+          "physical_split": "unused"
+        }
+      ],
+      "obs": 2,
+      "nocc": 2,
+      "strata": [
+        {
+          "group": "none",
+          "event": "none",
+          "sd": [
+            2.0,
+            0.8,
+            1.0,
+            1.5,
+            1.2,
+            0.5,
+            0.9,
+            3.0
+          ],
+          "expected": [
+            [
+              0.6506278403583967,
+              0.70531649116253,
+              1.5920211210910489,
+              1.404290301184196
+            ],
+            [
+              0.724429622103938,
+              0.765836232459315,
+              1.3962561548655748,
+              1.251811187839444
+            ],
+            [
+              0.5280854838376963,
+              0.5977258399682458,
+              1.8906430784259625,
+              1.640741067322934
+            ]
+          ],
+          "factors": [
+            0.5,
+            0.5,
+            0.25,
+            0.07161458333333333
+          ],
+          "nsplit": 2,
+          "nocc": 2,
+          "mode": "explicit_balanced_projection"
+        }
+      ]
+    }
+  ]
+}

@@ -19,7 +19,7 @@ classdef TestStartprocDodmapPreserve < PsyRATTestBase
     %unconditionally; the only signal was a tooltip flip, and re-opening the
     %configurator seeded a DIFFERENT valid mapping (data first-appearance
     %order, made alphabetical by the Save itself). Observed live 2026-08-13;
-    %B20 in PSYRAT_AUDIT_FINDINGS.md.
+    %Finding B20.
 
     methods (Test)
 

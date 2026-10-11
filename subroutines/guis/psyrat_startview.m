@@ -18,7 +18,7 @@ function psyrat_startview(varargin)
 %  will have the option of saving various figures and plots that will be 
 %  created by psyrat_relfigures, which is executed by this gui 
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ end
 %is located.
 if ~exist('file','var') && isempty(psyrat_data)
     [filepart, pathpart] = uigetfile({'*.psyrat',...
-        'PsyRAT Toolbox files (*.psyrat)'},'Data');
+        'PsyRAT files (*.psyrat)'},'Data');
 
     if filepart == 0
         %relaunch FIRST, dialog LAST (B20 creation-order lesson): modality
@@ -98,6 +98,18 @@ if ~isfield(psyrat_data,'ver') || isempty(psyrat_data.ver)
     psyrat_data.ver = '(not recorded)';
 end
 
+%likewise the measurement name, which the setup viewers print unguarded
+%(G112): shipped fitting always records proc.measheader, but a hand-built or
+%externally produced result may lack proc or the field. A proc that is not a
+%scalar struct is left alone: shipped results never carry one
+if ~isfield(psyrat_data,'proc') || isempty(psyrat_data.proc)
+    psyrat_data.proc = struct();
+end
+if isstruct(psyrat_data.proc) && isscalar(psyrat_data.proc) && ...
+        (~isfield(psyrat_data.proc,'measheader') || isempty(psyrat_data.proc.measheader))
+    psyrat_data.proc.measheader = '(not recorded)';
+end
+
 %flag a non-CmdStan (native-engine) run before viewing, so the user sees that
 %the results are approximate / not bit-identical to CmdStan. CmdStan runs and
 %legacy files (no engine field) produce no notice, so the default workflow is
@@ -115,14 +127,16 @@ end
 %flag estimation-diagnostic problems (failed convergence and/or divergent
 %transitions) before viewing, so a GUI-only user who never reads the MATLAB
 %console is not shown reliability coefficients from an untrustworthy fit with no
-%warning. psyrat_convergence_notice returns '' for clean runs and for legacy
-%files lacking the diagnostic fields, so the default workflow is unchanged.
-%uiwait blocks here for the same reason as the engine notice above: a non-modal
-%warndlg would be hidden behind the view-setup figure built below.
+%warning. The notice also labels clean checks as early-workflow only, and
+%discloses unrecorded source/precision in legacy diagnostic records.
+%Risk notices require acknowledgment before setup. Scope-only information is
+%created after setup without blocking, so automated and legacy viewers return.
+conv_notice='';
 if isfield(psyrat_data,'rel')
-    conv_notice = psyrat_convergence_notice(psyrat_data.rel);
-    if ~isempty(conv_notice)
+    [conv_notice,requires_ack] = psyrat_convergence_notice(psyrat_data.rel);
+    if ~isempty(conv_notice)&&requires_ack
         uiwait(warndlg(conv_notice,'Estimation diagnostics'));
+        conv_notice='';
     end
 end
 
@@ -153,5 +167,9 @@ switch psyrat_analysis_family(analysis_str)
         %nonparallel data splits (observed design, no projection/cutoff)
         psyrat_startview_splits('psyrat_prefs',psyrat_prefs,'psyrat_data',psyrat_data);
 end
+
+%Scope-only information stays visible without adding a blocking workflow step.
+%Create it after the setup window so it is not hidden behind that window.
+if ~isempty(conv_notice); warndlg(conv_notice,'Estimation diagnostics'); end
 
 end

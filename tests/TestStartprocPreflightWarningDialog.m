@@ -30,6 +30,29 @@ classdef TestStartprocPreflightWarningDialog < matlab.unittest.TestCase
             testCase.verifyTrue(~isempty(regexp(span, 'warndlg\s*\([^;]*''modal''', 'once')), ...
                 'the warning dialog must be modal');
         end
+
+        function testEstimationCallbackRaisesRestrictedNoticeBeforeTheSaveDialog(testCase)
+            %Queue row 3a (owner rulings 2-4, 2026-09-21): the RESTRICTED
+            %design-maturity notice for the gamma two-facet designs is
+            %raised ONCE, through uiwait(warndlg(..., 'modal')) like the
+            %preflight warnings, and BEFORE the uiputfile save dialog, so
+            %the user can still back out with Cancel. The behavior is
+            %driven through the real callback in TestStartprocAnalyzeDrive;
+            %this pins the placement, which a drive cannot see.
+            src = localReadSource('subroutines/guis/psyrat_startproc.m');
+            i0 = strfind(src, 'psyrat_gamma_twofacet_restriction(');
+            testCase.assertEqual(numel(i0), 1, ...
+                'expected exactly one restricted-notice site in psyrat_startproc');
+            isave = strfind(src, 'uiputfile(');
+            testCase.assertNotEmpty(isave, 'no save dialog in psyrat_startproc');
+            testCase.verifyLessThan(i0, min(isave), ...
+                'the restricted-design notice must precede the save dialog');
+            span = src(i0:min(isave));
+            testCase.verifyTrue(~isempty(regexp(span, 'uiwait\s*\(\s*warndlg\s*\(', 'once')), ...
+                'the notice must be raised through uiwait(warndlg(...)) so the run waits for acknowledgment');
+            testCase.verifyTrue(~isempty(regexp(span, 'warndlg\s*\([^;]*''modal''', 'once')), ...
+                'the notice dialog must be modal');
+        end
     end
 end
 

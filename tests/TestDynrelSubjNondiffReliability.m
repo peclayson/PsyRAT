@@ -226,33 +226,63 @@ classdef TestDynrelSubjNondiffReliability < PsyRATTestBase
         end
 
         function testGammaTwoFacetPerSubjectMatchesCalculator(testCase)
-            data = PsyRATTestDataFactory.makeGammaDynrelSubjNondiffTrtSummaryData();
-            o = data.rel.out;
-            gro = cell2mat(o.gro_sds{1});
-            % local_resolve_nocc default when 'nocc' is unset is 1 (the owner
-            % default), NOT REL.out.nocc - that is only used for 'observed'. Same
-            % assumption the Gaussian two-facet test above makes.
-            nocc = 1;
+            % WIRING PARITY between psyrat_dynrel_summary and the direct
+            % analysis-27 calculator, under BOTH per-participant remainder
+            % schemes. The factory result is an UNSTAMPED (legacy) analysis 27,
+            % which the summary correctly summarizes under the observation-only
+            % scheme, while a direct calculator call defaults to the approved
+            % R + C scheme (Q8); comparing those two would compare different
+            % schemes. So each scheme is exercised on its own footing: the
+            % legacy scheme on the factory data as produced, the v2 scheme after
+            % the explicit versioned reprocessing has stamped the result. This
+            % pins the summary's routing to the calculator; the numerical content
+            % of either scheme is pinned elsewhere (independent oracles).
+            schemes = {'legacy_observation_only_v1', ...
+                'population_highest_order_plus_person_observation_v2'};
+            for k = 1:numel(schemes)
+                scheme = schemes{k};
+                data = PsyRATTestDataFactory.makeGammaDynrelSubjNondiffTrtSummaryData();
+                if strcmp(scheme, 'population_highest_order_plus_person_observation_v2')
+                    % explicit, versioned migration is the only route to v2 for a
+                    % result saved without a gamma_target marker
+                    data = psyrat_reprocess_gamma_result(data);
+                end
+                o = data.rel.out;
+                gro = cell2mat(o.gro_sds{1});
+                % local_resolve_nocc default when 'nocc' is unset is 1 (the owner
+                % default), NOT REL.out.nocc - that is only used for 'observed'.
+                % Same assumption the Gaussian two-facet test above makes.
+                nocc = 1;
 
-            [gen, dep] = psyrat_ssrel_dynrel_trt_gamma( ...
-                'alpha0', o.mu, 'b', cell2mat(o.b{1}), ...
-                'lognu0', o.pop_lognu, 'b_nu', cell2mat(o.b_nu{1}), ...
-                'sig_p', gro(:,1), 'sig_occ', o.sig_occ, 'sig_trl', o.sig_trl, ...
-                'sig_occxid', o.sig_occxid, 'sig_trlxid', o.sig_trlxid, ...
-                'sig_trlxocc', o.sig_trlxocc, ...
-                'ind_bs', cell2mat(o.ind_bs{1}), 'ind_nu', cell2mat(o.ind_nu{1}), ...
-                'idtable', o.ssinfo{1}, 'ndim', 1, 'reltype', 3, ...
-                'nocc', nocc, 'CI', 0.95);
+                [gen, dep] = psyrat_ssrel_dynrel_trt_gamma( ...
+                    'alpha0', o.mu, 'b', cell2mat(o.b{1}), ...
+                    'lognu0', o.pop_lognu, 'b_nu', cell2mat(o.b_nu{1}), ...
+                    'sig_p', gro(:,1), 'sig_occ', o.sig_occ, 'sig_trl', o.sig_trl, ...
+                    'sig_occxid', o.sig_occxid, 'sig_trlxid', o.sig_trlxid, ...
+                    'sig_trlxocc', o.sig_trlxocc, ...
+                    'ind_bs', cell2mat(o.ind_bs{1}), 'ind_nu', cell2mat(o.ind_nu{1}), ...
+                    'idtable', o.ssinfo{1}, 'ndim', 1, 'reltype', 3, ...
+                    'nocc', nocc, 'CI', 0.95, 'remainder_scheme', scheme);
 
-            summ = psyrat_dynrel_summary(data.rel, 'CI', 0.95);
-            T = summ.strata(1).ssrel_table;
+                % the summary is called with its defaults: the scheme must come
+                % from the result's marker (absent -> legacy; stamped -> v2)
+                summ = psyrat_dynrel_summary(data.rel, 'CI', 0.95);
+                testCase.assertEqual(summ.gamma_target.remainder_scheme, scheme, ...
+                    sprintf('summary did not resolve the expected scheme (%s)', scheme));
+                T = summ.strata(1).ssrel_table;
 
-            testCase.verifyEqual(T.gen_pt, gen.dep_pt, 'AbsTol', 1e-12);
-            testCase.verifyEqual(T.dep_pt, dep.dep_pt, 'AbsTol', 1e-12);
-            % RC-06 regression guard, gamma side: the absolute-error ICC must not
-            % exceed the relative-error one.
-            for r = 1:height(T)
-                testCase.verifyLessThanOrEqual(T.iccd_pt(r), T.iccg_pt(r) + 1e-12);
+                testCase.verifyEqual(T.gen_pt, gen.dep_pt, 'AbsTol', 1e-12, scheme);
+                testCase.verifyEqual(T.dep_pt, dep.dep_pt, 'AbsTol', 1e-12, scheme);
+                testCase.verifyEqual(T.iccg_pt, gen.icc_pt, 'AbsTol', 1e-12, scheme);
+                testCase.verifyEqual(T.iccd_pt, dep.icc_pt, 'AbsTol', 1e-12, scheme);
+                testCase.verifyEqual(T.sem_gen_pt, gen.sem_pt, 'AbsTol', 1e-12, scheme);
+                testCase.verifyEqual(T.sem_dep_pt, dep.sem_pt, 'AbsTol', 1e-12, scheme);
+                testCase.verifyEqual(T.trls, o.ssinfo{1}.trls, scheme);
+                % RC-06 regression guard, gamma side: the absolute-error ICC must
+                % not exceed the relative-error one.
+                for r = 1:height(T)
+                    testCase.verifyLessThanOrEqual(T.iccd_pt(r), T.iccg_pt(r) + 1e-12);
+                end
             end
         end
 

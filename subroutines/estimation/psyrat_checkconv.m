@@ -13,7 +13,7 @@ function RELout = psyrat_checkconv(REL)
 % RELout - structure array with the following added fields
 %  out.conv.converged - 1 data converged, 0 data did not converge
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -41,131 +41,61 @@ if nargin ~= 1
     'See help psyrat_checkconv for more information on  inputs'));
 end
 
-%pull the dimensions to figure out if there are nested cell arrays
-%if there are there will be 1 row and multiple columns (a = 1)
-[a,nloops] = size(REL.out.conv.data);
-
-%FAIL CLOSED (audit 2026-09-05). Two edge states used to certify convergence:
-%(1) a NaN R-hat or n_eff, which stansummary prints for a parameter with zero
-%variance across draws (a chain stuck at a constant is the textbook pathology
-%this hides) and str2double returns as NaN -- and NaN >= 1.1 and NaN < floor
-%are both false, so the parameter was never flagged; (2) a convergence table
-%with no parameter rows at all (no summary row matched the design's prefix
-%list), for which find([] ...) is empty and the run read as converged. Both
-%now read as NOT converged: the comparisons below are spelled as the negation
-%of the pass condition so NaN lands on the failing side, a table with fewer
-%than two rows (header only) fails, and a result with no tables at all fails.
-%Finite values behave exactly as before, so every ordinary run is unchanged.
-%REFINED 2026-09-07 (owner ruling, at the tutorial refit): a row whose n_eff AND
-%R-hat are both NaN is a parameter that is constant by construction, not a stuck
-%chain, and is excluded from the gate; see local_varying_rows below.
-result = 0;
-
-%if there is more than 1 row then that means there is only one set of
-%convergence statistics to examine
-if a == 1
-
-    for i=1:nloops
-        %pull data from REL
-        %first check r_hats
-        data = REL.out.conv.data{i};
-        if size(data,1) < 2
-            %header only: nothing was monitored, so nothing was shown to converge
-            result = 0;
-            break;
+%Only model-backed deterministic rows may be excluded. Unexpected NaNs,
+%nonfinite values, malformed rows and missing required diagnostics fail closed.
+tables=REL.out.conv.data;
+if isempty(tables); tables={};
+elseif iscell(tables)&&all(cellfun(@iscell,tables(:))); tables=reshape(tables,1,[]);
+else; tables={tables}; end
+result=~isempty(tables); excluded={}; invalid={}; diagnostics=cell(size(tables));
+for k=1:numel(tables)
+    tbl=tables{k}; m=psyrat_diagnostic_metadata(tbl); diagnostics{k}=m;
+    if ~iscell(tbl) || size(tbl,1)<2 || size(tbl,2)<3
+        result=false; invalid{end+1}='diagnostics_unavailable'; continue; %#ok<AGROW>
+    end
+    names=tbl(2:end,1); assessed=0;
+    validnames=cellfun(@(x)ischar(x)||(isstring(x)&&isscalar(x)),names);
+    if ~all(validnames); result=false; end
+    names=cellfun(@char,names(validnames),'UniformOutput',false);
+    if ~isempty(setdiff(m.expected_names,names))
+        result=false; missing=setdiff(m.expected_names,names); invalid=[invalid reshape(missing,1,[])]; %#ok<AGROW>
+    end
+    for j=2:size(tbl,1)
+        name=tbl{j,1}; ess=tbl{j,2}; rhat=tbl{j,3};
+        if ~(ischar(name) || (isstring(name)&&isscalar(name))) || ...
+                ~isnumeric(ess) || ~isnumeric(rhat) || ~isscalar(ess) || ~isscalar(rhat)
+            result=false; invalid{end+1}='malformed_diagnostic_row'; continue; %#ok<AGROW>
         end
-        rhatv = [data{2:end,3}];
-        neffv = [data{2:end,2}];
-        varying = local_varying_rows(neffv, rhatv);
-        if ~any(varying)
-            %every monitored row is a constant by construction: nothing was
-            %shown to converge (the same reading as the header-only table)
-            result = 0;
-            break;
+        name=char(name);
+        if isreal(ess) && isreal(rhat) && isnan(ess) && isnan(rhat) && ...
+                any(strcmp(name,m.permitted_constants))
+            excluded{end+1}=name; %#ok<AGROW>
+            continue;
         end
-
-        %see if any of the rhats didn't equal 1 (i.e., did not converge);
-        %spelled as ~(passes) so a NaN R-hat on a varying row is flagged
-        indbad = find(~(rhatv(varying) < 1.1));
-
-        %specify whether convergenece between chains was reached
-        if ~isempty(indbad)
-            result = 0;
-            break;
-        else
-            result = 1;
-        end
-
-        if result == 1
-            %check whether neff is (5*2*nchains)
-            %see if any n_eff fell below the floor (i.e., did not converge);
-            %spelled as ~(passes) so a NaN n_eff on a varying row is flagged
-            indbad = find(~(neffv(varying) >= (5*2*REL.nchains)));
-
-            %specify whethere convergenece between chains was reached
-            if ~isempty(indbad)
-                result = 0;
-                break;
-            else
-                result = 1;
-            end
+        assessed=assessed+1;
+        if ~isreal(ess) || ~isreal(rhat) || ~isfinite(ess) || ~isfinite(rhat) || ...
+                ~(ess>=10*REL.nchains && rhat>0 && rhat<1.1)
+            result=false; invalid{end+1}=name; %#ok<AGROW>
         end
     end
-    
-elseif a ~= 1
-    
-    %pull data from REL
-    %first check r_hats
-    rhatv = [REL.out.conv.data{2:end,3}];
-    neffv = [REL.out.conv.data{2:end,2}];
-    varying = local_varying_rows(neffv, rhatv);
-
-    %see if any of the rhats didn't equal 1 (i.e., did not converge);
-    %spelled as ~(passes) so a NaN R-hat on a varying row is flagged; a
-    %header-only table (no monitored parameter) and an all-constant table (no
-    %varying row) fail rather than pass
-    indbad = find(~(rhatv(varying) < 1.1));
-
-    %specify whether convergenece between chains was reached
-    if ~isempty(indbad) || size(REL.out.conv.data,1) < 2 || ~any(varying)
-        result = 0;
-    else
-        result = 1;
-    end
-
-    if result == 1
-        %check whether neff is (5*2*nchains)
-        %see if any n_eff fell below the floor (i.e., did not converge);
-        %spelled as ~(passes) so a NaN n_eff on a varying row is flagged
-        indbad = find(~(neffv(varying) >= (5*2*REL.nchains)));
-
-        %specify whethere convergenece between chains was reached
-        if ~isempty(indbad)
-            result = 0;
-        else
-            result = 1;
-        end
-    end
+    if assessed==0; result=false; end
 end
-    
-    
-REL.out.conv.converged = result;
-RELout = REL;
-
+REL.out.conv.converged=double(result);
+REL.out.conv.excluded=unique(excluded(:),'stable');
+REL.out.conv.invalid=unique(invalid(:),'stable');
+REL.out.conv.diagnostics=diagnostics;
+REL.out.conv.assessment_scope='early-workflow Rhat/ESS check';
+REL.out.conv.thresholds=struct('rhat_less_than',1.1,'ess_at_least',10*REL.nchains);
+if isfield(REL,'engine') && strcmpi(REL.engine,'fitlme')
+    REL.out.conv.assessment_scope='REML optimizer validity and bootstrap count floor';
+    % The Rhat/ESS row is an internal compatibility sentinel, not measured
+    % MCMC diagnostics. Describe the actual approved per-fit rule publicly.
+    REL.out.conv.thresholds=struct('original_fit_must_be_valid',true, ...
+        'per_fit',true,'bootstrap_success_fraction_at_least',.9, ...
+        'bootstrap_success_count_at_least',200, ...
+        'bootstrap_count_floor_applies_from_requested',200);
 end
-
-function varying = local_varying_rows(neffv, rhatv)
-%Which monitored rows can carry a convergence verdict. stansummary prints NaN for
-%BOTH n_eff and R-hat when a parameter never moves in any chain, and the monitored
-%set contains such parameters by design: correlation-matrix diagonals fixed at 1,
-%and disabled covariance / residual-correlation placeholders fixed at 0. The
-%2026-09-05 fail-closed rule flagged them, so every design that monitors one (most
-%designs beyond the plain one-facet and test-retest models) could never converge,
-%and the tutorial refit broke on chapter 15's subject-level difference fit after
-%four automatic reruns (owner ruling 2026-09-07). Rows with NaN in both columns
-%are excluded here. A NaN in only one column is not the constant signature and is
-%still flagged by the callers; chains stuck at DIFFERENT constants give an Inf
-%R-hat, which ~(Inf < 1.1) still flags.
-varying = ~(isnan(neffv) & isnan(rhatv));
+REL.out.conv.final_inference='unassessed';
+REL.out.conv.final_inference_reason='Quantity-specific MCSE and uncertainty calibration are not established by this gate.';
+RELout=REL;
 end
-

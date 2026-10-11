@@ -37,7 +37,7 @@ classdef TestStartprocPreflightAgreement < PsyRATTestBase
     % unconditionally (the family requirement this note once described was
     % dropped when the Gaussian 28/29 arm landed; the gate's own comment says
     % the family is no longer part of it). That asymmetry is recorded under B17
-    % in PSYRAT_AUDIT_FINDINGS.md, and this note previously said the
+    % in the findings ledger, and this note previously said the
     % combination was rejected outright, which has been false since the gate
     % learned the 28/29 design.
     %

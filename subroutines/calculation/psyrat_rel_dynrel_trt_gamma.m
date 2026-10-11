@@ -33,11 +33,20 @@ function out = psyrat_rel_dynrel_trt_gamma(varargin)
 %facet main effects, exactly as the static test-retest gamma path. NOTE that ALL
 %components vary with z here (everything is on the multiplicative/log scale).
 %
-%ESTIMAND. The observation-variance term is MARGINALIZED over the person
-%population's dispersion heterogeneity (estimand #2), the same convention the
-%static gamma family uses: the person log-nu SD (sig_v) and its correlation with
-%the person mean (rho_pv) are propagated into the converter as (s_v, cov_pv).
-%There is no separate typical-person / population-average toggle.
+%ESTIMAND (two surface targets, Q9/GUI-1, owner rulings 9-12 and 2026-09-13).
+%Both targets keep the six population mean components and the highest-order
+%mean-surface remainder R at z; they differ only in the observation part:
+%  'population_marginal' (default, the PRIMARY): R + C_pop, C_pop MARGINALIZED
+%      over the person population's dispersion heterogeneity (estimand #2; the
+%      person log-nu SD sig_v and its correlation rho_pv enter the converter as
+%      (s_v, cov_pv)) on each draw before the coefficient. The surface every
+%      earlier version reported.
+%  'typical_person' (the COMPANION): R + C_typ, C_typ = 2 exp(2 alpha(z) +
+%      2 V_w - log nu(z)) with BOTH person effects zero and V_w the five
+%      non-person log-mean variances. Not the marginal residual with s_v = 0;
+%      the two coincide only when 4 s_p^2 + s_v^2 - 4 cov_pv = 0.
+%'surface_target' selects between the two (psyrat_gamma_surface_target
+%validates; any other value errors); out.surface_target records the one used.
 %
 %Inputs (name-value; all posterior-draw inputs are column vectors of length
 %ndraws, or draws x KDIM for the slope blocks)
@@ -110,6 +119,9 @@ ciperc      = psyrat_req(varargin,'CI','Please input CI.');
 z2      = psyrat_opt(varargin,'z2',[]);
 nocc    = psyrat_opt(varargin,'nocc',1);
 reltype = psyrat_opt(varargin,'reltype',3);
+%surface target (Q9): 'population_marginal' (default, the primary) or
+%'typical_person' (companion). Validated, never coerced.
+surface_target = psyrat_gamma_surface_target(psyrat_opt(varargin,'surface_target',[]));
 
 if ~any(ndim == [1 2])
     error('varargin:ndim','WARNING: ndim must be 1 or 2.\n');
@@ -142,6 +154,11 @@ sig_trlxocc = sig_trlxocc(:);
 %log-scale person mean<->log-nu covariance (pass the covariance directly to the
 %converter; estimand #2), identical to psyrat_gamma_extract_trt.
 cov_pv = rho_pv .* sig_p .* sig_v;
+
+%WITHIN-person log-mean variance W = V - s_p^2 (the five non-person facets),
+%the second-moment factor of the typical-person observation variance; only
+%the companion target reads it.
+V_w = sig_occ.^2 + sig_trl.^2 + sig_occxid.^2 + sig_trlxid.^2 + sig_trlxocc.^2;
 
 %b/b_nu must be draws x KDIM (KDIM = 1 for one dimension; 3 for two).
 kdim = size(b,2);
@@ -194,6 +211,26 @@ for a = 1:nz1
         vc = psyrat_gamma_varcomps_trt(alpha_z, sig_p, sig_occ, sig_trl, ...
             sig_occxid, sig_trlxid, sig_trlxocc, nu_z, sig_v, cov_pv);
 
+        %residual at this z for the SELECTED surface target (Q9). Both targets
+        %keep the six population mean components and the highest-order
+        %(person x occasion x trial) mean-surface remainder R and differ only
+        %in the observation part:
+        %  population_marginal: R + C_pop = vc.sigma_res2 (subtraction form),
+        %      C_pop marginalized over the person (u, v) population BEFORE the
+        %      coefficient is formed on each draw;
+        %  typical_person:      R + C_typ, R from psyrat_gamma_mean_remainder_trt
+        %      (the same R the subject calculators pool, so an equal-count
+        %      zero-effect participant sits on this surface) and
+        %      C_typ = 2 exp(2 alpha(z) + 2 V_w - log nu(z)), BOTH person effects
+        %      zero. Not the marginal residual with s_v = 0.
+        if strcmp(surface_target,'typical_person')
+            R_z = psyrat_gamma_mean_remainder_trt(alpha_z, sig_p, sig_occ, ...
+                sig_trl, sig_occxid, sig_trlxid, sig_trlxocc);
+            resid_z = R_z + 2 .* exp(2.*alpha_z + 2.*V_w - log(nu_z));
+        else
+            resid_z = vc.sigma_res2;
+        end
+
         %SD-equivalents feeding psyrat_rel_trt exactly as psyrat_gamma_extract_trt
         %(bp<-sigma_p, bo<-sigma_o, bt<-sigma_t, txp<-sigma_pt, oxp<-sigma_po,
         %txo<-sigma_ot, err<-sigma_res). psyrat_rel_trt squares its SD inputs.
@@ -203,7 +240,7 @@ for a = 1:nz1
         txp_z = sqrt(vc.sigma_pt2);
         oxp_z = sqrt(vc.sigma_po2);
         txo_z = sqrt(vc.sigma_ot2);
-        err_z = sqrt(vc.sigma_res2);
+        err_z = sqrt(resid_z);
 
         sige_pt(a,c) = mean(err_z);
 
@@ -230,6 +267,7 @@ out.obs = obs;
 out.nocc = nocc;
 out.reltype = reltype;
 out.ci = ciperc;
+out.surface_target = surface_target;
 out.z1 = z1;
 if ndim == 2
     out.z2 = z2;

@@ -1,5 +1,5 @@
 classdef PsyRATTestDataFactory
-    % Reusable deterministic test fixtures for PsyRAT toolbox tests.
+    % Reusable deterministic test fixtures for PsyRAT tests.
 
     methods (Static)
         function psyrat_data = makeICSummaryData()

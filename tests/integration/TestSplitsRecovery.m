@@ -227,7 +227,7 @@ rng(seed);
 % so the end-to-end calc can be validated; the observed-design summary itself is
 % correct at any n_o. This few-level imprecision is inherent to any two-occasion
 % random-occasion design (incl. the existing test-retest), not splits-specific;
-% see documentation/splits_observed_design_formulas.md section 6a.
+% see the splits-formula note, section 6a.
 nsub = 80; nocc = 5; ksplit = 6; mu = 5;
 tr.sigP = 2.5; tr.sigO = 0.6; tr.sigS = 0.8; tr.sigPS = 1.0; tr.sigPO = 0.9;
 tr.sigOS = 0.4; tr.sigPOS = 0.7; tr.sigE = 4.0; tr.ksplit = ksplit; tr.nocc = nocc;

@@ -61,6 +61,7 @@ classdef TestSserrNativeHmcRecovery < PsyRATTestBase
 
             testCase.verifyEqual(rel.analysis, 'ic_sserrvar');
             testCase.verifyEqual(rel.engine, 'hmc');
+            psyrat_test_record_native_diagnostics(testCase,rel);
 
             gro = cell2mat(rel.out.gro_sds{1});      % draws x 2
             log0 = rel.out.pop_sdlog(:, 1);          % Intercept_sigma

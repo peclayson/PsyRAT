@@ -280,13 +280,17 @@ classdef TestGammaDynrelTrtLsConversion < PsyRATTestBase
             % DECISIVE for analysis 27, and the two-facet form of increment 5's
             % rule. Each participant's coefficient must equal a direct
             % psyrat_rel_trt call built from the six population components at THAT
-            % participant's z, with err = exp(log sigma(z_s) + w_s) EXACTLY - no
-            % exp(2*V_w) within-person factor, no leading 2*, and no dependence on
-            % the participant's own log-mean.
+            % participant's z, with err^2 = R(z_s) + exp(2*(log sigma(z_s) + w_s))
+            % EXACTLY (Q8 ruling 2026-09-13): the POPULATION highest-order
+            % mean-surface remainder at z_s, written out here by
+            % inclusion-exclusion independently of the production helper, plus
+            % the participant's own observation variance with no exp(2*V_w)
+            % within-person factor, no leading 2*, and no dependence on the
+            % participant's own log-mean.
             %
             % Constant draws, so the point estimate is a closed form at machine
-            % tolerance. The reference below deliberately does NOT contain V_w; if
-            % the production code grew one, this fails.
+            % tolerance. The observation term below deliberately does NOT contain
+            % V_w; if the production code grew one, this fails.
             nd = 30;
             alpha0 = log(5.0); b = 0.20; logsig0 = log(1.4); b_sigma = -0.25;
             sig_p = 0.40; s_o = 0.22; s_t = 0.18; s_po = 0.12; s_pt = 0.14; s_ot = 0.09;
@@ -314,7 +318,15 @@ classdef TestGammaDynrelTrtLsConversion < PsyRATTestBase
                 logsig_z = logsig0 + b_sigma * z(k);
                 vc = psyrat_gamma_varcomps_trt_ls(alpha_z, sig_p, s_o, s_t, ...
                     s_po, s_pt, s_ot, logsig_z, 0);
-                errSs = exp(logsig_z + w(k));   % NO V_w, NO 2*, NO mu
+                % population remainder at z_s, by inclusion-exclusion (Q8 memo
+                % eq. 2), independent of psyrat_gamma_mean_remainder_trt
+                vp = sig_p^2; vo = s_o^2; vt = s_t^2;
+                vpo = s_po^2; vpt = s_pt^2; vot = s_ot^2;
+                V = vp + vo + vt + vpo + vpt + vot;
+                R_z = exp(2*alpha_z + V) * (exp(V) - exp(vp + vo + vpo) ...
+                    - exp(vp + vt + vpt) - exp(vo + vt + vot) ...
+                    + exp(vp) + exp(vo) + exp(vt) - 1);
+                errSs = sqrt(R_z + exp(2*(logsig_z + w(k))));   % NO V_w, NO 2*, NO mu in C_s
 
                 args = {'reltype', reltype, ...
                     'bp', sqrt(vc.sigma_p2), 'bo', sqrt(vc.sigma_o2), ...

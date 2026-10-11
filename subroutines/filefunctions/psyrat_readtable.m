@@ -17,7 +17,7 @@ function dataout = psyrat_readtable(varargin)
 % dataout - data in table format
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -96,9 +96,9 @@ if sum(strcmp(ext,supportedfiles)) ~= 1
 
 end
 
-%turn off warning regarding Matlab reformatting headers
-warning('off','MATLAB:table:ModifiedVarnames');
-
+%silence Matlab's header-reformatting warning until this function exits
+warnstate = warning('off','MATLAB:table:ModifiedVarnames');
+restorewarn = onCleanup(@() warning(warnstate));
 %set up a variable to specify whether the file has been loaded successfully
 loadsuccess = 0;
 
@@ -144,8 +144,8 @@ while loadsuccess == 0
     end
 end
 
-%turn (back) on warning regarding Matlab reformatting headers
-warning('on','MATLAB:table:ModifiedVarnames');
+%no reset here: restorewarn (above) puts back the caller's own setting on
+%every exit, the loading error below included (G90)
 
 if loadsuccess == 3
     error('loadingfile:delimiter',... %Error code and associated error

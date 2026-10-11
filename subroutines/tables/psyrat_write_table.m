@@ -18,10 +18,12 @@ function psyrat_write_table(filepath, filehead, datatable)
 % datatable - a MATLAB table written below the header block.
 %
 %The table is written via writetable, so the column names form its header row;
-%the header block is written above it via writecell. An unsupported extension
-%errors.
+%the header block is written above it via writecell. A zero-row table written
+%to .xlsx gets its column-name row from writecell instead (see the .xlsx
+%branch), so it still sits directly below the header block. An unsupported
+%extension errors.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -57,7 +59,18 @@ switch ext
         if isfile(filepath)
             delete(filepath);
         end
-        if ~isempty(filehead)
+        if height(datatable) == 0 && width(datatable) > 0
+            % A zero-row table is only its column-name row. writetable ignores
+            % 'Range' for such a table (observed on R2025b) and puts the names
+            % in A1, over the first header line, so the header lines are
+            % written first and the names are written explicitly one row below
+            % them (in A1 when there is no header). No data row is written.
+            if ~isempty(filehead)
+                writecell(filehead, filepath);
+            end
+            writecell(local_column_names(datatable), filepath, ...
+                'Range', sprintf('A%d', numel(filehead)+1));
+        elseif ~isempty(filehead)
             writecell(filehead, filepath);
             % Start the table one row below the last header row so nothing is
             % overwritten.
@@ -80,5 +93,24 @@ switch ext
         error('psyrat_write_table:ext', ...
             ['Unsupported table output extension ''%s''. ', ...
             'How to fix: use a path ending in .xlsx or .csv.'], ext);
+end
+end
+
+function names = local_column_names(datatable)
+%The column-name row writetable writes for DATATABLE, as a 1xN cell: one name
+%per column, with the columns of a multicolumn variable named <name>_1,
+%<name>_2, ... as writetable names them.
+vn = datatable.Properties.VariableNames;
+names = {};
+for k = 1:numel(vn)
+    x = datatable.(vn{k});
+    ncol = size(x, 2);
+    if ischar(x) || ncol == 1
+        names{end+1} = vn{k}; %#ok<AGROW>
+    else
+        for c = 1:ncol
+            names{end+1} = sprintf('%s_%d', vn{k}, c); %#ok<AGROW>
+        end
+    end
 end
 end

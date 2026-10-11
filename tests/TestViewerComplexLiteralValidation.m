@@ -144,6 +144,22 @@ classdef TestViewerComplexLiteralValidation < PsyRATTestBase
                 PsyRATTestDataFactory.makeTRTSummaryData(), 'trt');
         end
 
+        function testSingEmptyListboxSelectionIsRefused(testCase)
+            localVerifyEmptyListboxes(testCase, @psyrat_startview_sing, ...
+                PsyRATTestDataFactory.makeICSummaryData(), 'sing', ...
+                {'Line to plot for reliability', 'plotdepline', 'Plot Line Not Defined'; ...
+                 'Estimate to use for', 'meascutoff', 'Cutoff Estimate Not Defined'; ...
+                 'Measure of central tendency', 'depcentmeas', 'Central Tendency Not Defined'});
+        end
+
+        function testTrtEmptyListboxSelectionIsRefused(testCase)
+            localVerifyEmptyListboxes(testCase, @psyrat_startview_trt, ...
+                PsyRATTestDataFactory.makeTRTSummaryData(), 'trt', ...
+                {'Line to plot for reliability', 'plotrelline', 'Plot Line Not Defined'; ...
+                 'Estimate to use for', 'meascutoff', 'Cutoff Estimate Not Defined'; ...
+                 'Measure of central tendency', 'relcentmeas', 'Central Tendency Not Defined'});
+        end
+
         function testTrialBrowserJumpRejectsComplexLikeGarbage(testCase)
             % onJumpToTrial guarded with ~isfinite only, so a complex trial
             % number survived round() and the min/max clamp and was then handed
@@ -379,6 +395,84 @@ prefsStillOpen = isgraphics(prefsfig);
 end
 
 
+function localVerifyEmptyListboxes(testCase, viewerfcn, pd, tag, lists)
+%Beta-tester feedback 2026-09-16 (G95). A Cmd/Ctrl+click on the selected row
+%of a single-select listbox clears the selection, so its Value is []. The
+%output-preferences Save callbacks copied the three listbox Values into the
+%preferences unguarded, so [] was stored, psyrat_relsummary's scalar guard
+%refused it at Generate ("depcentmeas should be 1 (mean) or 2 (median)"),
+%and the reopened screen showed no selection. For EACH of the three lists
+%(lists is {labelprefix, pref field, dialog title} per row), differential
+%with a positive control: an empty selection must be refused (the screen
+%stays open, the purpose-titled dialog is up, and the previous choice is
+%reseated in the list itself); a valid one must be accepted (the screen
+%closes and the relaunched viewer carries the new value).
+for k = 1:size(lists, 1)
+    [label, field, title] = lists{k, :};
+    defaults = psyrat_defaults;
+    prev = defaults.view.(field);
+    %a valid choice that differs from the default, so acceptance is visible
+    valid = 1 + (prev == 1);
+
+    empty = localRunListbox(testCase, viewerfcn, pd, label, field, title, []);
+    accepted = localRunListbox(testCase, viewerfcn, pd, label, field, title, valid);
+
+    testCase.assertFalse(accepted.prefsOpen, sprintf( ...
+        ['%s/%s positive control: a valid selection must be accepted and ' ...
+        'close the preferences screen.'], tag, field));
+    testCase.assertEqual(accepted.stored, valid, sprintf( ...
+        '%s/%s positive control: the accepted selection must be the stored preference.', tag, field));
+
+    testCase.verifyTrue(empty.prefsOpen, sprintf( ...
+        '%s/%s: an empty selection must be refused, leaving the preferences screen open.', tag, field));
+    testCase.verifyTrue(empty.dialogUp, sprintf( ...
+        '%s/%s: the refusal must raise the "%s" dialog.', tag, field, title));
+    testCase.verifyEqual(empty.reseated, prev, sprintf( ...
+        '%s/%s: the refused list must show the previous choice again.', tag, field));
+    testCase.verifyEqual(empty.stored, prev, sprintf( ...
+        '%s/%s: the viewer must still carry the previous preference after Back.', tag, field));
+end
+end
+
+
+function out = localRunListbox(testCase, viewerfcn, pd, label, field, title, value)
+%Open a viewer, go to "Output Prefs", set one listbox's Value, click Save.
+%Reports whether the preferences screen survived, whether the purpose-titled
+%dialog is up, what the list shows after Save (the reseat), and the
+%preference the viewer carries afterwards (via Back when the save was
+%refused: psyrat_prefs_back relaunches with the prefs captured at build time,
+%so that readback proves the refusal did not store anything, not the reseat;
+%the reseat is read from the list directly).
+close('all', 'force');
+cleanup = onCleanup(@() close('all', 'force')); %#ok<NASGU>
+
+viewerfcn('psyrat_prefs', psyrat_defaults, 'psyrat_data', localStamp(pd));
+
+main = localViewerFigure(testCase, 'View Results Setup');
+localFire(localButton(testCase, main, 'Output Prefs'));
+
+prefsfig = localPrefsFigure(testCase);
+lb = localControlByLabel(testCase, prefsfig, label, 'listbox');
+set(lb, 'Value', value);
+
+localFire(localSaveButton(testCase, prefsfig));
+out.prefsOpen = isgraphics(prefsfig);
+out.dialogUp = ~isempty(findall(groot, 'Type', 'figure', 'Name', title));
+out.reseated = [];
+if out.prefsOpen
+    out.reseated = get(lb, 'Value');
+    localFire(localButton(testCase, prefsfig, 'Back'));
+end
+
+main = localViewerFigure(testCase, 'View Results Setup');
+gen = localButton(testCase, main, 'Generate Figures/Tables');
+cb = gen.Callback;
+k = find(strcmp('psyrat_prefs', cb), 1);
+testCase.assertNotEmpty(k, 'the Generate callback must carry psyrat_prefs.');
+out.stored = cb{k + 1}.view.(field);
+end
+
+
 function currTrial = localRunTrialBrowserJump(testCase, text)
 %Fire the trial browser's jump-to-trial callback and read currTrial back.
 close('all', 'force');
@@ -488,9 +582,14 @@ end
 
 
 function hedit = localEditByLabel(testCase, fig, labelprefix)
-%Return the edit uicontrol on the same row as, and to the right of, the static
-%text starting with labelprefix. The viewers tag no individual controls, so row
-%pairing by position is the established way to identify them.
+hedit = localControlByLabel(testCase, fig, labelprefix, 'edit');
+end
+
+
+function hedit = localControlByLabel(testCase, fig, labelprefix, style)
+%Return the uicontrol of the given Style on the same row as, and to the right
+%of, the static text starting with labelprefix. The viewers tag no individual
+%controls, so row pairing by position is the established way to identify them.
 %
 %Pairing is by vertical OVERLAP of the two control rectangles rather than by
 %their bottom edges: the labels are taller than the edit boxes and the two are
@@ -499,7 +598,7 @@ function hedit = localEditByLabel(testCase, fig, labelprefix)
 %overlapping candidates to the label's right, take the one sharing the most
 %vertical extent, then the nearest.
 txts = findall(fig, 'Style', 'text');
-edits = findall(fig, 'Style', 'edit');
+edits = findall(fig, 'Style', style);
 hedit = [];
 bestoverlap = 0;
 bestdx = inf;
@@ -522,7 +621,7 @@ for j = 1:numel(txts)
     end
 end
 testCase.assertNotEmpty(hedit, ...
-    sprintf('no edit field found on the "%s" row.', labelprefix));
+    sprintf('no %s control found on the "%s" row.', style, labelprefix));
 end
 
 

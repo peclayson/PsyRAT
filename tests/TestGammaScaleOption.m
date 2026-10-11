@@ -10,7 +10,7 @@ classdef TestGammaScaleOption < matlab.unittest.TestCase
     % 2*mu^2/nu, so a dimension slope on log-nu blends a mean-level effect with a
     % dispersion effect and cannot be read as a statement about precision alone.
     % gammascale = 2 makes b_sigma a pure residual-SD slope. See
-    % documentation/gamma_scale_submodel_decision.md.
+    % manual section 15.4.
     %
     % The default is pinned here as well as the new branch: without that test,
     % inverting the default would leave the whole suite green while silently

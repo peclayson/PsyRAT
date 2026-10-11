@@ -1,0 +1,216 @@
+{
+  "expectations": "Frozen from scope, definite assignment and algebra before production execution. Unsupported or incomplete graphs remain unproven; no scientific target is changed.",
+  "documentation": [
+    "https://mc-stan.org/docs/reference-manual/expressions.html",
+    "https://mc-stan.org/docs/reference-manual/blocks.html"
+  ],
+  "source_status": "All fixtures await syntax checks; no runtime or sampling executed.",
+  "golden_source": "tests/golden/stan/ic_diff_group_event_sserr.stan",
+  "golden_sha256": "0b8e1196d492ca922ab2af9e8c3590f09670255cd88985a9d5db7e01652c48bd",
+  "fixtures": [
+    {
+      "file": "zero_unused_function.stan",
+      "sha256": "2633745e27d31ca4611d91ff31f0c8c7285a0a40fc6b458bac9e1485f61f7064",
+      "probed_names": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The complete graph writes function-local variables only. The function is never called. All probed global parameters are independent standard normals, with variance 1 even when estimate_rescor is 0. Separate scopes must not transfer a constant proof.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "syntax_status": "awaiting primary stanc check; source reasoning only",
+      "runtime_status": "not sampled; no claim of successful runtime"
+    },
+    {
+      "file": "zero_no_function_control.stan",
+      "sha256": "1fe74d7c43082def5f3591513a4e640f9c7994916164ea02ca1530d812587905",
+      "probed_names": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The identical normal-parameter model without the unused function also has no constants.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "syntax_status": "awaiting primary stanc check; source reasoning only",
+      "runtime_status": "not sampled; no claim of successful runtime"
+    },
+    {
+      "file": "zero_reviewed_control.stan",
+      "sha256": "0b8e1196d492ca922ab2af9e8c3590f09670255cd88985a9d5db7e01652c48bd",
+      "probed_names": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "mathematical_reason": "The unchanged reviewed case8 source assigns every rho coordinate to 0, initializes the covariance matrix, computes each finite product after its inputs, and sums those zero products. All listed entries are structurally 0 for valid finite execution.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check; source reasoning only",
+      "runtime_status": "not sampled; no claim of successful runtime"
+    },
+    {
+      "file": "zero_conditional_rho_loop.stan",
+      "sha256": "f2c8b1a94bcb5add770e7092166c294f42c59dc31f26af9592a98b3a40d0caea",
+      "probed_names": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "At flag 0 the outer conditional prevents every rho assignment. The inner snippets still occur, but cannot prove any assigned rho value. This is a source-proof negative control, not a claim that incomplete transformed parameters yield a successful fit.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check; source reasoning only",
+      "runtime_status": "not sampled; no claim of successful runtime"
+    },
+    {
+      "file": "zero_short_rho_loop.stan",
+      "sha256": "1be36b0b0c37c01b4b3813989342405e49be59d1ead458637e95162705625cee",
+      "probed_names": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "With NSUB 2 only rho[1] is assigned; rho[2] is never assigned. A substring proving the loop body cannot establish coverage of every subject coordinate. Runtime not tested.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check; source reasoning only",
+      "runtime_status": "not sampled; no claim of successful runtime"
+    },
+    {
+      "file": "zero_conditional_covariance_loop.stan",
+      "sha256": "da09b458d44cee1a061e555b5bc2c639aa0f4e37ccba45f00d451efbcfefe34b",
+      "probed_names": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "At flag 0 rho, rescor and initialized covariance off-diagonals are mathematically zero, but wp_cov_ss is never assigned. The whole bounded graph must remain unproven. Partial mathematical constants are deliberately not a demand to expand the recognizer.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check; source reasoning only",
+      "runtime_status": "not sampled; no claim of successful runtime"
+    },
+    {
+      "file": "zero_covariance_before_product.stan",
+      "sha256": "8ec141be12e4ee46cec0f32fd9757c517b62c3c51c82448035dd7e36d8c8cae8",
+      "probed_names": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The covariance accumulations read each wp_cov_ss coordinate before it is assigned. Every original statement and write count remains present, but the accumulations have no defined zero input. Requiring the reviewed complete sequence declines this proof.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check; source reasoning only",
+      "runtime_status": "not sampled; no claim of successful runtime"
+    },
+    {
+      "file": "zero_product_before_inputs.stan",
+      "sha256": "0759f2e6200d9a1a5b2f6b5e67df17190fbf43b62c0caebfe258b7e05a286f64",
+      "probed_names": [
+        "rho[1]",
+        "rho[2]",
+        "wp_cov_ss[1]",
+        "wp_cov_ss[2]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The product reads er_var_ss before assignment. Zero times an uninitialized/nonfinite quantity is not a proof of numeric zero; unchanged snippets/write counts miss ordering.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check; source reasoning only",
+      "runtime_status": "not sampled; no claim of successful runtime"
+    }
+  ],
+  "fixture_creation_manifest": "audit/review-2026-09-13/science/zero_scope_cases/manifest.json",
+  "fixture_creation_manifest_sha256": "8ba50f468bb7e8810eaa6516a52f0f6c79d86fe8806f978ea98f92d172673848",
+  "creation_status_note": "Original per-fixture syntax/runtime fields describe fixture creation, before the separately recorded compiler check.",
+  "compiler_evidence": "audit/review-2026-09-13/logs/accepted-source-control-stanc.json"
+}

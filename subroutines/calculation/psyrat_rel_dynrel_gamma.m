@@ -31,13 +31,23 @@ function out = psyrat_rel_dynrel_gamma(varargin)
 %on the multiplicative/log scale), unlike the Gaussian dynrel where only the
 %residual varies with z.
 %
-%ESTIMAND. The observation-variance term is MARGINALIZED over the person
-%population's dispersion heterogeneity (estimand #2), the same convention the
-%static gamma family uses: the person log-nu SD (sig_v) and its correlation with
-%the person mean (rho_pv) are propagated into the converter as (s_v, cov_pv). This
-%is the single gamma reliability estimand; there is no separate typical-person /
-%population-average toggle (the marginal argument of psyrat_rel_dynrel), because
-%the coupled dispersion is integrated by the law of total variance.
+%ESTIMAND (two surface targets, Q9/GUI-1, owner rulings 9-12 and 2026-09-13).
+%Both targets keep every population mean component at z, including the
+%person x trial mean-surface term M(z) = var_mu - sigma_p2 - sigma_i2; they
+%differ only in the observation-variance part of the residual:
+%  'population_marginal' (default, the PRIMARY): M + C_pop, with C_pop
+%      MARGINALIZED over the person population's dispersion heterogeneity
+%      (estimand #2) - the person log-nu SD (sig_v) and its correlation with the
+%      person mean (rho_pv) enter the converter as (s_v, cov_pv) - on each draw
+%      BEFORE the coefficient is formed. It is not an average of person
+%      coefficients. This is the surface every earlier version reported.
+%  'typical_person' (the COMPANION): M + C_typ with C_typ = 2 exp(2 alpha(z) +
+%      2 s_i^2 - log nu(z)), BOTH person effects (log-mean u_p and log-nu v_p)
+%      at zero. Setting s_v = 0 in the marginal converter does not give this
+%      surface (it still integrates over u_p); the two coincide only when
+%      Var(2 u_p - v_p) = 4 s_p^2 + s_v^2 - 4 cov_pv = 0.
+%The Gaussian marginal argument of psyrat_rel_dynrel is a different mechanism
+%(delta_p) and is not accepted here.
 %
 %Inputs (name-value; all posterior-draw inputs are column vectors of length
 %ndraws, or draws x KDIM for the slope blocks)
@@ -58,9 +68,11 @@ function out = psyrat_rel_dynrel_gamma(varargin)
 %
 %Optional Inputs
 % z2     - vector of standardized values for dimension 2 (required if ndim=2).
+% surface_target - 'population_marginal' (default) or 'typical_person'; see
+%          ESTIMAND. Any other value errors (psyrat_gamma_surface_target).
 %
 %Output (struct)
-% out.ndim, out.obs, out.ci
+% out.ndim, out.obs, out.ci, out.surface_target
 % out.z1            - dimension-1 grid axis (1 x nz1)
 % out.z2            - dimension-2 grid axis (1 x nz2; only when ndim=2)
 % out.G, out.D      - structs with fields pt/ll/ul (global coefficients over the
@@ -107,6 +119,9 @@ obs    = psyrat_req(varargin,'obs','Please input obs (n'' trial count).');
 ciperc = psyrat_req(varargin,'CI','Please input CI.');
 
 z2     = psyrat_opt(varargin,'z2',[]);
+%surface target (Q9): 'population_marginal' (default, the primary) or
+%'typical_person' (companion). Validated, never coerced.
+surface_target = psyrat_gamma_surface_target(psyrat_opt(varargin,'surface_target',[]));
 
 if ~any(ndim == [1 2])
     error('varargin:ndim','WARNING: ndim must be 1 or 2.\n');
@@ -180,15 +195,33 @@ for a = 1:nz1
         %at this z (estimand #2, marginal over person dispersion via s_v/cov_pv).
         vc = psyrat_gamma_varcomps(alpha_z, sig_p, sig_i, nu_z, sig_v, cov_pv);
 
+        %residual at this z for the SELECTED surface target (Q9). Both targets
+        %keep the population person x trial mean-surface term M = var_mu -
+        %sigma_p2 - sigma_i2 (the S20 pi_mean, same subtraction as
+        %psyrat_ssrel_dynrel_gamma) and differ only in the observation part:
+        %  population_marginal: M + C_pop = vc.sigma_pi_e2, C_pop marginalized
+        %      over the person (u, v) population (exp(s_v^2/2 - 2 cov_pv) inside
+        %      e_cond_var) BEFORE the coefficient is formed on each draw;
+        %  typical_person:      M + C_typ, C_typ = 2 exp(2 alpha(z) + 2 s_i^2 -
+        %      log nu(z)), both person effects zero. This is NOT the marginal
+        %      residual with s_v set to zero (that would still integrate over
+        %      the person log-mean: 2 exp(2 alpha + 2(s_p^2 + s_i^2) - log nu)).
+        if strcmp(surface_target,'typical_person')
+            M_z = max(vc.var_mu - vc.sigma_p2 - vc.sigma_i2, 0);
+            resid_z = M_z + 2 .* exp(2.*alpha_z + 2.*sig_i.^2 - log(nu_z));
+        else
+            resid_z = vc.sigma_pi_e2;
+        end
+
         %SD-equivalents in the production one-facet convention: bp = sigma_p(z);
         %total-within wp = sqrt(sigma_pi,e^2(z) + sigma_i^2(z)); i = sigma_i(z).
         %psyrat_rel_sing subtracts i^2 to recover the relative residual for G and
         %keeps it for D, matching the static one-facet gamma / Rocha Table 2 path.
         bp_z = sqrt(vc.sigma_p2);
         i_z  = sqrt(vc.sigma_i2);
-        wp_z = sqrt(vc.sigma_pi_e2 + vc.sigma_i2);
+        wp_z = sqrt(resid_z + vc.sigma_i2);
 
-        sige_pt(a,c) = mean(sqrt(vc.sigma_pi_e2));
+        sige_pt(a,c) = mean(sqrt(resid_z));
 
         [G.ll(a,c),G.pt(a,c),G.ul(a,c)] = psyrat_rel_sing(...
             'gcoeff',2,'metric','global','bp',bp_z,'wp',wp_z,'i',i_z,...
@@ -207,6 +240,7 @@ out = struct();
 out.ndim = ndim;
 out.obs = obs;
 out.ci = ciperc;
+out.surface_target = surface_target;
 out.z1 = z1;
 if ndim == 2
     out.z2 = z2;

@@ -30,7 +30,7 @@ function [maxRhat, nParams] = psyrat_conv_maxrhat(convdata)
 %uses psyrat_checkconv (same r_hat>=1.1 + n_eff criteria as production); this
 %helper only supplies the number to report and a non-empty guard.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

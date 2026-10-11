@@ -1,5 +1,5 @@
 function psyratver = psyrat_defineversion
-%Set version for the PsyRAT Toolbox
+%Set version for PsyRAT
 %
 %
 
@@ -9,10 +9,10 @@ function psyratver = psyrat_defineversion
 % No inputs required in the command line
 %
 %Output
-% psyratver - PsyRAT Toolbox version
+% psyratver - PsyRAT version
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ function psyratver = psyrat_defineversion
 %numel(...) ~= 3 guard does not fire. The same holds for the test helper
 %localStepVersion. Keep any future suffix in the '<x.y.z>-<tag>' shape: a suffix
 %that perturbs the leading x.y.z would trip 'psyrat:versionparse'.
-psyratver = '0.1.0-beta';
+psyratver = '0.1.1-beta';
 
 
 end

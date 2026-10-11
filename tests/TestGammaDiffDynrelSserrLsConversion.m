@@ -8,7 +8,7 @@ classdef TestGammaDiffDynrelSserrLsConversion < matlab.unittest.TestCase
     %(TestGammaDiffDynrelSserrLsRecovery) is what checks correctness.
     %
     %Organized around the claims the derivation in
-    %documentation/gamma_scale_submodel_decision.md section J actually makes,
+    %the scale-submodel decision record, section J, actually makes,
     %as amended by S17-FIX (the pooled per-participant residual):
     %  J.2  the CONDITIONAL part of the per-participant residual is a pure
     %       pass-through of the fitted per-person log residual SD, conditioned

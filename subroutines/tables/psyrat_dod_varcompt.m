@@ -286,7 +286,7 @@ head = {};
 head{end+1} = 'Table Generated on';
 head{end+1} = datestr(clock);
 head{end+1} = '';
-head{end+1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+head{end+1} = sprintf('PsyRAT v%s',psyrat_data.ver);
 head{end+1} = '';
 head{end+1} = sprintf('Dataset: %s',psyrat_data.rel.filename);
 head{end+1} = psyrat_iterline(psyrat_data.rel);
@@ -318,8 +318,8 @@ head{end+1} = '';
 head{end+1} = '';
 
 if strcmpi(ext,'.xlsx')
-    writecell(head',outfile);
-    writetable(varcomptable,outfile,'Range',strcat('A',num2str(length(head))));
+    %a fresh, checked workbook replaces the chosen file (G110)
+    psyrat_replace_workbook(outfile,head',varcomptable,length(head));
 elseif strcmpi(ext,'.csv')
     fid = fopen(outfile,'w');
     %quote per the CSV convention (B19): a comma-bearing header line must
@@ -336,6 +336,15 @@ elseif strcmpi(ext,'.csv')
             varcomptable.High_CrI(i));
     end
     fclose(fid);
+else
+
+    %F3: a name that ends in neither .xlsx nor .csv (a typed extension the
+    %dialog's filter did not supply) used to fall through this chain silently,
+    %so nothing was written and nothing said so.
+    errordlg({sprintf('The file name "%s" does not end in .xlsx or .csv; nothing was saved.',savename);...
+        'How to fix: choose the Excel or CSV file type in the save dialog, or type a name ending in .xlsx or .csv, then save again.'},...
+        'Unsupported File Type','modal');
+
 end
 end
 

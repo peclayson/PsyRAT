@@ -515,6 +515,30 @@ classdef PsyRATAccuracyOracle
             out.dep_ul = out.rel_ul;
         end
 
+        function [obs_eff,nbar_eff] = splitsEffectiveDesign(id,weight)
+            % Effective observed design for the person-averaged error of the
+            % equal-weight mean of split means (work queue Q7, 2026-09-11;
+            % post-beta review PBA-06). For person p with S_p splits and n_ps
+            % items in split s, the absolute error variance is
+            %   (sigma_ps^2 + sigma_s^2)/S_p + sigma_e^2 * sum_s(1/n_ps) / S_p^2,
+            % and the group coefficient uses its mean over persons. Written in
+            % the Table 4 closed form (splitsSingle), that mean is reached at
+            %   obs_eff  = 1/mean_p(1/S_p)                 (harmonic mean of S_p)
+            %   nbar_eff = 1/kappa,  kappa = obs_eff * mean_p(sum_s(1/n_ps)/S_p^2).
+            % With equal S_p this is S and the harmonic mean of every n_ps pooled
+            % (1/H_pool = mean_p(1/H_p)). Derived per person here, independently
+            % of psyrat_splits_summary; the blind re-derivation of 2026-09-10
+            % reached the same expressions and numbers.
+            id = id(:);
+            w = double(weight(:));
+            [~,~,g] = unique(id);
+            S = accumarray(g,1);                 % splits per person
+            sumInv = accumarray(g,1 ./ w);       % sum_s(1/n_ps) per person
+            obs_eff = 1 / mean(1 ./ S);
+            kappa = obs_eff * mean(sumInv ./ S.^2);
+            nbar_eff = 1 / kappa;
+        end
+
         function [ll,pt,ul] = splitsSingle(gcoeff,sig_p,sig_s,sig_ps,sig_e,nsplit,nbar_i,ci)
             % Rocha Table 4 (one-facet data splits, observed design). From split
             % means the per-item residual sig_e^2 lumps the item main effect with
@@ -705,7 +729,7 @@ classdef PsyRATAccuracyOracle
             % Regression mirror of PSYRAT_DOD_COMPONENTS (the GAUSSIAN arm of
             % analyses 28/29): identity link, so every signal component is its
             % model covariance block directly and the residual channel is
-            % exactly diagonal (SCIENTIFIC_FORMULA_AUDIT.md section 26).
+            % exactly diagonal (development formula audit, section 26).
             % Assembled here PER DRAW via D(sd)*R*D(sd) matrix products - a
             % different evaluation route from production's vectorized
             % entrywise assembly, so agreement is not a byte-copy. alpha is

@@ -20,7 +20,8 @@ classdef PsyRATNativeFit
 %   background CmdStan process to wait on). Returned for call-compatibility.
 % - extract('pars',NAME) returns a struct with one field per requested
 %   parameter, each holding the draw array shaped (nchains*nsampling) x dim,
-%   exactly as fit.extract returns for CmdStan. NAME may be a char or cellstr.
+%   for HMC; fitlme instead returns each fit's successful bootstrap rows.
+%   Independent fits may have different row counts. NAME may be a char or cellstr.
 % - the convergence cell (see psyrat_storeconv's native branch) is the same
 %   {'name','n_eff','r_hat'; ...} layout psyrat_checkconv reads. For the HMC
 %   engine these are genuine split-R-hat / n_eff values; for the fitlme engine
@@ -30,7 +31,7 @@ classdef PsyRATNativeFit
 %
 %See also: psyrat_run_native, psyrat_checkconv
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -61,7 +62,8 @@ classdef PsyRATNativeFit
         engine char = '';
 
         %free-form provenance/diagnostic metadata (e.g. gradient method, REML
-        %convergence flag, sampler tuning info). Not consumed by the pipeline.
+        %validity, draw masks and sampler tuning). Propagated to saved results and
+        %used by diagnostic and bootstrap output consumers.
         meta struct = struct();
     end
 

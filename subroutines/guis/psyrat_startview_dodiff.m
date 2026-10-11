@@ -468,7 +468,13 @@ try
         'savefile',1,...
         'gui',0);
 catch ME
-    errordlg({ME.message},'Unable to export DoD variance components','modal');
+    %psyrat_replace_workbook shows its own File Not Saved dialog before it
+    %raises any psyrat:replaceWorkbook: error except :args (a wrong call, with
+    %no dialog), so a second dialog here would only repeat that message.
+    if ~startsWith(ME.identifier,'psyrat:replaceWorkbook:') || ...
+            strcmp(ME.identifier,'psyrat:replaceWorkbook:args')
+        errordlg({ME.message},'Unable to export DoD variance components','modal');
+    end
 end
 end
 
@@ -692,27 +698,62 @@ bp_mean = squeeze(mean(bp,1));
 bt_mean = squeeze(mean(bt,1));
 er_mean = mean(exp(erlog).^2,1);
 
-z12 = zeros(length(grid),length(grid));
-z34 = zeros(length(grid),length(grid));
+%Every cell is a PLUG-IN evaluation at the posterior MEAN of each component
+%(psyrat_dod_plugin_cell, which holds the arithmetic this loop used to hold),
+%so the values are unchanged; what is new is that each cell now also returns
+%the quantities behind it and the reasons it is not drawn (2B / G11).
+ng = length(grid);
+[z12,bt12,er12,den12,adm12,zc12,rs12] = local_grid_alloc(ng);
+[z34,bt34,er34,den34,adm34,zc34,rs34] = local_grid_alloc(ng);
 
-for xi = 1:length(grid)
-    for yi = 1:length(grid)
+for xi = 1:ng
+    for yi = 1:ng
         obs12 = [grid(xi) grid(yi) obs(3) obs(4)];
         obs34 = [obs(1) obs(2) grid(xi) grid(yi)];
-        z12(yi,xi) = local_dod_point_metric(bp_mean,bt_mean,er_mean,obs12,metric);
-        z34(yi,xi) = local_dod_point_metric(bp_mean,bt_mean,er_mean,obs34,metric);
+        s12 = psyrat_dod_plugin_cell(bp_mean,bt_mean,er_mean,obs12,metric);
+        s34 = psyrat_dod_plugin_cell(bp_mean,bt_mean,er_mean,obs34,metric);
+        [z12(yi,xi),bt12(yi,xi),er12(yi,xi),den12(yi,xi),adm12(yi,xi),...
+            zc12(yi,xi),rs12{yi,xi}] = local_grid_unpack(s12);
+        [z34(yi,xi),bt34(yi,xi),er34(yi,xi),den34(yi,xi),adm34(yi,xi),...
+            zc34(yi,xi),rs34{yi,xi}] = local_grid_unpack(s34);
     end
 end
 
-z12 = max(min(z12,1),0);
-z34 = max(min(z34,1),0);
+%The grids are NOT clipped (post-beta review PBA-07, work queue Q2, 2026-09-11).
+%Clipping with max(min(z,1),0) painted an inadmissible cell (denominator <= 0,
+%NaN) as 1.0, because MATLAB's two-input min/max ignore NaN, and painted a
+%coefficient outside [0,1] as 0 or 1 with no mark. A cell is masked instead:
+%transparent over a grey axes background, with the color axis fixed at [0,1]
+%and the caption below naming the rule. The coefficient table above is the
+%draw-level estimate (psyrat_dodiffrel) and was never clipped.
+%
+%The mask is the cell's admissibility record, not only its range (2B / G11).
+%A final ratio inside [0,1] does not make the quantities behind it variances:
+%a PSD trial block [[1,2],[2,4]] at counts [1,100,1,1] has a harmonic-scaled
+%trial contrast of -.98 and a dependability of .330033, which the range rule
+%drew as valid while psyrat_dodiffrel flagged the same evaluation for the
+%table. psyrat_dod_plugin_cell applies the table's four records (universe,
+%scaled trial, scaled residual, unscaled ICC trial) at each cell under either
+%metric, and keeps the range rule as a second layer, so nothing drawn now was
+%masked before. Values and the raw components are retained in the figure
+%UserData below (savefig keeps it); nothing is clipped or replaced.
+mask12 = adm12;
+mask34 = adm34;
+maskcolor = [0.82 0.82 0.82];
 
 %Event names print literally: the default TeX interpreter would turn the
 %underscore in a name such as inc_err into a subscript (owner ruling
 %2026-09-04, extending the 2026-09-03 plotting-function ruling to this window).
 ax1 = axes('Parent',fig,'Position',[0.08 0.10 0.38 0.32]);
-imagesc(ax1,grid,grid,z12);
+im1 = imagesc(ax1,grid,grid,z12);
+im1.AlphaData = mask12;
+%The grey shows through the masked cells only if it is set AFTER imagesc:
+%imagesc runs newplot, which resets an axes whose NextPlot is 'replace' to its
+%default properties, so a Color given when the axes was created is discarded
+%and the cells render white (live GUI look, Item 9, 2026-09-12).
+set(ax1,'Color',maskcolor);
 axis(ax1,'xy');
+clim(ax1,[0 1]);
 colormap(ax1,parula(256));
 colorbar(ax1);
 xlabel(ax1,['Trials ' sel_events{1}],'Interpreter','none');
@@ -721,8 +762,11 @@ title(ax1,sprintf('%s Heatmap: %s vs %s',metric_name,sel_events{1},sel_events{2}
     'Interpreter','none');
 
 ax2 = axes('Parent',fig,'Position',[0.55 0.10 0.38 0.32]);
-imagesc(ax2,grid,grid,z34);
+im2 = imagesc(ax2,grid,grid,z34);
+im2.AlphaData = mask34;
+set(ax2,'Color',maskcolor);   %after imagesc, for the same reason as ax1
 axis(ax2,'xy');
+clim(ax2,[0 1]);
 colormap(ax2,parula(256));
 colorbar(ax2);
 xlabel(ax2,['Trials ' sel_events{3}],'Interpreter','none');
@@ -738,45 +782,131 @@ uicontrol(fig,'Style','text','FontSize',10,'HorizontalAlignment','left',...
     'String',sprintf('%s/%s heatmap fixes %s=%d and %s=%d.',...
     sel_events{3},sel_events{4},sel_events{1},obs(1),sel_events{2},obs(2)),...
     'Position',[630 52 430 20]);
+%The mask caption sits BELOW the "Trials <event>" x-axis labels, whose boxes
+%span about y = 40 to 56 in figure pixels; uicontrols paint above axes, so at
+%y = 28 the caption covered them (live GUI look, Item 9, 2026-09-12).
+%The "Grey cells" prefix is the caption's identity for the layout tests.
+uicontrol(fig,'Style','text','FontSize',10,'HorizontalAlignment','left',...
+    'String',['Grey cells: a variance component negative or not finite at that ' ...
+    'cell, or denominator <= 0, or coefficient outside [0,1]. Nothing is clipped.'],...
+    'Position',[70 6 1040 20]);
+
+%What the two kinds of number on this window are (2B / G11). The setup screen
+%says it once; the window the user keeps has to say it too. Sits in the free
+%band between the axes titles (about y = 340) and the table (y = 500).
+grid_estimand = ['plug-in: ratio of posterior MEAN variance components ',...
+    '(no interval)'];
+table_estimand = ['draw-level: mean and CrI of the coefficient computed on ',...
+    'every posterior draw (psyrat_dodiffrel)'];
+uicontrol(fig,'Style','text','FontSize',10,'HorizontalAlignment','left',...
+    'String',{['Heatmaps: plug-in ratio of posterior MEAN variance ' ...
+    'components; no interval.'];...
+    ['Table: mean of draw-level coefficients (posterior mean and CrI). ' ...
+    'These are different summaries of the same posterior and can differ.']},...
+    'Position',[20 448 1140 40]);
+
+%The table's own warning, made persistent. psyrat_dod_generate raises the
+%draw-level admissibility note as a transient warndlg AFTER this window is
+%built, so a saved figure or image of this window showed a coefficient such as
+%D = .3300 with nothing attached. The grid mask cannot stand in for it: the
+%mask is a deterministic check at the component MEANS, while the table's
+%record counts negative DRAWS -- equally weighted trial contrasts of -.5 and
+%1.5 have a valid mean of .5 (every grid cell drawn) and one negative draw
+%(table not interpretable). Nothing is recomputed: dep already carries its
+%record, and dep only, because the dep and gen records are bit-identical and
+%the note sums counts across whatever it is given (psyrat_dod_admissibility_note).
+%The zero-count stand-in from local_dod_summary carries no record and gets
+%no warning, matching the existing convention. Only a NEGATIVE quantity is an
+%invalidity (psyrat_admissibility_hasneg); a legitimate exact-zero component
+%is carried in the stored note without a warning line.
+dodtable = struct;
+dodtable.estimand = table_estimand;
+dodtable.obs = obs;
+dodtable.events = sel_events(:)';
+dodtable.group = gname;
+dodtable.dep = dep;
+dodtable.gen = gen;
+if isfield(dep,'admissibility') && ~isempty(dep.admissibility)
+    dodtable.adm_note = psyrat_dod_admissibility_note(dep);
+    dodtable.invalid = psyrat_admissibility_hasneg(dep.admissibility);
+    dodtable.record = ['dep record only: the dep and gen records are ',...
+        'bit-identical, so one is stored and counted'];
+else
+    dodtable.adm_note = '';
+    dodtable.invalid = false;
+    dodtable.record = ['zero-count stand-in: no draws were evaluated, the ',...
+        'coefficients are 0 by convention and carry no admissibility record'];
+end
+if dodtable.invalid
+    %in the free band below the estimand caption and above the axes titles
+    uicontrol(fig,'Style','text','FontSize',10,'ForegroundColor',[0.70 0.00 0.00],...
+        'HorizontalAlignment','left',...
+        'String',['Table warning: negative variance components in posterior ' ...
+        'draws; these coefficients are not interpretable as reliability.'],...
+        'Position',[20 410 1140 22]);
 end
 
-function val = local_dod_point_metric(bp,bt,er,obs,metric)
-if any(obs <= 0)
-    val = 0;
-    return;
-end
-
-cvec = [1; -1; -1; 1];
-u = cvec' * bp * cvec;
-
-bt_scaled = 0;
-for i = 1:4
-    bt_scaled = bt_scaled + (cvec(i)^2) * (bt(i,i) / obs(i));
-end
-
-for i = 1:3
-    for j = i+1:4
-        nharm = 2 / ((1/obs(i)) + (1/obs(j)));
-        bt_scaled = bt_scaled + (2 * cvec(i) * cvec(j) * bt(i,j) / nharm);
-    end
-end
-
-er_scaled = 0;
-for i = 1:4
-    er_scaled = er_scaled + (cvec(i)^2) * (er(i) / obs(i));
-end
-
+%Retain the raw grid, its components and its reasons on the figure. This
+%window has no export route of its own, so the figure IS the saved output:
+%savefig keeps UserData in the .fig, get(gcf,'UserData').dodgrid reads it
+%back, and an image export keeps only the rendered mask and captions.
+cvec = [1 -1 -1 1];
+dodgrid = struct;
+dodgrid.grid_estimand = grid_estimand;
+dodgrid.table_estimand = table_estimand;
 if metric == 1
-    denom = u + bt_scaled + er_scaled;
+    dodgrid.metric = 'dep';
 else
-    denom = u + er_scaled;
+    dodgrid.metric = 'gen';
+end
+dodgrid.grid = grid;
+dodgrid.obs = obs;
+dodgrid.cvec = cvec;
+dodgrid.events = sel_events(:)';
+dodgrid.group = gname;
+dodgrid.components = struct('bp_mean',bp_mean,'bt_mean',bt_mean,'er_mean',er_mean);
+dodgrid.uni_var = cvec * bp_mean * cvec';
+dodgrid.bt_unscaled_var = cvec * bt_mean * cvec';
+dodgrid.mask_rule = ['admissible = every recorded quantity (universe-score, ',...
+    'harmonic-scaled between-trial, scaled residual, single-observation ',...
+    'between-trial contrast variance) finite and >= 0 at the cell under either ',...
+    'metric, AND denominator > 0, AND coefficient inside [0,1]; strict computed ',...
+    'sign, no tolerance, no clipping; zero-count cells show 0 by convention and ',...
+    'are not computed'];
+dodgrid.mask_note = ['the grey mask is a deterministic plug-in check at the ',...
+    'component MEANS; it is not the table''s draw-level warning (see dodtable), ',...
+    'and the two can disagree'];
+heat1 = struct('xevent',sel_events{1},'yevent',sel_events{2},...
+    'fixed_obs',[obs(3) obs(4)],'value',z12,'bt_scaled_var',bt12,...
+    'er_scaled_var',er12,'denominator',den12,'admissible',adm12,'zero_count',zc12);
+heat1.reason = rs12;
+heat2 = struct('xevent',sel_events{3},'yevent',sel_events{4},...
+    'fixed_obs',[obs(1) obs(2)],'value',z34,'bt_scaled_var',bt34,...
+    'er_scaled_var',er34,'denominator',den34,'admissible',adm34,'zero_count',zc34);
+heat2.reason = rs34;
+dodgrid.heat = [heat1 heat2];
+set(fig,'UserData',struct('dodgrid',dodgrid,'dodtable',dodtable));
 end
 
-if denom <= 0 || ~isfinite(denom)
-    val = NaN;
-else
-    val = u / denom;
+function [z,bts,ers,den,adm,zc,rs] = local_grid_alloc(ng)
+%one heatmap's per-cell carriers, rows = y count, columns = x count
+z = zeros(ng,ng);
+bts = zeros(ng,ng);
+ers = zeros(ng,ng);
+den = zeros(ng,ng);
+adm = false(ng,ng);
+zc = false(ng,ng);
+rs = cell(ng,ng);
 end
+
+function [z,bts,ers,den,adm,zc,rs] = local_grid_unpack(s)
+z = s.value;
+bts = s.bt_scaled;
+ers = s.er_scaled;
+den = s.denominator;
+adm = s.admissible;
+zc = s.zero_count;
+rs = s.reason;
 end
 
 function arr = local_round_cells(arr,n)

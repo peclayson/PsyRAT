@@ -5,7 +5,7 @@ function psyrat_ssrelplot(varargin)
 %
 %
 %Inputs
-% psyrat_data - PsyRAT Toolbox data structure array. Variance components should
+% psyrat_data - PsyRAT data structure array. Variance components should
 %  be included.
 % stat - 'dep': dependability, 'icc': intraclass correlation coefficient
 %
@@ -16,7 +16,7 @@ function psyrat_ssrelplot(varargin)
 %Outputs
 % figure that shows subject-level reliability in ascending order
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ if ~isempty(varargin)
     else
         error('varargin:psyrat_data',... %Error code and associated error
             strcat('WARNING: psyrat_data not specified \n\n',...
-            'Please input psyrat_data (PsyRAT Toolbox data structure array).\n',...
+            'Please input psyrat_data (PsyRAT data structure array).\n',...
             'See help psyrat_ssrelplot for more information \n'));
     end
     
@@ -199,7 +199,22 @@ if strcmp(stat,'dep')
             %tables, but a different quantity from the two-facet dep_* bars it
             %would otherwise be plotted against. Both branches use the same
             %mean(trls) divisor, so this changes the partition, not the n'.
-            if any(strcmp(gtable.Properties.VariableNames,'gro_rel'))
+            %
+            %G108. The difference-score table carries neither column, and the
+            %one-facet expression is the wrong quantity for it too. Its bp_var
+            %is the contrast's person variance (person covariance included),
+            %but its error term is pop_errvar, the half-sum of the two events'
+            %residual variances averaged over draws and participants, divided
+            %once by mean(trls), the mean over participants of the MINIMUM
+            %paired count. That omits the residual and trial covariances and
+            %the per-event divisors, and, with no trl_var column, drops the
+            %trial terms from dependability. The summary already stores the
+            %group target: the group-model coefficient at the chosen central
+            %counts, evaluated once by psyrat_diffrel. Draw that stored number;
+            %the caption added below says which counts.
+            if plot_diffscore
+                gro_est = psyrat_data.relsummary.group(gloc).diffscore.pt;
+            elseif any(strcmp(gtable.Properties.VariableNames,'gro_rel'))
                 gro_est = gtable.gro_rel(1);
             else
                 gro_err = gtable.pop_errvar(1);
@@ -333,8 +348,12 @@ elseif strcmp(stat,'icc')
             %As in the dependability panel above: two-facet tables carry the
             %group ICC as a column (the single-observation coefficient under the
             %same partition as the icc_* bars), and the undivided
-            %bp_var/pop_errvar expression is the one-facet fallback.
-            if any(strcmp(gtable.Properties.VariableNames,'gro_icc'))
+            %bp_var/pop_errvar expression is the one-facet fallback. On the
+            %difference-score route the stored group ICC (one observation per
+            %event) is the reference, for the reason given above (G108).
+            if plot_diffscore
+                gro_est = psyrat_data.relsummary.group(gloc).diffscore.icc_pt;
+            elseif any(strcmp(gtable.Properties.VariableNames,'gro_icc'))
                 gro_est = gtable.gro_icc(1);
             else
                 gro_err = gtable.pop_errvar(1);
@@ -443,10 +462,150 @@ elseif strcmp(stat,'icc')
                 'Color','k',...
                 'LineStyle','-',...
                 'LineWidth',1.5);
-            
+
             plot_count = plot_count + 1;
         end
     end
 end
 
+%G108. On the difference-score route, say what the black line is. Every other
+%design draws exactly as before.
+if plot_diffscore
+    local_diff_caption(depplot,psyrat_data,stat,gnames,coeff_label);
+end
+
+%RESTRICTED note for gamma analysis 25 (trt_sserrvar): a band above the panels
+%plus UserData.design_maturity, from the shared text source. The helper gates
+%on the exact label and the gamma family, so every other design draws exactly
+%as before.
+if isfield(psyrat_data.rel,'family') && isfield(psyrat_data.rel,'analysis')
+    psyrat_restricted_figure_note(depplot,psyrat_data.rel.analysis,psyrat_data.rel.family);
+end
+
+end
+
+function local_diff_caption(fig,psyrat_data,stat,gnames,coeff_label)
+%G108. Build and place the caption of the difference-score caterpillar.
+%
+%The coefficient panel's line is group(g).diffscore.pt, the group-model
+%coefficient psyrat_relsummary evaluated at the counts it records beside it in
+%diffscore.obsbasis: the selected mean or median of the retained participants'
+%paired trial counts, or of the full roster when nobody was retained. The ICC
+%panel's line is diffscore.icc_pt, at one observation per event, which needs no
+%count record. A summary built before obsbasis existed still carries the stored
+%coefficient but not its counts, and the caption then says so rather than
+%guessing from trlinfo (always the full roster) or from current preferences.
+%The line is not the mean of the retained participants' own coefficients,
+%which is the overall table's subject-level quantity.
+ngroups = numel(gnames);
+evnames = cellstr(string(psyrat_data.rel.events(:)));
+coefword = lower(coeff_label);
+if strcmp(coefword,'dependability')
+    errword = 'absolute';
+else
+    errword = 'relative';
+end
+
+caplines = {};
+if strcmp(stat,'icc')
+    if ngroups > 1
+        lead = 'Black line (each panel): that group''s';
+    else
+        lead = 'Black line: the group''s';
+    end
+    caplines = [caplines, local_wrap(sprintf(['%s model-based difference-score ',...
+        'ICC (%s error) at one observation per event.'],lead,errword))];
+else
+    for gloc = 1:ngroups
+        ds = psyrat_data.relsummary.group(gloc).diffscore;
+        if ngroups > 1
+            lead = sprintf('Black line, %s: the group''s',gnames{gloc});
+        else
+            lead = 'Black line: the group''s';
+        end
+        if isfield(ds,'obsbasis') && isstruct(ds.obsbasis) && ~isempty(ds.obsbasis)
+            ob = ds.obsbasis;
+            counts = sprintf('%s %.2f, %s %.2f',evnames{1},ob.obs(1),...
+                evnames{2},ob.obs(2));
+            if strcmp(ob.population,'retained')
+                if ob.nretained == 1
+                    pword = 'participant';
+                else
+                    pword = 'participants';
+                end
+                txt = sprintf(['%s model-based difference-score %s at the %s ',...
+                    'paired trial counts of the %d retained %s (%s).'],...
+                    lead,coefword,ob.centmeas,ob.nretained,pword,counts);
+            else
+                txt = sprintf(['%s model-based difference-score %s at the %s ',...
+                    'paired trial counts of the full roster, because no ',...
+                    'participant was retained (%s).'],...
+                    lead,coefword,ob.centmeas,counts);
+            end
+        else
+            txt = sprintf(['%s stored model-based difference-score %s. Its ',...
+                'trial-count basis was not recorded in this summary; ',...
+                're-summarize the result to show it.'],lead,coefword);
+        end
+        caplines = [caplines, local_wrap(txt)]; %#ok<AGROW>
+    end
+end
+
+%A graphics annotation rather than a uicontrol, because exportgraphics drops UI
+%components (the psyrat_dynrelplot precedent). It sits in a band ADDED below the
+%panels: at creation each axes keeps its pixel geometry (its normalized position
+%is rescaled to the taller figure), so titles and axis labels keep their place
+%relative to their panels. The band is sized for the default 900 x 450 px figure
+%with 11-pt text, where rendered macOS R2025b exports of two-group figures showed
+%a readable caption clear of the axis labels. That is not a general guarantee:
+%long group or event names, another screen DPI, or resizing the window after
+%creation can crowd or overflow the band, so inspect the rendered figure then.
+linepx = 18;                          %line pitch chosen for 11-pt text at the default layout
+band = numel(caplines)*linepx + 14;   %pixels added below the panels
+oldunits = get(fig,'Units');
+set(fig,'Units','pixels');
+pos = get(fig,'Position');
+oldh = pos(4);
+newh = oldh + band;
+axs = findobj(fig,'Type','axes');
+for k = 1:numel(axs)
+    set(axs(k),'Units','normalized');
+    p = get(axs(k),'Position');
+    set(axs(k),'Position',[p(1) (p(2)*oldh + band)/newh p(3) p(4)*oldh/newh]);
+end
+set(fig,'Position',[pos(1) pos(2)-band pos(3) newh]);
+annotation(fig,'textbox',[0.02 4/newh 0.96 (band-6)/newh],'String',caplines(:),...
+    'Tag','psyrat_ssrel_reference_caption','FontSize',11,...
+    'Interpreter','none','EdgeColor','none','Margin',2,...
+    'HorizontalAlignment','left','VerticalAlignment','middle',...
+    'FitBoxToText','off');
+set(fig,'Units',oldunits);
+end
+
+function out = local_wrap(str)
+%Greedy word wrap by character count (maxchars), intended to keep each caption
+%line inside the default 900-pixel figure at 11 pt. A character count is not a
+%pixel width: wide glyphs, long names, a single word longer than the limit
+%(never broken), another screen DPI or a narrower window can still overflow, so
+%inspect the rendered figure in those cases.
+maxchars = 105;
+words = strsplit(str,' ');
+out = {};
+cur = '';
+for k = 1:numel(words)
+    if isempty(cur)
+        cand = words{k};
+    else
+        cand = [cur ' ' words{k}];
+    end
+    if numel(cand) > maxchars && ~isempty(cur)
+        out{end+1} = cur; %#ok<AGROW>
+        cur = words{k};
+    else
+        cur = cand;
+    end
+end
+if ~isempty(cur)
+    out{end+1} = cur;
+end
 end

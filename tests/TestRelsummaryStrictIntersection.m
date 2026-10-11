@@ -42,14 +42,15 @@ classdef TestRelsummaryStrictIntersection < PsyRATTestBase
                         gloc, eloc));
                 end
 
-                %the dead event's reliability-at-cutoff carries the -1
-                %sentinel (its cutoff extrapolates past the observed counts)
+                %G88: a calculable cutoff beyond observed support retains its
+                %raw projected value and carries explicit provenance.
                 errloc = find(strcmp({g.event.name}, 'err'), 1);
                 corloc = find(strcmp({g.event.name}, 'cor'), 1);
                 testCase.assertNotEmpty(errloc);
                 testCase.assertNotEmpty(corloc);
-                testCase.verifyEqual(g.event(errloc).rel.m, -1, ...
-                    'the dead event''s cutoff row must carry the sentinel');
+                testCase.verifyTrue(g.event(errloc).cutoff_extrapolated);
+                testCase.verifyGreaterThan(g.event(errloc).rel.m, 0, ...
+                    'the valid projected coefficient must not be replaced by -1');
                 testCase.verifyGreaterThan(g.event(corloc).rel.m, 0, ...
                     'the surviving event''s cutoff row must stay informative');
             end

@@ -82,6 +82,12 @@ classdef TestTrtDiffStrictAlignment < PsyRATTestBase
             end
             testCase.verifyEqual(tbl.(vn{2}){3}, 5, ...
                 'the diff-score row carries the same group-level count');
+            %G97 (beta-tester feedback 2026-09-16): the diff-score row's
+            %n Excluded was a '---' inherited from the ERA port while the
+            %test-retest sibling prints the complement; roster minus the
+            %group-level count is well-defined here too
+            testCase.verifyEqual(tbl.(vn{3}){3}, 15, ...
+                'the diff-score row must complement to the roster');
         end
 
         function testEmptyIntersectionContinuesZeroed(testCase)

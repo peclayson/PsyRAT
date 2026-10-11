@@ -48,7 +48,7 @@ function [gen,dep,diagnostic] = psyrat_ssrel_diffdynrel_trt_rescor_gamma_ls(vara
 %THE ESTIMAND OF THE RESIDUAL COVARIANCE. Evaluated at expected means, it is a
 %MEAN-MATCHED DIAGNOSTIC quantity, NOT integrated over every realized
 %location-facet effect, and must not be described as a fully facet-marginalized
-%residual covariance. See documentation/modular_cut_copula_workflow.md.
+%residual covariance (development cut-copula workflow note).
 %
 %DEVELOPMENT-ONLY. Unlike the one-facet design this configuration has no
 %empirical anchor: the reference bundle's two-facet runs were prepared against a

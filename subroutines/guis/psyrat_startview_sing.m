@@ -6,15 +6,15 @@ function psyrat_startview_sing(varargin)
 %
 %
 %Required Input
-% psyrat_data - PsyRAT Toolbox data structure array
-% psyrat_prefs - PsyRAT Toolbox preferences structure array
+% psyrat_data - PsyRAT data structure array
+% psyrat_prefs - PsyRAT preferences structure array
 %
 %Output
 % No variables will be outputted to the Matlab workspace. Based on the
 %  inputs from this gui, psyrat_relfigures will be executed to display various
 %  figures and tables
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -302,7 +302,7 @@ if ~sserrvar
 elseif sserrvar
     str_label = 'Plot: Subject-Level Reliability';
     str_tool = sprintf(['Display a plot that shows each participant''s \n'...
-        'reliability estimate and their credible interval']);
+        'reliability estimate and their ' psyrat_interval_label(psyrat_data.rel,'lower')]);
 end
 
 %dependability with increasing trials
@@ -365,7 +365,7 @@ row = row - rowspace;
 if ~sserrvar
     str = sprintf(['Display a table showing the ' L.numberof ' needed\n',...
         'to obtain the specified reliability threshold and the\n',...
-        'reliability point estimate and credible interval for the ' L.unit ' cutoff']);
+        'reliability point estimate and ' psyrat_interval_label(psyrat_data.rel,'lower') ' for the ' L.unit ' cutoff']);
     str_label = ['Table: ' L.Unit ' Cutoffs at Reliability Threshold'];
 else
     str = sprintf(['Display/export a table with subject-level reliability,\n',...
@@ -400,7 +400,7 @@ row = row - rowspace;
 str = sprintf(['Display a table that summarizes the number of participants\n'...
     'with data that satisfy the reliability threshold, the number of\n'...
     'participants without data the satisfy the reliability threshold\n',...
-    'the overall reliability point estimate and credible interval,\n'...
+    'the overall reliability point estimate and ' psyrat_interval_label(psyrat_data.rel,'lower') ',\n'...
     'and the ' L.unit ' summary information (min, mean, median, max)']);
 
 
@@ -611,8 +611,8 @@ function psyrat_svh(varargin)
 %parses inputs to psyrat_relfigures for displaying figures
 %
 %Input
-% psyrat_data - PsyRAT Toolbox data structure array
-% psyrat_prefs - PsyRAT Toolbox preferences structure array
+% psyrat_data - PsyRAT data structure array
+% psyrat_prefs - PsyRAT preferences structure array
 %
 
 %somersault through varargin inputs to check for psyrat_prefs and psyrat_data
@@ -700,8 +700,8 @@ function psyrat_viewprefs(varargin)
 %displays various preferences for plotting or summarizing data
 %
 %Input
-% psyrat_data - PsyRAT Toolbox data structure array
-% psyrat_prefs - PsyRAT Toolbox preferences structure array
+% psyrat_data - PsyRAT data structure array
+% psyrat_prefs - PsyRAT preferences structure array
 
 %somersault through varargin inputs to check for psyrat_prefs and psyrat_data
 [psyrat_prefs, psyrat_data] = psyrat_findprefsdata(varargin);
@@ -824,9 +824,10 @@ uicontrol(psyrat_gui,'Style','text','fontsize',psyrat_prefs.guis.fsize,...
     'Tooltip',str,...
     'Position', [lcol row pos(4)/2 35]);  
 
-str = sprintf(['Lower Limit of Credible Interval\n',...
+str = sprintf(['Lower Limit of %s\n',...
     'Reliability Point Estimate\n',...
-    'Upper Limit of Credible Interval']);
+    'Upper Limit of %s'],psyrat_interval_label(psyrat_data.rel,'title'), ...
+    psyrat_interval_label(psyrat_data.rel,'title'));
 
 newprefs.plotdepline = uicontrol(psyrat_gui,'Style','listbox',...
     'fontsize',psyrat_prefs.guis.fsize,...
@@ -866,9 +867,10 @@ uicontrol(psyrat_gui,'Style','text','fontsize',psyrat_prefs.guis.fsize,...
     'Tooltip',str,...
     'Position', [lcol row pos(4)/2 35]);  
 
-str = sprintf(['Lower Limit of Credible Interval\n',...
+str = sprintf(['Lower Limit of %s\n',...
     'Reliability Point Estimate\n',...
-    'Upper Limit of Credible Interval']);
+    'Upper Limit of %s'],psyrat_interval_label(psyrat_data.rel,'title'), ...
+    psyrat_interval_label(psyrat_data.rel,'title'));
 
 newprefs.meascutoff = uicontrol(psyrat_gui,...
     'Style','listbox','fontsize',psyrat_prefs.guis.fsize,...
@@ -973,6 +975,34 @@ if ~isreal(ntrials) || isnan(ntrials) || ntrials <= 1
         uicontrol(newprefs.ntrials);
     end
     return;
+end
+
+%G95 (beta-tester report 2026-09-16): a Cmd/Ctrl+click on the selected row
+%of a single-select listbox clears the selection, so .Value can be [].
+%Stored, that reached psyrat_relsummary's scalar guards at Generate and
+%rebuilt this screen with nothing highlighted. Same shape as the ntrials
+%guard above (modal, purpose-titled, focus restored), plus the previous
+%choice reseated so the user sees what to pick.
+lbchk = {newprefs.plotdepline, psyrat_prefs.view.plotdepline, ...
+    'Line to plot for reliability', 'Plot Line Not Defined'; ...
+    newprefs.meascutoff, psyrat_prefs.view.meascutoff, ...
+    ['Estimate to use for ' L.unit ' cutoffs'], 'Cutoff Estimate Not Defined'; ...
+    newprefs.depcentmeas, psyrat_prefs.view.depcentmeas, ...
+    'Measure of central tendency for overall reliability calculations', ...
+    'Central Tendency Not Defined'};
+for lbi = 1:size(lbchk,1)
+    if isempty(lbchk{lbi,1}.Value)
+        errordlg({['No option is selected for "' lbchk{lbi,3} '".'];...
+            'How to fix: click one option in that list, then click Save.'},...
+            lbchk{lbi,4},'modal');
+        if ishghandle(lbchk{lbi,1})
+            if ~isempty(lbchk{lbi,2})
+                set(lbchk{lbi,1},'Value',lbchk{lbi,2});
+            end
+            uicontrol(lbchk{lbi,1});
+        end
+        return;
+    end
 end
 
 %pull new preferences

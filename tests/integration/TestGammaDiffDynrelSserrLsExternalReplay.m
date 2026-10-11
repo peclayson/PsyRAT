@@ -6,11 +6,11 @@ classdef TestGammaDiffDynrelSserrLsExternalReplay < PsyRATTestBase
     % per-person outputs on disk. Both sides consume the SAME posterior draws,
     % so any disagreement is arithmetic, not Monte Carlo - the design the 8c
     % external validation established
-    % (documentation/gamma_locationscale_rollout.md) and
+    % (the location-scale rollout record) and
     % TestModularCutCopulaExternalReplay follows for analysis 19.
     %
     % WHAT THIS PINS. The S17-FIX acceptance result (2026-08-11, recorded in
-    % PSYRAT_AUDIT_FINDINGS.md, S17 resolution bullet): with the pooled
+    % findings ledger, S17 resolution bullet): with the pooled
     % per-participant residual, PsyRAT's per-person G agrees with the
     % reference implementation's stored G_delta up to the ONE term the two
     % deliberately treat differently - the cross-event mean-surface covariance

@@ -33,7 +33,9 @@ function line = psyrat_iterline(rel)
 %     <http://www.gnu.org/licenses/>.
 %
 
-if isfield(rel,'nwarmup') && isfield(rel,'nsampling') && ...
+if isfield(rel,'engine') && strcmpi(rel.engine,'fitlme')
+    line = 'MCMC chains/warmup/sampling: not applicable (REML parametric bootstrap)';
+elseif isfield(rel,'nwarmup') && isfield(rel,'nsampling') && ...
         ~isempty(rel.nwarmup) && ~isempty(rel.nsampling)
     line = sprintf('Chains: %d, Warmup: %d, Sampling: %d', ...
         rel.nchains, rel.nwarmup, rel.nsampling);

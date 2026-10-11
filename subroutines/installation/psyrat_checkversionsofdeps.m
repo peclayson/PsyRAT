@@ -1,5 +1,5 @@
 function versions = psyrat_checkversionsofdeps
-%Check the versions of the dependents for PsyRAT Toolbox
+%Check the versions of the dependents for PsyRAT
 %
 %
 
@@ -24,7 +24,7 @@ function versions = psyrat_checkversionsofdeps
 %   matlabprocessmanager - information for matlab process manager
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

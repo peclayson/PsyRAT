@@ -6,14 +6,14 @@ function psyratinstalledver = psyrat_updatecheck(psyratver)
 %Lasted Updated 8/5/19
 %
 %Required Input:
-% psyratver - PsyRAT Toolbox version
+% psyratver - PsyRAT version
 %
 %Outputs:
 % psyratinstalledver - contains information regarding whether the toolbox is
 %  up to date 0 - old, 1 - current, 2 - beta
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

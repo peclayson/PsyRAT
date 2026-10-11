@@ -40,8 +40,9 @@ function home = psyrat_locate_cmdstan()
 %   3. Whatever is discoverable on the MATLAB path.
 % A candidate counts only when it is a VALID CmdStan root (a makefile plus a
 % bin/ directory), so a stale environment variable pointing at a non-CmdStan
-% directory reads as "not found" here rather than as a present-but-broken
-% install.
+% directory is skipped and the next candidate is tried; it reads as "not
+% found" here only when no other candidate is valid, and never as a
+% present-but-broken install.
 %
 %Required Inputs:
 % No inputs are required.

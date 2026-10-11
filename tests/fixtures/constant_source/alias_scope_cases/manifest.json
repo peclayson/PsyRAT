@@ -1,0 +1,108 @@
+{
+  "expectations": "Independent complete-statement/control-flow reasoning frozen before execution.",
+  "fixtures": [
+    {
+      "file": "alias_unconditional_statement.stan",
+      "sha256": "ea6624eff3be8e3f6d9c78fced3ea65e842b4b2f8a876722534dbd94e04ec964",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "The complete unconditional top-level assignment defines a unit diagonal.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; no successful-runtime claim"
+    },
+    {
+      "file": "alias_unconditional_comments.stan",
+      "sha256": "1f61cb96e4b91d4b984a888937da19a01e25b243d00e3107b4474c41a1e98ed2",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "Comments and whitespace do not change the complete standalone assignment.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; no successful-runtime claim"
+    },
+    {
+      "file": "alias_inline_comments.stan",
+      "sha256": "5778320e25496fa9aadca9e071519d9c25ff6b1af40db78354c7491808cca76f",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "A complete top-level matrix declaration with a direct principal-block initializer has a unit diagonal, including intervening comments and whitespace.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; no successful-runtime claim"
+    },
+    {
+      "file": "alias_inline_minified.stan",
+      "sha256": "b2ce1d8d07de218e7dfd153c15b58b402c75757a05abcc8ca90b47196d4365a4",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "The closing bracket separates the matrix dimension from the identifier; no intervening whitespace is required. This is the same complete direct-block initializer.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; no successful-runtime claim"
+    },
+    {
+      "file": "alias_unbraced_if.stan",
+      "sha256": "bb3f516bcd72ce70f9458fb167c72cd5aeaeec9f154a16552b8f08ef6d1c6388",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "For z <= 0 the matrix is unassigned; the alias assignment is merely a suffix of a conditional statement. No unconditional unit-diagonal proof exists.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; no successful-runtime claim"
+    },
+    {
+      "file": "alias_unbraced_zero_loop.stan",
+      "sha256": "7849b5c622c7e25f82a5454b7f9f0eebd5b40c68a92054005810a86cc7cee99e",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The empty-range loop never assigns the matrix. A complete RHS does not prove execution of an assignment embedded in a larger statement.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; no successful-runtime claim"
+    },
+    {
+      "file": "alias_unbraced_full_loop.stan",
+      "sha256": "f0972ac9a75de14bc180e067a4eab7a3b2671eeb941742bfee558c6e82ce5fda",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "This loop does define a unit diagonal, but is deliberately outside the reviewed unconditional assignment/declaration rule and may remain conservatively unproven.",
+      "data": {},
+      "definitely_stochastic": [],
+      "syntax_status": "awaiting primary stanc check",
+      "runtime_status": "not sampled; no successful-runtime claim"
+    }
+  ],
+  "fixture_creation_manifest": "audit/review-2026-09-13/science/alias_scope_cases/manifest.json",
+  "fixture_creation_manifest_sha256": "6776bc479d3a9bf5426bb4f2dbf374666a77572a66ee96186c5714d6181841ed",
+  "creation_status_note": "Original per-fixture syntax/runtime fields describe fixture creation, before the separately recorded compiler check.",
+  "compiler_evidence": "audit/review-2026-09-13/logs/accepted-source-control-stanc.json"
+}

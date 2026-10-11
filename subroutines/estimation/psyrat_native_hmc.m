@@ -146,7 +146,7 @@ function fit = psyrat_native_hmc(design,data,seed,nchains,nwarm,nsamp,opts)
 %See also: psyrat_run_native, psyrat_native_supported, PsyRATNativeFit,
 % psyrat_hmc_sample, hmcSampler
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -220,6 +220,7 @@ switch key
             'engine registry (psyrat_native_supported) should not route this ' ...
             'design to the HMC engine until its log-posterior is built.'],key);
 end
+fit = psyrat_diagnose_native_outputs(fit,key,data,nsamp,nchains);
 end
 
 % ===========================================================================
@@ -1627,6 +1628,11 @@ rho = tanh(draws(:,ix.zrho));
 chol = zeros(ND,2,2);
 chol(:,1,1) = 1; chol(:,2,1) = rho; chol(:,2,2) = sqrt(1 - rho.^2);
 out.chol_corrmat = chol;
+%Retain the person log-scale contribution for diagnostics of the actual
+%residual variance. This is the same transformation used by the likelihood.
+Z=draws(:,ix.zsub); Z1=Z(:,1:2:end); Z2=Z(:,2:2:end);
+out.ind_sd=out.gro_sds(:,2).*(rho.*Z1+sqrt(1-rho.^2).*Z2);
+
 sigf = exp(draws(:,ix.lsig));                     % ND x5 (facet order)
 out.sig_occ     = sigf(:,1);
 out.sig_trl     = sigf(:,2);

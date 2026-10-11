@@ -39,7 +39,7 @@ function [gen,dep] = psyrat_ssrel_dynrel_gamma_ls(varargin)
 %participant's own conditional variance - follows the owner's reference
 %implementation, and analyses 13 and 19 use the same construction. The
 %pre-fix conditional-only behavior and its magnitude are finding S17; see
-%gamma_scale_submodel_decision.md section J.6.
+%the scale-submodel decision record, section J.6 (not shipped).
 %
 %CONSEQUENCE: ind_bs IS NOT AN INPUT, AND MUST NOT BECOME ONE.
 %The participant's OWN log-mean u_s does not appear in this calculation at all:
@@ -48,7 +48,7 @@ function [gen,dep] = psyrat_ssrel_dynrel_gamma_ls(varargin)
 %     term touches u_s: the pooled person x trial term is the POPULATION
 %     AVERAGE at the participant's z, not their own share. That is an estimand
 %     choice, not an identifiability constraint - the per-person share V_s is
-%     computable from the fitted u_s (gamma_scale_submodel_decision.md J.6
+%     computable from the fitted u_s (the decision record's section J.6
 %     derives it) - and it is the choice the owner's reference implementation
 %     and the group surface both make, which keeps u_s out of the coefficient.
 %     Under the log-nu twin the residual is 2*mu(z,u_s)^2/nu, so u_s DOES

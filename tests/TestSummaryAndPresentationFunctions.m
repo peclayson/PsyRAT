@@ -772,6 +772,72 @@ classdef TestSummaryAndPresentationFunctions < PsyRATTestBase
                 'varargin:stat');
         end
 
+        function testTrtPreferencesStayInsideWindow(testCase)
+            for engine={'fitlme','cmdstan'}
+                for dims={[680 935],[550 760]}
+                    pd=PsyRATTestDataFactory.makeTRTSummaryData();
+                    pd.rel.engine=engine{1}; pd.rel.filename='preferences_control.psyrat';
+                    pd.proc.measheader='Synthetic score';
+                    psyrat_startview_trt('psyrat_prefs',psyrat_defaults(),'psyrat_data',pd);
+                    fig=findall(groot,'Type','figure','Name','View Results Setup');
+                    testCase.assertNumElements(fig,1);
+                    fig.Position(3:4)=dims{1};
+                    buttons=findall(fig,'Style','pushbutton'); hit=false;
+                    for b=buttons(:)'
+                        cb=b.Callback;
+                        if iscell(cb)&&contains(func2str(cb{1}),'psyrat_viewprefs')
+                            feval(cb{1},b,[],cb{2:end}); hit=true; break;
+                        end
+                    end
+                    testCase.assertTrue(hit);
+                    fig=findall(groot,'Type','figure','Name','View Preferences');
+                    testCase.assertNumElements(fig,1);
+                    testCase.verifyEqual(fig.Position(3:4),dims{1});
+                    for h=findall(fig,'Type','uicontrol')'
+                        p=getpixelposition(h);
+                        testCase.verifyGreaterThanOrEqual(p(1:2),[0 0]);
+                        testCase.verifyLessThanOrEqual(p(1:2)+p(3:4),dims{1}, ...
+                            sprintf('%s control exceeds the preferences window.',h.Style));
+                    end
+                    close(fig);
+                end
+            end
+        end
+
+        function testIntervalPlotLabelsAndNumericControls(testCase)
+            % The same draws must give the same curves, while the displayed
+            % method and requested width reflect the estimation contract.
+            for design=1:2
+                for width=[.50 .95]
+                    for limit=[1 3]
+                        curves=cell(1,2);
+                        for engine=1:2
+                            engines={'fitlme','cmdstan'};
+                            labels={'Bootstrap Interval','Credible Interval'};
+                            limits={'Lower','Point','Upper'};
+                            if design==1
+                                pd=PsyRATTestDataFactory.makeICSummaryData();
+                                pd.rel.engine=engines{engine};
+                                fig=psyrat_depvtrialsplot('psyrat_data',pd,'trials',[1 6], ...
+                                    'depcutoff',.8,'depline',limit,'CI',width);
+                            else
+                                pd=PsyRATTestDataFactory.makeTRTSummaryData();
+                                pd.rel.engine=engines{engine};
+                                fig=psyrat_trt_relvtrialsplot('psyrat_data',pd,'trials',[1 6], ...
+                                    'relcutoff',.8,'relline',limit,'CI',width);
+                            end
+                            expected=sprintf('%s Limit of %g%% %s',limits{limit},100*width,labels{engine});
+                            testCase.verifyTrue(contains(fig.Name,expected),fig.Name);
+                            lines=findall(fig,'Type','line');
+                            curves{engine}=arrayfun(@(h)h.YData,lines,'UniformOutput',false);
+                            close(fig);
+                        end
+                        testCase.verifyEqual(curves{1},curves{2});
+                    end
+                end
+            end
+        end
+
         function testDepTrialsPlotAndValidation(testCase)
             psyrat_data = PsyRATTestDataFactory.makeICSummaryData();
             fig = psyrat_depvtrialsplot( ...
@@ -1693,6 +1759,41 @@ classdef TestSummaryAndPresentationFunctions < PsyRATTestBase
                 contains(msg, 'NOT bit-identical', 'IgnoreCase', true));
         end
 
+        function testEngineNoticeFitlmeReportsBootstrapRecord(testCase)
+            % Q3 (post-beta review PBA-05): when the engine record carries the
+            % bootstrap counts, the notice names them after the existing
+            % wording; a legacy record without them keeps the old message.
+            base = psyrat_engine_notice(struct('engine','fitlme'));
+            rel = struct('engine','fitlme','engine_meta',struct( ...
+                'bootstrap_reps',1000,'bootstrap_ok',987,'bootstrap_failed',13));
+            msg = psyrat_engine_notice(rel);
+            testCase.verifyTrue(startsWith(msg, base), 'the existing wording must be kept');
+            testCase.verifyTrue(contains(msg, '987 of 1000'));
+            testCase.verifyTrue(contains(msg, '13 failed'));
+            clean = psyrat_engine_notice(struct('engine','fitlme','engine_meta',struct( ...
+                'bootstrap_reps',1000,'bootstrap_ok',1000,'bootstrap_failed',0)));
+            testCase.verifyTrue(contains(clean, '1000 of 1000'));
+            testCase.verifyFalse(contains(clean, 'failed'));
+        end
+
+        function testProvenanceLinesReportBootstrapRecord(testCase)
+            % Q3: exported headers carry the bootstrap record of a fitlme run;
+            % CmdStan runs and legacy files print nothing extra.
+            rel = struct('engine','fitlme','engine_meta',struct( ...
+                'bootstrap_reps',1000,'bootstrap_ok',987,'bootstrap_failed',13));
+            lines = psyrat_provenance_lines(struct('rel',rel));
+            testCase.verifyTrue(any(strcmp(lines, ...
+                'Bootstrap replicates: 987 of 1000 succeeded (13 failed refits dropped)')));
+            clean = psyrat_provenance_lines(struct('rel',struct('engine','fitlme', ...
+                'engine_meta',struct('bootstrap_reps',500,'bootstrap_ok',500,'bootstrap_failed',0))));
+            testCase.verifyTrue(any(strcmp(clean,'Bootstrap replicates: 500 of 500 succeeded')));
+            legacy = psyrat_provenance_lines(struct('rel',struct('engine','fitlme')));
+            testCase.verifyFalse(any(startsWith(legacy,'Bootstrap replicates')));
+            cmd = psyrat_provenance_lines(struct('rel',struct('engine','cmdstan', ...
+                'engine_meta',struct())));
+            testCase.verifyFalse(any(startsWith(cmd,'Bootstrap replicates')));
+        end
+
         function testEngineNoticeFitlmeFlagsApproximate(testCase)
             msg = psyrat_engine_notice(struct('engine','fitlme'));
             testCase.verifyNotEmpty(msg);
@@ -1704,6 +1805,16 @@ classdef TestSummaryAndPresentationFunctions < PsyRATTestBase
             msg = psyrat_engine_notice(struct('engine','someother'));
             testCase.verifyNotEmpty(msg);
             testCase.verifyTrue(contains(msg, 'someother'));
+        end
+
+        function testEngineChoiceDoesNotCertifyFinalReadiness(testCase)
+            % The approved early-workflow policy cannot certify final inference
+            % by changing engines (the pinned CmdStan T2 has 909 divergences).
+            for engine = {'hmc','fitlme','someother'}
+                msg = psyrat_engine_notice(struct('engine',engine{1}));
+                testCase.verifyFalse(contains(msg,'definitive','IgnoreCase',true));
+                testCase.verifyTrue(contains(msg,'Final-inference readiness is unassessed'));
+            end
         end
 
         function testTrtExtrapolatedCutoffWithNoRetainedIdsStillWritesGoodN(testCase)

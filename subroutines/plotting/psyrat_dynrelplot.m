@@ -11,9 +11,15 @@ function fh = psyrat_dynrelplot(summary,varargin)
 %For the subject-level variants (any stratum carrying a per-participant
 %ssrel_table: the dynamic difference designs 13/19/21, their two-facet siblings,
 %the subject-level non-difference designs 26/27, and the DoD designs 28/29 in
-%either family) the curve/surface is the typical-person population reference,
-%and each participant's own phi at their own standardized dimension value is
-%overlaid as a point.
+%either family) the curve/surface is a population reference and each
+%participant's own phi at their own standardized dimension value is overlaid
+%as a point. WHICH reference depends on the design: the Gaussian and
+%difference/DoD surfaces are the typical-person reference, while the gamma
+%non-difference surfaces (11/26/14/27) are the explicit Q9 surface target the
+%summary was built with - the population-marginal primary by default or the
+%typical-person companion - named in a caption and retained, with the rest of
+%the summary's gamma_target contract, in the figure's UserData (so a saved FIG
+%reopens to the exact target it was drawn at).
 %
 %Inputs
 % summary - struct from psyrat_dynrel_summary.
@@ -153,6 +159,77 @@ for s = 1:nstrata
         title(nstr,'FontSize',fsize+2);
     end
     hold off;
+end
+
+%Q9/Q8: the gamma non-difference designs carry an explicit target contract on
+%the summary. Name the surface target (and, for subject designs, the subject
+%remainder scheme) ON the figure, and retain the contract plus the plotting
+%inputs in UserData so a saved FIG reopens to the exact target it was drawn
+%at. Presence-keyed on summary.gamma_target: every other design's figure is
+%unchanged. The caption is part of the figure and IS captured by the export.
+meta = struct('gcoeff',gcoeff,'cutoff',cutoff,'ndim',ndim,'ci',summary.ci);
+if isfield(summary,'gamma_target') && ~isempty(summary.gamma_target)
+    gt = summary.gamma_target;
+    meta.gamma_target = gt;
+    meta.surface_target = gt.surface_target;
+    if strcmp(gt.surface_target,'typical_person')
+        sname = 'TYPICAL-PERSON companion (zero person effects)';
+    else
+        sname = 'POPULATION-MARGINAL primary';
+    end
+    cap = {sprintf('Surface: %s; %s; surface n'' %s.', sname, ...
+        gt.parameterization, strrep(gt.surface_count_source,'_',' '))};
+    if ~strcmp(gt.subject_target,'not_applicable')
+        if strcmp(gt.remainder_scheme,'legacy_observation_only_v1')
+            meanLabel = 'population mean components';
+            if strcmp(gt.subject_scheme_source,'explicit_override')
+                sch = 'LEGACY observation-only (explicitly requested; R omitted)';
+            else
+                sch = 'LEGACY observation-only (unstamped result, not migrated; R omitted)';
+            end
+        else
+            meanLabel = 'population mean components and remainder';
+            sch = gt.remainder_scheme;
+        end
+        cap{end+1} = sprintf(['Points: mixed population/person target (%s ' ...
+            'at own z; own effects in the ' ...
+            'observation variance only); n'' %s; scheme %s.'], ...
+            meanLabel, strrep(gt.count_source,'_',' '), sch);
+    end
+    %The caption must survive exportgraphics, which excludes UI components
+    %(a uicontrol caption was silently dropped from the saved PNG/PDF), so it
+    %is a GRAPHICS annotation, not a uicontrol. Reserve a bottom band for it
+    %by lifting every axes of this figure (the x-labels stay inside the
+    %axes' own margin above the band); only gamma non-difference figures are
+    %touched. Annotations live in the figure's annotation pane, so look them
+    %up with findall(fh,'Tag',...), not findobj.
+    band = 0.09;
+    axs = findobj(fh,'Type','axes');
+    for k = 1:numel(axs)
+        p = get(axs(k),'Position');
+        set(axs(k),'Position',[p(1) p(2)+band p(3) max(p(4)-band,0.05)]);
+    end
+    annotation(fh,'textbox',[0.19 0.004 0.80 band-0.005],'String',cap,...
+        'Tag','psyrat_dynrel_target_caption','FontSize',9,...
+        'Interpreter','none','EdgeColor','none','Margin',2,...
+        'HorizontalAlignment','left','VerticalAlignment','bottom',...
+        'FitBoxToText','off');
+    %per-stratum counts the surface was evaluated at (the title shows them;
+    %the UserData keeps them machine-readable). UserData is written for the
+    %gamma non-difference figures only, so every other design's FIG is
+    %byte-unchanged.
+    meta.strata = struct('label',{summary.strata.label},...
+        'obs',{summary.strata.obs},'obs_ev',{summary.strata.obs_ev},...
+        'nocc',{summary.strata.nocc});
+    %the full summary rides along too: it holds posterior SUMMARIES only
+    %(surfaces, component tables, per-participant tables, the target
+    %contract), never raw draws, so a saved FIG can be reopened and its
+    %numbers, target, counts and subjects compared exactly.
+    fh.UserData = struct('dynrel',meta,'summary',summary);
+    %RESTRICTED note for the gamma two-facet designs 14 and 27 (a band above
+    %the panels plus UserData.design_maturity, from the shared text source).
+    %Exact label, so the one-facet gamma designs 11 and 26 draw as before.
+    psyrat_restricted_figure_note(fh,gt.analysis,'gamma');
 end
 
 %offer a one-click figure export (PNG/PDF) for parity with the standard viewers.

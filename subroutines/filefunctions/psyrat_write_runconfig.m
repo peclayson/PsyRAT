@@ -21,7 +21,7 @@ function sidecarfile = psyrat_write_runconfig(psyrat_data,psyrat_prefs)
 % sidecarfile - full path to the JSON sidecar that was written. The file is
 %   named <savename-without-extension>_runconfig.json and placed in savepath.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -150,8 +150,37 @@ cfg.estimation.hmc_gradient   = local_field(pp,'hmc_gradient','auto');
 if isfield(psyrat_data,'rel') && isstruct(psyrat_data.rel) && ...
         isfield(psyrat_data.rel,'engine') && ~isempty(psyrat_data.rel.engine)
     cfg.estimation.engine_used = psyrat_data.rel.engine;
+    %achieved parametric-bootstrap counts of a native fitlme run (Q3,
+    %2026-09-11); absent for every other engine and for legacy results
+    if isfield(psyrat_data.rel,'engine_meta') && isstruct(psyrat_data.rel.engine_meta) && ...
+            isfield(psyrat_data.rel.engine_meta,'bootstrap_ok')
+        cfg.estimation.bootstrap_ok = psyrat_data.rel.engine_meta.bootstrap_ok;
+        cfg.estimation.bootstrap_failed = local_field(psyrat_data.rel.engine_meta, ...
+            'bootstrap_failed',[]);
+        cfg.estimation.bootstrap_fits = local_field(psyrat_data.rel.engine_meta,'fits',[]);
+        cfg.estimation.bootstrap_draw_layout = local_field(psyrat_data.rel.engine_meta,'draw_layout','legacy');
+        if isfield(psyrat_data.rel.engine_meta,'fits')
+            cfg.estimation.bootstrap_counts_scope = 'all independent fits';
+            cfg.estimation.bootstrap_requested_total = psyrat_data.rel.engine_meta.bootstrap_reps;
+        end
+    end
 else
     cfg.estimation.engine_used = 'cmdstan';
+end
+% Preserve requested configuration for replay, but distinguish it from what
+% the resolved engine actually used. REML has no Bayesian priors or MCMC.
+cfg.estimation.priors_applied=~strcmpi(cfg.estimation.engine_used,'fitlme');
+cfg.estimation.mcmc_settings_applied=~strcmpi(cfg.estimation.engine_used,'fitlme');
+
+%Diagnostic records are additive and record-only; replay never treats an old
+%early-workflow verdict as certification of new or final-inference results.
+if isfield(psyrat_data,'rel') && isfield(psyrat_data.rel,'out') && isfield(psyrat_data.rel.out,'conv')
+    cv=psyrat_data.rel.out.conv;
+    cfg.diagnostics=struct();
+    for name={'assessment_scope','thresholds','converged','excluded','invalid', ...
+            'diagnostics','final_inference','final_inference_reason','ndivergent'}
+        if isfield(cv,name{1}); cfg.diagnostics.(name{1})=cv.(name{1}); end
+    end
 end
 
 % Design / analysis flags.
@@ -216,7 +245,7 @@ cfg.design.dodmap     = local_field(pp,'dodmap',{});
 % generalizability threshold on its own.
 %
 % reltype and diffgcoeff are recorded below. Their earlier omission
-% (PSYRAT_AUDIT_FINDINGS.md section F, CC2) was a MACHINE-REPLAY gap only, not a
+% (findings-ledger section F, CC2) was a MACHINE-REPLAY gap only, not a
 % reporting one: an exported table already names the estimand a human is looking
 % at -- psyrat_provenance_lines emits a "Coefficient:" header from
 % psyrat_trt_coeflabel, which reads reltype and adds the difference-score error
@@ -248,7 +277,7 @@ cfg.view.nocc       = local_field(pv,'nocc',[]);
 cfg.view.depvalue   = local_field(pv,'depvalue',.8);
 cfg.view.relvalue   = local_field(pv,'relvalue',.8);
 
-% Priors (whole structure, so the exact prior configuration is recorded).
+% Configured priors (kept for replay even when REML did not apply them).
 cfg.priors = local_field(pp,'priors',struct());
 
 % Encode (pretty-print when the MATLAB release supports it) and write.

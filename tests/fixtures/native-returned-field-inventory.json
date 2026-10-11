@@ -1,0 +1,927 @@
+{
+  "source": "subroutines/estimation/psyrat_native_hmc.m",
+  "source_sha256": "491ce56efcd78d1cab18d6758a500df9f8abe3afb5b396583dabefbb75ec0631",
+  "leading_dimension": "ND=nsamp*nchains; all listed dimensions follow ND",
+  "note": "Expected schema transcribed independently from constructors and ix allocation. Explicit field sets statically checked; no MATLAB executed. Includes 1B dynrel_trt ind_sd extension.",
+  "keys": {
+    "sserr": {
+      "constructor": "local_dynrel_draws",
+      "line_start": 434,
+      "line_end": 470,
+      "fields": {
+        "Intercept": [
+          1
+        ],
+        "Intercept_sigma": [
+          1
+        ],
+        "b": [
+          "K"
+        ],
+        "b_sigma": [
+          "K"
+        ],
+        "gro_sds": [
+          2
+        ],
+        "sig_trl": [
+          1
+        ],
+        "chol_corrmat": [
+          2,
+          2
+        ],
+        "ind_bs": [
+          "NSUB"
+        ],
+        "ind_sd": [
+          "NSUB"
+        ]
+      },
+      "dimension_policy": "optional K"
+    },
+    "dynrel": {
+      "constructor": "local_dynrel_draws",
+      "line_start": 434,
+      "line_end": 470,
+      "fields": {
+        "Intercept": [
+          1
+        ],
+        "Intercept_sigma": [
+          1
+        ],
+        "b": [
+          "K"
+        ],
+        "b_sigma": [
+          "K"
+        ],
+        "gro_sds": [
+          2
+        ],
+        "sig_trl": [
+          1
+        ],
+        "chol_corrmat": [
+          2,
+          2
+        ],
+        "ind_bs": [
+          "NSUB"
+        ],
+        "ind_sd": [
+          "NSUB"
+        ]
+      },
+      "dimension_policy": "optional K"
+    },
+    "trt": {
+      "constructor": "local_trt_draws",
+      "line_start": 626,
+      "line_end": 644,
+      "fields": {
+        "pop_int": [
+          1
+        ],
+        "sig_id": [
+          1
+        ],
+        "sig_occ": [
+          1
+        ],
+        "sig_trl": [
+          1
+        ],
+        "sig_err": [
+          1
+        ],
+        "sig_trlxid": [
+          1
+        ],
+        "sig_occxid": [
+          1
+        ],
+        "sig_trlxocc": [
+          1
+        ]
+      },
+      "dimension_policy": "no K"
+    },
+    "diff": {
+      "constructor": "local_diff_draws",
+      "line_start": 794,
+      "line_end": 815,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "sd_id": [
+          2
+        ],
+        "sd_trl": [
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "no K"
+    },
+    "diff_rescor": {
+      "constructor": "local_diff_rescor_draws",
+      "line_start": 987,
+      "line_end": 1013,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "sd_id": [
+          2
+        ],
+        "sd_trl": [
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "rescor": [
+          1
+        ],
+        "err_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "no K"
+    },
+    "diff_dynrel": {
+      "constructor": "local_diffdynrel_draws",
+      "line_start": 1188,
+      "line_end": 1210,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim": [
+          "K"
+        ],
+        "b_sigma_dim": [
+          "K"
+        ],
+        "sd_id": [
+          2
+        ],
+        "sd_trl": [
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "required K"
+    },
+    "diff_dynrel_sserr": {
+      "constructor": "local_diffdynrel_sserr_draws",
+      "line_start": 1392,
+      "line_end": 1438,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim": [
+          "K"
+        ],
+        "b_sigma_dim": [
+          "K"
+        ],
+        "sd_id": [
+          4
+        ],
+        "L_id": [
+          4,
+          4
+        ],
+        "er_var_ss": [
+          "NSUB",
+          2
+        ],
+        "sd_trl": [
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "required K"
+    },
+    "dynrel_trt": {
+      "constructor": "local_dynrel_trt_draws",
+      "line_start": 1614,
+      "line_end": 1646,
+      "fields": {
+        "Intercept": [
+          1
+        ],
+        "Intercept_sigma": [
+          1
+        ],
+        "b": [
+          "K"
+        ],
+        "b_sigma": [
+          "K"
+        ],
+        "gro_sds": [
+          2
+        ],
+        "sig_trl": [
+          1
+        ],
+        "chol_corrmat": [
+          2,
+          2
+        ],
+        "ind_sd": [
+          "NSUB"
+        ],
+        "sig_occ": [
+          1
+        ],
+        "sig_trlxid": [
+          1
+        ],
+        "sig_occxid": [
+          1
+        ],
+        "sig_trlxocc": [
+          1
+        ]
+      },
+      "dimension_policy": "required K"
+    },
+    "dod": {
+      "constructor": "local_dod_draws",
+      "line_start": 1803,
+      "line_end": 1848,
+      "fields": {
+        "b_cell": [
+          "C"
+        ],
+        "b_sigma_cell": [
+          "C"
+        ],
+        "err_var_Cell": [
+          "C"
+        ],
+        "id_varcov": [
+          "C",
+          "C"
+        ],
+        "trl_varcov": [
+          "C",
+          "C"
+        ],
+        "cor_ID_Cell": [
+          "C",
+          "C"
+        ],
+        "cor_TrialNumber_Cell": [
+          "C",
+          "C"
+        ]
+      },
+      "dimension_policy": "no K"
+    },
+    "diff_trt": {
+      "constructor": "local_diffdynrel_trt_draws",
+      "line_start": 2047,
+      "line_end": 2067,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim": [
+          "K"
+        ],
+        "b_sigma_dim": [
+          "K"
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "occ_varcov": [
+          2,
+          2
+        ],
+        "tid_varcov": [
+          2,
+          2
+        ],
+        "oid_varcov": [
+          2,
+          2
+        ],
+        "to_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "optional K"
+    },
+    "diff_dynrel_trt": {
+      "constructor": "local_diffdynrel_trt_draws",
+      "line_start": 2047,
+      "line_end": 2067,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim": [
+          "K"
+        ],
+        "b_sigma_dim": [
+          "K"
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "occ_varcov": [
+          2,
+          2
+        ],
+        "tid_varcov": [
+          2,
+          2
+        ],
+        "oid_varcov": [
+          2,
+          2
+        ],
+        "to_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "optional K"
+    },
+    "diff_dynrel_sserr_trt": {
+      "constructor": "local_diffdynrel_sserr_trt_draws",
+      "line_start": 2278,
+      "line_end": 2324,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim": [
+          "K"
+        ],
+        "b_sigma_dim": [
+          "K"
+        ],
+        "sd_id": [
+          4
+        ],
+        "L_id": [
+          4,
+          4
+        ],
+        "er_var_ss": [
+          "NSUB",
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "occ_varcov": [
+          2,
+          2
+        ],
+        "tid_varcov": [
+          2,
+          2
+        ],
+        "oid_varcov": [
+          2,
+          2
+        ],
+        "to_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "required K"
+    },
+    "diff_dynrel_rescor": {
+      "constructor": "local_diffdynrel_rescor_draws",
+      "line_start": 2503,
+      "line_end": 2530,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim1": [
+          "K"
+        ],
+        "b_dim2": [
+          "K"
+        ],
+        "b_sigma_dim1": [
+          "K"
+        ],
+        "b_sigma_dim2": [
+          "K"
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "rescor": [
+          1
+        ],
+        "err_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "required K"
+    },
+    "diff_trt_rescor": {
+      "constructor": "local_diffdynrel_trt_rescor_draws",
+      "line_start": 2733,
+      "line_end": 2759,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim1": [
+          "K"
+        ],
+        "b_dim2": [
+          "K"
+        ],
+        "b_sigma_dim1": [
+          "K"
+        ],
+        "b_sigma_dim2": [
+          "K"
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "occ_varcov": [
+          2,
+          2
+        ],
+        "tid_varcov": [
+          2,
+          2
+        ],
+        "oid_varcov": [
+          2,
+          2
+        ],
+        "to_varcov": [
+          2,
+          2
+        ],
+        "rescor": [
+          1
+        ],
+        "err_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "optional K"
+    },
+    "diff_dynrel_trt_rescor": {
+      "constructor": "local_diffdynrel_trt_rescor_draws",
+      "line_start": 2733,
+      "line_end": 2759,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim1": [
+          "K"
+        ],
+        "b_dim2": [
+          "K"
+        ],
+        "b_sigma_dim1": [
+          "K"
+        ],
+        "b_sigma_dim2": [
+          "K"
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "occ_varcov": [
+          2,
+          2
+        ],
+        "tid_varcov": [
+          2,
+          2
+        ],
+        "oid_varcov": [
+          2,
+          2
+        ],
+        "to_varcov": [
+          2,
+          2
+        ],
+        "rescor": [
+          1
+        ],
+        "err_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "optional K"
+    },
+    "diff_dynrel_sserr_rescor": {
+      "constructor": "local_diffdynrel_sserr_rescor_draws",
+      "line_start": 2936,
+      "line_end": 2984,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim1": [
+          "K"
+        ],
+        "b_dim2": [
+          "K"
+        ],
+        "b_sigma_dim1": [
+          "K"
+        ],
+        "b_sigma_dim2": [
+          "K"
+        ],
+        "sd_id": [
+          4
+        ],
+        "L_id": [
+          4,
+          4
+        ],
+        "er_var_ss": [
+          "NSUB",
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "rescor": [
+          1
+        ],
+        "err_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "required K"
+    },
+    "diff_dynrel_sserr_trt_rescor": {
+      "constructor": "local_diffdynrel_sserr_trt_rescor_draws",
+      "line_start": 3194,
+      "line_end": 3242,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim1": [
+          "K"
+        ],
+        "b_dim2": [
+          "K"
+        ],
+        "b_sigma_dim1": [
+          "K"
+        ],
+        "b_sigma_dim2": [
+          "K"
+        ],
+        "sd_id": [
+          4
+        ],
+        "L_id": [
+          4,
+          4
+        ],
+        "er_var_ss": [
+          "NSUB",
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "occ_varcov": [
+          2,
+          2
+        ],
+        "tid_varcov": [
+          2,
+          2
+        ],
+        "oid_varcov": [
+          2,
+          2
+        ],
+        "to_varcov": [
+          2,
+          2
+        ],
+        "rescor": [
+          1
+        ],
+        "err_varcov": [
+          2,
+          2
+        ]
+      },
+      "dimension_policy": "required K"
+    },
+    "diff_dynrel_sserr_rho": {
+      "constructor": "local_diffdynrel_sserr_rho_draws",
+      "line_start": 3425,
+      "line_end": 3478,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim1": [
+          "K"
+        ],
+        "b_dim2": [
+          "K"
+        ],
+        "b_sigma_dim1": [
+          "K"
+        ],
+        "b_sigma_dim2": [
+          "K"
+        ],
+        "sd_id": [
+          4
+        ],
+        "L_id": [
+          4,
+          4
+        ],
+        "er_var_ss": [
+          "NSUB",
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "rescor": [
+          1
+        ],
+        "err_varcov": [
+          2,
+          2
+        ],
+        "rho": [
+          "NSUB"
+        ],
+        "rescor_mu": [
+          1
+        ],
+        "sd_rescor": [
+          1
+        ]
+      },
+      "dimension_policy": "required K"
+    },
+    "diff_dynrel_sserr_trt_rho": {
+      "constructor": "local_diffdynrel_sserr_trt_rho_draws",
+      "line_start": 3692,
+      "line_end": 3742,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "b_dim1": [
+          "K"
+        ],
+        "b_dim2": [
+          "K"
+        ],
+        "b_sigma_dim1": [
+          "K"
+        ],
+        "b_sigma_dim2": [
+          "K"
+        ],
+        "sd_id": [
+          4
+        ],
+        "L_id": [
+          4,
+          4
+        ],
+        "er_var_ss": [
+          "NSUB",
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "occ_varcov": [
+          2,
+          2
+        ],
+        "tid_varcov": [
+          2,
+          2
+        ],
+        "oid_varcov": [
+          2,
+          2
+        ],
+        "to_varcov": [
+          2,
+          2
+        ],
+        "rescor": [
+          1
+        ],
+        "err_varcov": [
+          2,
+          2
+        ],
+        "rho": [
+          "NSUB"
+        ],
+        "rescor_mu": [
+          1
+        ],
+        "sd_rescor": [
+          1
+        ]
+      },
+      "dimension_policy": "required K"
+    },
+    "diff_sserr": {
+      "constructor": "local_diff_sserr_draws",
+      "line_start": 3951,
+      "line_end": 4001,
+      "fields": {
+        "b": [
+          2
+        ],
+        "b_sigma": [
+          2
+        ],
+        "sd_id": [
+          2
+        ],
+        "sd_trl": [
+          2
+        ],
+        "id_varcov": [
+          2,
+          2
+        ],
+        "trl_varcov": [
+          2,
+          2
+        ],
+        "rescor": [
+          1
+        ],
+        "err_varcov": [
+          2,
+          2
+        ],
+        "er_var_ss": [
+          "NSUB",
+          2
+        ],
+        "wp_cov_ss": [
+          "NSUB"
+        ]
+      },
+      "dimension_policy": "no K"
+    }
+  }
+}

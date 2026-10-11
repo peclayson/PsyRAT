@@ -1,0 +1,277 @@
+{
+  "expectations": "Frozen from Stan algebra before production execution; unsupported forms may remain unproven even if mathematically constant.",
+  "golden_source": "tests/golden/stan/ic_diff_group_event_sserr.stan",
+  "golden_sha256": "0b8e1196d492ca922ab2af9e8c3590f09670255cd88985a9d5db7e01652c48bd",
+  "fixtures": [
+    {
+      "file": "alias_direct.stan",
+      "sha256": "cd3a422872e54f68dd504d049049b247aaec6dc8f28cfb2c06d450ec95840b1a",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "A principal correlation block has unit diagonal.",
+      "data": {},
+      "definitely_stochastic": []
+    },
+    {
+      "file": "alias_comments.stan",
+      "sha256": "46229913a5d6f36b8fe2311ebc5efda6775f9fe1831a1be8b441a956e2bc06e4",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "Whitespace and comments do not change the complete direct block expression.",
+      "data": {},
+      "definitely_stochastic": []
+    },
+    {
+      "file": "alias_scaled.stan",
+      "sha256": "030f23b001e8fc9e447ff2f01e58fbba8eb923dfbb808510bd3f27d38a1ece8e",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The diagonal equals z, a sampled real parameter.",
+      "data": {},
+      "definitely_stochastic": [
+        "alias[1,1]"
+      ]
+    },
+    {
+      "file": "alias_added.stan",
+      "sha256": "6db6d40aea2290a1d6bfe077590ad1f66ce60c48cd78d67552f431a96b3ec68c",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The diagonal equals 1+z.",
+      "data": {},
+      "definitely_stochastic": [
+        "alias[1,1]"
+      ]
+    },
+    {
+      "file": "alias_divided.stan",
+      "sha256": "6c9ed8aea050630aa6b1e448ed47c62d80d2c8c926ae337f8a4e3d1b3987fa58",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The diagonal equals 1/z wherever defined.",
+      "data": {},
+      "definitely_stochastic": [
+        "alias[1,1]"
+      ]
+    },
+    {
+      "file": "alias_transposed.stan",
+      "sha256": "2d8108ae193b47d2a664e0cb68cd1fcdf40fd7b1198bc589db1fe427ab10686b",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "Transpose preserves the mathematical diagonal, but is outside the intentionally exact direct-block rule.",
+      "data": {},
+      "definitely_stochastic": []
+    },
+    {
+      "file": "alias_prefixed.stan",
+      "sha256": "9114a3e87888e6be6b50efc321e2a03182c8ae5121036a4a7bbf3951a387df5a",
+      "probed_names": [
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The diagonal equals z; this leading expression was already outside the bounded rule.",
+      "data": {},
+      "definitely_stochastic": [
+        "alias[1,1]"
+      ]
+    },
+    {
+      "file": "string_fake_type.stan",
+      "sha256": "58a7bf3ead5c13e62bb30212efd164643429e16a17994d62b554b27c4bc109b5",
+      "probed_names": [
+        "pretend[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "Text in a print message is not a declaration; the diagonal is z.",
+      "data": {},
+      "definitely_stochastic": [
+        "pretend[1,1]"
+      ]
+    },
+    {
+      "file": "string_fake_block.stan",
+      "sha256": "f45804c6f86a6ab4f714b52ea15c4532ef567dcd301e404647628c862cdc583e",
+      "probed_names": [
+        "pretend[1,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "Braces/block keywords in a print message do not define a Stan block; diagonal is z.",
+      "data": {},
+      "definitely_stochastic": [
+        "pretend[1,1]"
+      ]
+    },
+    {
+      "file": "zero_valid.stan",
+      "sha256": "0b8e1196d492ca922ab2af9e8c3590f09670255cd88985a9d5db7e01652c48bd",
+      "probed_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "mathematical_reason": "Disabled coupling makes all five probed entries exactly zero.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": []
+    },
+    {
+      "file": "zero_prefixed_rescor.stan",
+      "sha256": "5f420bb2fa65ff8887d45834b23184d67dbf035e429db54c100edbabf50f5a33",
+      "probed_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The required expression belongs to decoy_rescor. Actual rescor equals the sampled rescor_mu; the whole reviewed zero graph is unproven.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [
+        "rescor[1]"
+      ]
+    },
+    {
+      "file": "zero_prefixed_covariance.stan",
+      "sha256": "9aaaa433992bbd594b2aa7b3ef0ca8bbd7792d0f65d88697b119795b30fe1f00",
+      "probed_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The zero product belongs to decoy_wp_cov_ss; actual subject covariance and accumulated off-diagonals equal rescor_mu.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [
+        "wp_cov_ss[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ]
+    },
+    {
+      "file": "zero_prefixed_initialization.stan",
+      "sha256": "f6a2ca1c571c498e8148fd250a63756776627ddf9437c9dab26467ef9c077dfd",
+      "probed_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The zero initialization belongs to decoy_err_varcov; actual off-diagonals start and remain rescor_mu.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ]
+    },
+    {
+      "file": "zero_prefixed_accumulation.stan",
+      "sha256": "2fb469f34f65a3ed39d3bf717ee52db328b555aae30cedebbb97cfb5824f1aa7",
+      "probed_names": [
+        "rho[1]",
+        "wp_cov_ss[1]",
+        "rescor[1]",
+        "err_varcov[1,2]",
+        "err_varcov[2,1]"
+      ],
+      "expected_bounded_rule_names": [],
+      "mathematical_reason": "The required zero accumulation belongs to a decoy matrix; actual [1,2] sums to rescor_mu.",
+      "data": {
+        "NSUB": 2,
+        "estimate_rescor": 0
+      },
+      "definitely_stochastic": [
+        "err_varcov[1,2]"
+      ]
+    },
+    {
+      "file": "string_valid_line_comment.stan",
+      "sha256": "0f04697addcf37d55c51633156e7a1bc06b3877cec02057b09b8e0e45d67fec5",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "An unmatched quote inside a comment must not start a string masking the genuine declarations.",
+      "data": {},
+      "definitely_stochastic": []
+    },
+    {
+      "file": "string_valid_block_comment.stan",
+      "sha256": "744c1158674231e8bcf974f9b5485a7e38c3fa59bfc33c39d96df5f2a88ceebd",
+      "probed_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "expected_bounded_rule_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "mathematical_reason": "An unmatched quote inside a comment must not start a string masking the genuine declarations.",
+      "data": {},
+      "definitely_stochastic": []
+    }
+  ],
+  "fixture_creation_manifest": "audit/review-2026-09-13/science/expression_cases/manifest.json",
+  "fixture_creation_manifest_sha256": "0da4054e8e9b1bbf07673f897f3b7e773c1dd3dbc3f7a3d1cafee5d5af8e127f",
+  "creation_status_note": "Original per-fixture syntax/runtime fields describe fixture creation, before the separately recorded compiler check.",
+  "compiler_evidence": "audit/review-2026-09-13/logs/accepted-source-control-stanc.json",
+  "excluded_invalid_sources": [
+    {
+      "manifest": "expression_cases/manifest.json",
+      "file": "string_valid_decl.stan",
+      "sha256": "e95e13091e2101f08e7b4929df6a55be93bf7c3d0e92244538b9591b163ceab7",
+      "original_expected_bounded_rule_names": [
+        "R[1,1]",
+        "alias[1,1]"
+      ],
+      "reason": "The purported escaped quote closes the string in Stan 2.39, leaving an illegal print statement. Installed stanc rejected this source. It is not a valid Stan positive control. Preserve the original source and expectation without changing either.",
+      "evidence": "../logs/source-control-stanc.json",
+      "lexical_authority": "https://raw.githubusercontent.com/stan-dev/stanc3/v2.39.0/src/frontend/lexer.mll"
+    }
+  ]
+}

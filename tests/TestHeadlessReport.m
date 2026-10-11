@@ -23,7 +23,7 @@ classdef TestHeadlessReport < PsyRATTestBase
             joined = strjoin(report.provenance, '|');
             testCase.verifySubstring(joined, 'Seed:');
             testCase.verifySubstring(joined, 'Analysis:');
-            testCase.verifySubstring(joined, 'Converged:');
+            testCase.verifySubstring(joined, 'Early-workflow Rhat/ESS check:');
         end
 
         function testReportOpensNoFigures(testCase)
@@ -51,8 +51,8 @@ classdef TestHeadlessReport < PsyRATTestBase
             txt = fileread(report.files{1});
             testCase.verifySubstring(txt, 'Seed:');
             testCase.verifySubstring(txt, 'Analysis:');
-            testCase.verifySubstring(txt, 'Converged:');
-            testCase.verifySubstring(txt, 'PsyRAT Toolbox');
+            testCase.verifySubstring(txt, 'Early-workflow Rhat/ESS check:');
+            testCase.verifySubstring(txt, 'PsyRAT v');
         end
 
         function testReportWritesXlsx(testCase)
@@ -387,7 +387,7 @@ classdef TestHeadlessReport < PsyRATTestBase
             testCase.verifyFalse(isempty(lines));
             joined = strjoin(lines, '|');
             testCase.verifySubstring(joined, 'Seed: not recorded');
-            testCase.verifySubstring(joined, 'Converged: not assessed');
+            testCase.verifySubstring(joined, 'Early-workflow Rhat/ESS check: unassessed');
         end
 
         function testProvenanceFamilyLineGammaOnly(testCase)
@@ -648,6 +648,64 @@ classdef TestHeadlessReport < PsyRATTestBase
                 any(contains(psyrat_provenance_lines(struct()), key)));
         end
 
+        function testProvenanceLabelsRestrictedGammaTwoFacetDesigns(testCase)
+            % Queue row 3a (owner rulings 2-4, 2026-09-21). The six gamma
+            % two-facet arms (analyses 14, 25, 27; location-scale and log-nu
+            % alike) carry the RESTRICTED maturity label: with three or four
+            % occasion levels their variance components and pooled residual,
+            % reported as posterior means, are not recovered at level in any
+            % in-repo capture. The export header is the one surface every
+            % table shares, so the line is pinned here; the words come from
+            % psyrat_gamma_twofacet_restriction so the viewer and the Analyze
+            % notice cannot drift from it. The gate is family = gamma AND an
+            % EXACT analysis label: gammascale is stamped on every run
+            % (including Gaussian) and both arms are in scope, so nothing
+            % reads it; the labels nest as prefixes, so a prefix test would
+            % put the caveat on a design it does not describe.
+            key = 'Design maturity: RESTRICTED';
+            R = psyrat_gamma_twofacet_restriction();
+
+            % (1) Each covered label emits exactly one line, the shared one,
+            % and it is not conflated with the copula EXPERIMENTAL label
+            % (which means non-convergence; these fits converged).
+            for k = 1:numel(R.designs)
+                L = psyrat_provenance_lines(struct('rel', struct( ...
+                    'family', 'gamma', 'analysis', R.designs{k})));
+                hits = L(contains(L, key));
+                testCase.verifyNumElements(hits, 1, sprintf( ...
+                    '%s: expected exactly one RESTRICTED line', R.designs{k}));
+                if ~isempty(hits)
+                    testCase.verifyEqual(hits{1}, R.header, sprintf( ...
+                        '%s: the header line must be the shared text', R.designs{k}));
+                    testCase.verifySubstring(hits{1}, 'analyses 14, 25 and 27');
+                    testCase.verifyFalse(contains(hits{1}, 'EXPERIMENTAL'), ...
+                        'RESTRICTED must not be worded as the copula EXPERIMENTAL label.');
+                end
+            end
+
+            % (2) The Gaussian arm of the same design is Supported: no line.
+            gauss = psyrat_provenance_lines(struct('rel', struct( ...
+                'family', 'gaussian', 'analysis', 'ic_dynrel_trt', 'gammascale', 2)));
+            testCase.verifyFalse(any(contains(gauss, key)), ...
+                'A Gaussian two-facet run must not carry the gamma RESTRICTED label.');
+
+            % (3) Gamma designs outside the label: the one-facet dynamic
+            % designs 11 and 26 (ruling 4), the population test-retest 5, and
+            % the two-facet DIFFERENCE cousin 15 whose label contains
+            % 'dynrel_trt' (the prefix/contains trap).
+            outside = {'ic_dynrel', 'ic_dynrel_sserrvar', 'trt', 'ic_diff_dynrel_trt'};
+            for k = 1:numel(outside)
+                L = psyrat_provenance_lines(struct('rel', struct( ...
+                    'family', 'gamma', 'analysis', outside{k})));
+                testCase.verifyFalse(any(contains(L, key)), sprintf( ...
+                    '%s is outside the RESTRICTED label and must not emit it', outside{k}));
+            end
+
+            % (4) The degenerate struct must neither error nor emit.
+            testCase.verifyFalse( ...
+                any(contains(psyrat_provenance_lines(struct()), key)));
+        end
+
         function testTrtCoefLabelNamesTheEstimand(testCase)
             % RC-12. A test-retest run reports ONE of three coefficients and the
             % selection is recorded nowhere else in an exported table, so the
@@ -824,7 +882,7 @@ classdef TestHeadlessReport < PsyRATTestBase
             % generalizability lower-bound caveat above the table.
             txt = fileread(report.files{1});
             testCase.verifySubstring(txt, 'Seed:');
-            testCase.verifySubstring(txt, 'PsyRAT Toolbox');
+            testCase.verifySubstring(txt, 'PsyRAT v');
             testCase.verifySubstring(txt, 'downward-biased');
         end
 
@@ -962,7 +1020,7 @@ classdef TestHeadlessReport < PsyRATTestBase
             % The header carries provenance and the estimand note above the table.
             txt = fileread(report.files{1});
             testCase.verifySubstring(txt, 'Seed:');
-            testCase.verifySubstring(txt, 'PsyRAT Toolbox');
+            testCase.verifySubstring(txt, 'PsyRAT v');
             testCase.verifySubstring(txt, 'Estimand');
         end
 

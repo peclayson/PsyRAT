@@ -53,7 +53,8 @@ only: generalizability, the relative-error sibling, drops the sigma_i^2 term,
 which is why the two coefficients print different values for this file.
 [Chapter 4](04_gtheory.md) develops both in full.
 
-The generator's values are these. Person SDs are 2.0 microvolts for GroupA error
+The generator's values are these. Person standard deviations (SDs) are 2.0
+microvolts for GroupA error
 trials, 2.2 for GroupB error trials, and 1.7 for correct trials in both groups.
 Trial-noise SDs are 5.5 for GroupA error trials, 7.5 for GroupB error trials, and
 5.0 for correct trials in both groups; the trial main effect is 1.0 in every
@@ -72,8 +73,8 @@ variance 1.00 + 56.25 = 57.25, error variance 57.25 / 15 = 3.817, and
 
 GroupB has slightly MORE person variance and still lands a full tenth lower,
 because its trial noise is so much larger. That is the comparative lesson of this
-tutorial, and it is worth stating plainly: a group can look less reliable without
-being less variable between people.
+tutorial: a group can look less dependable without being less variable between
+people.
 
 Repeating that arithmetic across trial counts gives the truth table.
 
@@ -90,14 +91,15 @@ whole trial. sigma_i is 1.0 in every cell.
 | GroupB inc_cor | 1.7 | 5.0 | .100 | .625 | .690 | .781 | .848 | 21 | 36 |
 
 D(1) is the same quantity at a single trial, which is what the toolbox reports as
-the absolute ICC. It is low, and it should be: a single ERN trial is mostly noise
+the absolute intraclass correlation coefficient (ICC). It is low, and it should be: a single ERN trial is mostly noise
 (that is why anyone averages).
 
 Two things to carry forward. GroupA needs 19 incongruent-error trials to reach
 .70 and 32 to reach .80. GroupB needs 28 and 48. The observed error-trial counts
 in this file reach 36 in both groups, so a .70 threshold is inside
-what these data supply; a .80 threshold on error trials is beyond the data in
-GroupB and at the very top of the range in GroupA, and the toolbox will say so.
+what these data supply. A .80 threshold on error trials is beyond the data in
+GroupB and near the top of the range in GroupA (32 against a maximum of 36).
+Section 10.8 shows what the toolbox reports in each case.
 
 ## 10.3 About the numbers printed in this tutorial
 
@@ -132,11 +134,13 @@ check and the version banner, then the home screen opens with three buttons.
 
 ![The startup banner. PsyRAT checks for CmdStan, MatlabProcessManager, and MatlabStan before the home screen appears.](images/console_banner.png)
 
-Checkpoint: the Command Window should report that the PsyRAT Toolbox files were
-found and that the CmdStan, MatlabProcessManager, and MatlabStan files were
-found. If it instead prints a list of missing dependents, stop here and work
-through [Chapter 3](03_installation.md). Nothing in this tutorial will run
-without CmdStan.
+Checkpoint: the Command Window should report that the PsyRAT files were
+found (or, the first time, that their directories were added to the MATLAB
+path) and that the CmdStan, MatlabProcessManager, and MatlabStan files were
+found. If it instead prints "Warning: Dependencies for PsyRAT were
+not found." and offers to install the dependents, stop here and work through
+[Chapter&nbsp;3](03_installation.md). Nothing in this tutorial will run without
+CmdStan.
 
 ### Step 2. Load the data
 
@@ -239,10 +243,10 @@ common way a first run stalls, and it is worth checking before you click Save
 rather than after (see [Chapter 7](07_processing.md) for the full list of
 pre-run checks, and [Chapter 2](02_quick-start.md) for the short version).
 
-While the run proceeds, PsyRAT raises modal dialogs for anything that requires a
-decision. A modal dialog blocks the rest of the interface until you dismiss it,
-so if the toolbox appears frozen, look for a dialog window behind the main
-figure.
+While the run proceeds, PsyRAT stops and waits at any dialog that requires a
+decision. Some of these dialogs are not modal, so they can end up behind the
+main figure or the MATLAB desktop. If the toolbox appears frozen, look for a
+dialog window behind the other windows.
 
 Checkpoint: the Command Window should print, in order, "Preparing data for
 analysis..." once, then "Working on event 1 of 2", "Model is being run in
@@ -250,7 +254,11 @@ cmdstan", and CmdStan's own progress output, then "Working on event 2 of 2"
 and "Model is being run in cmdstan" again for the second fit.
 Each event is fitted in its own model, with both groups estimated jointly inside
 it, so a two-event run is two fits. When sampling finishes it should print
-"Model converged", then "Saving Processed Data...".
+"Early-workflow Rhat/ESS check: passed" and "Final-inference readiness:
+unassessed (quantity-specific MCSE and uncertainty calibration required)",
+then "Saving Processed Data...". The second line is not a warning. It records
+that the convergence screen is an early check and does not certify the run for
+reporting on its own.
 
 If it instead prints "Chains did not converge" in a dialog offering Rerun and Do
 Not Rerun, the fit failed PsyRAT's convergence screen (any monitored parameter
@@ -258,20 +266,26 @@ with an R-hat at or above 1.1, or an effective sample size below 40 at four
 chains). Click Rerun. See Section 10.3 for what that does to your numbers.
 
 Checkpoint: the largest R-hat in the CmdStan summary printed to the Command
-Window should be 1.00, and the run should report
-0 divergent transitions.
+Window should be 1.00, and no "Warning: N divergent transition(s) detected."
+line should appear (PsyRAT prints one only when the count is above zero; the
+header of an exported table records the count, here 0).
 
 Success! There is now a `.psyrat` file on disk holding the posterior draws for
 every variance component in this design, together with a `_runconfig.json`
 sidecar recording the seed and settings that produced it. The viewer opens by
-itself.
+itself, with a small dialog titled Estimation diagnostics on top of it. On this
+run the dialog names the early-workflow check as passed, gives final-inference
+readiness as unassessed, and lists the diagnostic source for each fit. It
+flags nothing and does not block, so close it and go on.
 
 ## 10.5 Setting up the outputs
 
-The View Results Setup screen opens automatically after a successful single
-measurement run. Its header names the dataset and the measurement column.
+The View Results Setup screen opens automatically after a successful
+single-measurement run. Its header names the dataset and the measurement column.
 
 ![View Results Setup for a single-session run. The Reliability Cutoff box drives every trial-cutoff calculation below it.](images/viewer_single.png)
+
+Type 0.70 in the Reliability Cutoff box, which opens at the default of 0.8.
 
 | Control | Value |
 |---|---|
@@ -285,10 +299,10 @@ for exploratory ERP work and .80 as more appropriate in most contexts, and they
 are explicit that a threshold is a decision about how much measurement error a
 study can tolerate rather than a property of the data. Table 10.1 shows why .70
 is the value to walk through: every cell's cutoff lands inside the observed
-trial counts, so the table comes back with numbers in every cell, and the
-retention cost the threshold exacts (steep in GroupB) is visible on real rows.
-Section 10.8 then raises the threshold to .80 and shows what the sentinels look
-like when a cutoff lands beyond the data.
+trial counts, so the trial-cutoff table comes back with an observed-range
+cutoff in every row, and the retention cost the threshold exacts (steep in
+GroupB) is visible on real rows. Section 10.8 then raises the threshold to .80
+and shows how the toolbox labels a cutoff that lands beyond the data.
 
 Click Generate Figures/Tables. Three figure windows and three table windows open.
 
@@ -299,16 +313,18 @@ Click Generate Figures/Tables. Three figure windows and three table windows open
 ![Dependability as a function of the number of trials retained for averaging, one panel per event, one line per group, with the reliability cutoff drawn as a dotted horizontal line.](images/fig_rel_vs_trials.png)
 
 The window is titled Dependability v Number of Trials: Point Estimate. The x axis
-is the number of observations averaged into the score, running from 1 to 50 (set
-by Number of trials to plot under Output Prefs). The y axis is dependability,
+is the number of observations averaged into the score. The curves start at one
+trial and the axis ends at 50 (set by Number of trials to plot under Output
+Prefs). The y axis is dependability,
 fixed from 0 to 1. There is one panel per event, titled with the event label, and
 one line per group; the legend names them. The dotted horizontal line is the
 Reliability Cutoff you entered.
 
-This is the D-study. Each curve answers "if every participant contributed exactly
-n trials, what would the dependability of their averages be?", evaluated at the
-posterior mean of the variance components. Read it left to right: the curves rise
-steeply over the first ten or fifteen trials, then flatten. That flattening is
+This is the decision study (D-study). Each curve answers "if every participant
+contributed exactly n trials, what would the dependability of their averages
+be?", computed for every posterior draw and averaged (the posterior mean of the
+coefficient at each n). Read it left to right: the curves rise steeply over the
+first 10 or 15 trials, then flatten. That flattening is
 the practical message of generalizability theory for ERP work. Going from 5 to 15
 trials buys a great deal; going from 40 to 50 buys almost nothing.
 
@@ -332,7 +348,7 @@ Trial Cutoff is the smallest number of trials at which the dependability point
 estimate reaches the threshold. Dependability is the coefficient at that cutoff,
 printed as a point estimate with its 95% credible interval.
 
-| Label | Trial Cutoff | Dependability | True cutoff | True D there |
+| Label | Trial Cutoff | Dependability | True cutoff | True D at true cutoff |
 |---|---|---|---|---|
 | GroupA - inc_cor | 18 | .70 [.58, .81] | 21 | .700 |
 | GroupA - inc_err | 22 | .70 [.55, .83] | 19 | .709 |
@@ -344,31 +360,37 @@ in the numerator of the error ratio: (.7 / .3) x 7.813 = 18.2 for GroupA error
 trials, (.7 / .3) x 11.829 = 27.6 for GroupB error trials, and
 (.7 / .3) x 8.997 = 21.0 for correct trials, each rounded up to the next whole
 trial. The cutoff is always a whole trial and the coefficient at it therefore
-sits at or a little above the threshold, which is why the True D column reads
+sits at or a little above the threshold, which is why the last column reads
 .709 rather than .700 for GroupA error trials.
 
-There are two ways this table reports that a threshold is out of reach, and they
-are different conditions with different appearances. Sentinels get their own
-labeled paragraph below because both are easy to misread as data.
+This table distinguishes a noncalculable cutoff from a valid cutoff projected
+beyond the original observed data.
 
 A value of -1 in the Trial Cutoff column indicates that an appropriate cutoff
-could not be realistically found given the specified reliability threshold. It is
+could not be calculated in the evaluated range at the specified reliability
+threshold. It is
 a sentinel, not a count, and it never means zero trials. PsyRAT searches out to
 the largest observed trial count plus a thousand, so this appears only when even
 that extended search finds nothing.
 
-A value of -1.00 CI [-1.00 -1.00] in the Dependability column is the OTHER
-condition: a cutoff was found, and it is printed, but no participant in that
-cell supplied that many trials. Consider this example. At a .80 threshold
-GroupB incongruent errors need 48 trials at the true values (your run prints
-its own estimate of that count; Section 10.8 reads it). The search finds the
-count and prints it, but the most any GroupB participant supplied is 36, so the
-coefficient cell is blanked to -1 and PsyRAT raises a non-modal dialog titled
-Extrapolation beyond data reading "Not enough trials are present in the current
-data" and "Cutoffs represent an extrapolation beyond the data". Both conditions
-mean the same thing in practice: the score you have cannot be made that
-dependable by averaging the trials you collected. Section 10.8 walks into this
-case deliberately.
+A positive cutoff whose Dependability cell ends with "(projection beyond
+observed data)" is the other condition: a cutoff was found, but it exceeds the largest
+trial count observed for that group and event. The projected coefficient and
+its interval stay numeric. Consider this example. At a .80 threshold GroupB
+incongruent errors need 48 trials at the true values (your run prints its own
+estimate of that count; Section 10.8 reads it). The search finds the count and
+prints it, but the most any GroupB participant supplied is 36, so the
+coefficient keeps its number, gains the label, and PsyRAT raises a non-modal
+dialog titled Extrapolation beyond data, which warns that projected cutoffs
+exceed the trial counts observed in the original data.
+
+Both conditions mean the same thing in practice: the score you have cannot be
+made that dependable by averaging the trials you collected. Section 10.8 walks
+into this case deliberately.
+
+A `.psyrat` file summarized by an earlier version may still show
+-1.00 CI [-1.00 -1.00] for a valid projection. Open it with View Results and
+click Generate Figures/Tables to rebuild the summary from the saved draws.
 
 ### The overall summary
 
@@ -389,12 +411,12 @@ participant who is adequately measured in only one of them is not adequately
 measured for the comparison. Process one event at a time if you want per-event
 retention instead.
 
-The rule has no exceptions, and Section 10.8 walks into its sharpest case on
-purpose: an event in which nobody clears the cutoff empties the group's
-retained set, so every row of that group prints n Included 0, n Excluded rises
-to the full group size, and for this analysis the two columns add up to the
-group size on every row. The console also prints a line saying the group
-retained nobody.
+The rule has no exceptions, and Section 10.8 shows its sharpest case on
+purpose. An event in which nobody clears the cutoff empties the group's
+retained set, so every row of that group prints n Included 0 and n Excluded
+equal to the full group size. The Command Window also prints "No participants
+met the reliability threshold for every event type in a group; that group's n
+Included is 0."
 
 Dependability in this table is not the same quantity as in the cutoff table. Here
 it is the coefficient evaluated at the mean number of trials the RETAINED
@@ -412,17 +434,18 @@ Applying the TRUE cutoffs from the table above to the observed trial counts
 retains 29 of 40 participants in GroupA and 13 of 40 in GroupB, at mean retained
 error-trial counts of 26.7 and 31.5. That retention gap is the comparison again,
 in the currency a study actually pays: GroupB's noisier error trials cost
-twenty-seven participants at a threshold GroupA clears with eleven exclusions.
+27 participants at a threshold GroupA clears with 11 exclusions.
 The counts your run reports follow the ESTIMATED cutoffs, and an estimated
 cutoff a few trials above or below the true one moves several participants
 across the line, so expect the printed counts to differ from these.
 
 Two buttons sit under the table. Save Table writes the table with a provenance
-header (seed, analysis, engine, priors, convergence verdict, divergent
-transitions) to `.xlsx` or `.csv`. Save IDs writes the list of retained
-participant ids, which is what you feed back into your analysis pipeline as the
-inclusion list. Save both. The provenance header is what makes the exported table
-interpretable a year later.
+header (seed, analysis, engine, interval width, priors, the diagnostic check
+and its verdict, divergent transitions) to `.xlsx` or `.csv`. Save IDs writes
+the retained (Good IDs) and excluded (Bad IDs) participant ids, each followed
+by a column naming the participant's group; the Good IDs column is what you
+feed back into your analysis pipeline as the inclusion list. Save both. The
+provenance header is what makes the exported table interpretable a year later.
 
 ### Sources of variance
 
@@ -443,7 +466,7 @@ microvolts, and it is the number to attach to an individual participant's score.
 ICC (dependability) is the absolute intraclass correlation, which is
 dependability at a single trial.
 
-| Label | Between Std Dev | Trial Std Dev | Within Std Dev | SEM (dep.) | ICC (dep.) |
+| Label | Between Std Dev | Trial Std Dev | Within Std Dev | SEM (dependability) | ICC (dependability) |
 |---|---|---|---|---|---|
 | GroupA - inc_cor | 1.88 | 1.01 | 4.98 | 0.91 | .12 |
 | GroupA - inc_err | 1.85 | 0.43 | 5.48 | 1.03 | .10 |
@@ -470,12 +493,13 @@ electrode impedance) rather than a nuisance to average away.
 
 ![ICC Estimates, one point estimate and 95% credible interval per group and event.](images/fig_icc_forest.png)
 
-Both figures put Event on the x axis, with one point per group at each event and
-a legend naming the groups. The first has Between-Person Standard Deviations on
-the y axis in microvolts; the second has Intraclass Correlation Coefficient. Each
-y axis starts at zero and runs to just above the largest upper bound plotted, so
-the ICC figure is not scaled to a fixed 0-to-1 range. Each point is a posterior
-mean and each whisker a 95% credible interval.
+Both figures list the events down the left, with one point per group at each
+event and a legend naming the groups, and run the estimate along the bottom. The
+first has Between-Person Standard Deviations on that horizontal axis, in
+microvolts; the second has Intraclass Correlation Coefficient. Each horizontal
+axis starts at zero and runs to just past the largest upper bound plotted, so
+the ICC axis here ends a little above .2 rather than at 1. Each point is a
+posterior mean and each horizontal bar a 95% credible interval.
 
 Read the two together, against Table 10.1. The generator gave GroupB the LARGER
 person standard deviation on error trials (2.2 against 2.0) and the LOWER true
@@ -512,7 +536,7 @@ Change Reliability Cutoff to `0.80` and click Generate Figures/Tables again. The
 posterior does not change; only the threshold applied to it does, so the pass
 costs nothing and re-answers the design question at the stricter standard.
 
-| Label | Trial Cutoff at .80 | True |
+| Label | Trial Cutoff at .80 | True cutoff at .80 |
 |---|---|---|
 | GroupA - inc_cor | 31 | 36 |
 | GroupA - inc_err | 38 | 32 |
@@ -521,33 +545,37 @@ costs nothing and re-answers the design question at the stricter standard.
 
 GroupB's true error-trial cutoff, 48, exceeds every observed count in its cell:
 the most any GroupB participant supplied is 36. GroupA's true cutoff, 32, sits
-inside the top of its range (the GroupA maximum is also 36), but the estimated
-cutoff in the table above lands past 36, so in this run both error rows come
-back blanked; a run whose GroupA estimate landed a few trials lower would keep
-a coefficient on that row, reached by a handful of participants. Correct trials
-are plentiful enough that their cutoffs stay inside the data.
-Where a cutoff lands outside, the Dependability cell for that row is blanked to
--1.00 CI [-1.00 -1.00] and the Extrapolation beyond data dialog appears. The
-Trial Cutoff itself is still printed, because it is still the honest answer to
-"how many would be needed".
+inside the top of its range (the GroupA maximum is also 36). The estimated
+cutoff in the table above lands past 36, though, so in this run both error
+rows come back labeled as projections beyond observed data. A run whose GroupA
+estimate landed a few trials lower would have observed support on that row,
+reached by a handful of participants. Correct trials are plentiful enough that
+their cutoffs stay inside the data. Where a cutoff lands outside, its valid
+Dependability coefficient and interval remain numeric with the label
+"projection beyond observed data", and the Extrapolation beyond data dialog
+appears. The Trial Cutoff itself is still printed, because it is the honest
+answer to "how many would be needed."
 
 Now read the overall summary. In GroupB no participant supplies 48 error
 trials, so the error event retains nobody and the all-events rule empties the
 group: both GroupB rows print n Included 0,
-n Excluded rises to 40, and the Command Window prints a line saying no
-participants met the threshold for every event type. GroupA keeps only the
+n Excluded rises to 40, and the Command Window prints the line quoted in
+Section 10.6. GroupA keeps only the
 participants who supplied at least 32 error trials AND at least 36 correct
 trials, which at the true cutoffs is one of 40; your run prints n Included
 0 on both GroupA rows, following the estimated
-cutoffs. A row whose group retained nobody still shows a dependability figure,
-computed at the mean trial count over ALL participants; it describes the file,
-not a retained sample, so treat it accordingly.
+cutoffs. In a group that retained nobody, the Dependability cell, its
+interval, and the trial-count columns show dashes, while n Included and n
+Excluded stay numeric. The coefficient evaluated over the whole roster is still
+computed and kept in the saved summary as a full-sample reference. The window
+and its Save Table export show the dashes, and `psyrat_report` names the
+reference in its retention note ([Chapter 14](14_scripting.md)).
 
 That is the answer to the design question, and it is a blunt one. Reaching .70
 on incongruent-error ERN takes 19 trials in GroupA, inside what most of its
 participants supplied, and 28 in GroupB, in the upper part of its range.
 Reaching .80 takes 32 and 48: within reach of only the best-measured GroupA
-participants, and a third again the maximum anyone in GroupB supplied. Plan the
+participants, and a third more than the maximum anyone in GroupB supplied. Plan the
 task accordingly, or report the reliability you actually achieved and interpret
 the effect sizes in light of it. The toolbox will not make that call for you.
 
@@ -557,8 +585,9 @@ Because the generating parameters are known, the estimates can be checked
 against them directly.
 
 **Table 10.2. Recovery of the generating parameters.** Truth is from the
-generator; the estimate and interval are the posterior mean and 95% credible
-interval from the Sources of Variance table.
+generator; the estimates and intervals are the posterior means and 95% credible
+intervals from the Sources of Variance table, except the last two rows, which
+come from the Overall Dependability table.
 
 | Quantity | Truth | Estimate | 95% CrI |
 |---|---|---|---|
@@ -578,13 +607,15 @@ The two dependability truths are the D(n) formula at the mean error-trial
 counts of the participants the TRUE .70 cutoffs retain, 26.724 for GroupA and
 31.462 for GroupB: 4.00 / (4.00 + 31.25 / 26.724) = .774 and 4.84 / (4.84 +
 57.25 / 31.462) = .727. Note what retention has done to the comparison.
-GroupB's surviving thirteen participants are its best-measured thirteen, so its
+GroupB's surviving 13 participants are its best-measured 13, so its
 reported dependability is much closer to GroupA's than the two groups' true
 curves are at any common trial count. Selecting on trial count selects on
 reliability, and a coefficient computed after that selection describes the
-retained sample, not the population you sampled from. Read 28.6 and 34.4 out of
-your own overall summary and recompute the truth at those counts if the
-estimated cutoffs retained a different set.
+retained sample, not the population you sampled from. To compare like with
+like, read the Mean # of Trials for the two incongruent-error rows from your
+own overall summary (28.6 and 34.4 in the printed run) and recompute the truth
+at those counts, because your estimated cutoffs retain a different set than the
+true cutoffs do.
 
 Read this table for what it teaches, not as a validation exercise. With 40
 participants per group and 12 to 36 error trials each, the point estimates will
@@ -595,23 +626,27 @@ failure of the model. It is what 40 participants buys you, and the credible
 interval is the toolbox telling you so.
 
 That is the pedagogical point, and it generalizes: when your own study reports a
-dependability of .68, the honest statement is not "reliability is .68" but
-"reliability is estimated at .68, with an interval that runs from here to here".
-Report the interval.
+dependability of .68, the honest statement is not "dependability is .68" but
+"dependability is estimated at .68, with an interval that runs from here to
+here." Report the interval.
 
 This recovery exercise is an illustration. It is not evidence that the toolbox's
 estimators are correct. PsyRAT's correctness claims rest on its validation
-suites, described in `README.md`, which check the formulas against fixed
-references and check estimation against simulated data with known components at
-sample sizes chosen for that purpose. A single 80-participant run is far too
-small a sample to license any conclusion about estimator accuracy, in either
-direction.
+suites, described in `documentation/validation_and_testing.md`, which check the
+formulas against fixed references and check estimation against simulated data
+with known components at sample sizes chosen for that purpose. A single
+80-participant run is far too small a sample to license any conclusion about
+estimator accuracy, in either direction.
 
 ## 10.10 Reporting this analysis
 
 [Chapter 17](17_reporting.md) sets out what a reliability section should contain
-and why. Here is that chapter's template, pre-filled for this tutorial. Replace
-the placeholders with the values from your own run.
+and why. Here is a paragraph built on that chapter's single-session template
+and filled in with this tutorial's printed values. Substitute the values from
+your own run, add the PsyRAT and CmdStan versions (from the startup banner and
+the `_runconfig.json` sidecar) that Chapter 17 asks for, and add the credible
+interval the Overall Dependability window prints beside each retained-sample
+coefficient, which this paragraph leaves out.
 
 > Score reliability was evaluated with generalizability theory as implemented
 > in PsyRAT, which estimates variance components in a Bayesian one-facet

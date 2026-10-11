@@ -9,14 +9,14 @@ function psyrat_data = psyrat_computevarcompwarp(varargin)
 % psyrat_data - toolbox data
 %
 %Output
-% psyrat_data - PsyRAT Toolbox dataset with the variance components and
+% psyrat_data - PsyRAT dataset with the variance components and
 %  convergence checks from Stan in psyrat_data.rel
 % A directory will be created where the temporary files will be saved for
 %  running the Stan model (stan creates various temp files). After the
 %  model is done running (executed with psyrat_computevarcomp), the temporary
 %  directory and files will be removed.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -166,7 +166,7 @@ else
     family = 'gaussian';
 end
 
-%run consolidated preflight checks so CLI and GUI workflows share logic
+%run consolidated preflight checks so CLI and GUI workflows share logic (row 31: checkOutputNames refuses, before the fit, an output whose files cannot be created in savepath)
 preflight = psyrat_preflight_validate(...
     'datatable', psyrat_data.proc.data, ...
     'sserrvar', psyrat_prefs.proc.ssubjrel, ...
@@ -179,7 +179,7 @@ preflight = psyrat_preflight_validate(...
     'savename', psyrat_data.proc.savename, ...
     'savepath', psyrat_data.proc.savepath, ...
     'requireSaveName', true, ...
-    'requireSavePath', true);
+    'requireSavePath', true, 'checkOutputNames', true);
 if ~preflight.ok
     diag = preflight.errors(1);
     error(diag.id,'%s',diag.message);
@@ -476,11 +476,11 @@ while rerun ~= 0
             rerunattempt = rerunattempt + 1;
             if rerunattempt > maxreruns
                 rerun = 0;
-                fprintf(['\nModel did not converge after %d automatic reruns ' ...
+                fprintf(['\nEstimation diagnostic check failed after %d automatic reruns ' ...
                     '(non-interactive run); stopping.\n'],maxreruns);
             else
                 rerun = 1;
-                fprintf(['\nModel did not converge; non-interactive run, ' ...
+                fprintf(['\nEstimation diagnostic check failed; non-interactive run, ' ...
                     'automatically rerunning (attempt %d of %d).\n'], ...
                     rerunattempt,maxreruns);
             end
@@ -490,13 +490,17 @@ while rerun ~= 0
 
         %if chains converged, do not rerun
         rerun = 0;
-        fprintf('\nModel converged\n');
+        scope_lines=psyrat_diagnostic_lines(RELout);
+        fprintf('\n%s\n%s\n',scope_lines{1},scope_lines{2});
 
     end
     
     %check if the user wanted to see the trace plots (interactive runs only;
     %the trace-plot prompt is a GUI dialog, so headless runs skip it)
-    if interactive && psyrat_prefs.proc.traceplots == 2 && rerun == 0 && ...
+    if psyrat_prefs.proc.traceplots == 2 && isfield(RELout,'engine') && ...
+            strcmpi(RELout.engine,'fitlme')
+        fprintf('\nMCMC trace plots do not apply to REML parametric-bootstrap refits.\n');
+    elseif interactive && psyrat_prefs.proc.traceplots == 2 && rerun == 0 && ...
             strcmp(RELout.analysis,'ic')
         
         psyrat_checktraceplots(RELout,'askuser',1);
@@ -535,7 +539,7 @@ while rerun ~= 0
         %analyses); print an informative message so the run is never a silent
         %no-op. Convergence was already enforced by the rerun loop above.
         fprintf(strcat('\nTrace plots are not currently rendered for the',...
-            ' dynamic/conditional reliability family.\nThe model converged',...
+            ' dynamic/conditional reliability family.\nThe early-workflow check passed',...
             ' (the run loop reruns with more iterations until it does).\n'));
     elseif psyrat_prefs.proc.traceplots == 2 && rerun == 0
         %any other analysis with trace plots requested: avoid a silent no-op.
@@ -589,11 +593,11 @@ if RELout.out.conv.converged == 0
 
     if isfield(psyrat_data.proc,'batchmode') && psyrat_data.proc.batchmode
         error('psyrat:modelDidNotConverge',...
-            ['Model did not converge for measurement ''%s''.\n\n',...
+            ['Estimation diagnostic check failed for measurement ''%s''.\n\n',...
             'How to fix: increase warmup/sampling iterations and rerun this measurement.'],...
             psyrat_data.proc.measheader);
     else
-        fprintf('\nModel did not converge. Saving the current non-converged result because rerun was declined.\n');
+        fprintf('\nEstimation diagnostic check failed. Saving the current non-converged result because rerun was declined.\n');
     end
     
 else

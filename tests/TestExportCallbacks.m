@@ -53,6 +53,115 @@ classdef TestExportCallbacks < PsyRATTestBase
     end
 
     methods (Test)
+        function testSplitsIntervalLabelsReachReportAndExports(testCase)
+            for engine={'fitlme','cmdstan'}
+                pd=localSplitsSingleData(); pd.rel.engine=engine{1};
+                label='Credible interval';
+                if strcmp(engine{1},'fitlme'); label='Bootstrap interval'; end
+                report=psyrat_report(pd,'CI',.50);
+                testCase.verifyEqual(report.ci_width_note,[label ': 50%']);
+                fig=localSplitsViewerFig(testCase,pd);
+                localSetEditByLabel(testCase,fig,label,'.50');
+                buttons=findall(fig,'Style','pushbutton');
+                found=false;
+                for ext={'.csv','.xlsx'}
+                    global PSYRAT_FAKE_SAVE
+                    file=[tempname ext{1}]; PSYRAT_FAKE_SAVE=file;
+                    testCase.addTeardown(@()localCleanFiles({file}));
+                    for b=buttons(:)'
+                        if contains(string(b.String),'Save coefficients')
+                            cb=b.Callback; cb(b,[]); found=true; break;
+                        end
+                    end
+                    testCase.assertTrue(found);
+                    if strcmp(ext{1},'.csv'); txt=fileread(file);
+                    else
+                        raw=readcell(file); txt=strjoin(raw(cellfun(@ischar,raw)),newline);
+                    end
+                    testCase.verifyTrue(contains(txt,[label ': 0.5']));
+                    if strcmp(engine{1},'fitlme')
+                        testCase.verifyFalse(contains(lower(txt),'credible interval'));
+                    end
+                end
+                close(fig);
+            end
+        end
+
+        function testBootstrapExportLabelsAndBayesianControls(testCase)
+            bodies={};
+            for engine={'fitlme','hmc','cmdstan'}
+                pd=localIcData(); pd.rel.engine=engine{1};
+                pd.rel.priors=psyrat_default_priors(); pd.relsummary.ciperc=.50;
+                fig=localBuildOutputFig(testCase,@()psyrat_variancet('psyrat_data',pd,'gui',1));
+                for ext={'.csv','.xlsx'}
+                    file=[tempname ext{1}]; testCase.addTeardown(@()localCleanFiles({file}));
+                    localFireSave(testCase,fig,file);
+                    if strcmp(ext{1},'.csv')
+                        txt=fileread(file); at=regexp(txt,'(?m)^Label,','once');
+                        testCase.assertNotEmpty(at); bodies{end+1}=txt(at:end); %#ok<AGROW>
+                    else
+                        raw=readcell(file); txt=strjoin(raw(cellfun(@ischar,raw)),newline);
+                    end
+                    if strcmp(engine{1},'fitlme')
+                        testCase.verifyTrue(contains(txt,'Bootstrap interval: 50%'));
+                        testCase.verifyTrue(contains(txt,'approximate frequentist parametric bootstrap'));
+                        testCase.verifyTrue(contains(txt,'Priors: not used (REML estimation)'));
+                        testCase.verifyTrue(contains(txt,'MCMC chains/warmup/sampling: not applicable'));
+                        testCase.verifyFalse(contains(lower(txt),'credible interval'));
+                        testCase.verifyFalse(contains(txt,'Priors: PsyRAT defaults'));
+                    else
+                        testCase.verifyTrue(contains(txt,'Credible interval: 50%'));
+                        testCase.verifyTrue(contains(txt,'Priors: PsyRAT defaults'));
+                        testCase.verifyTrue(contains(txt,'Chains:'));
+                    end
+                end
+                close(fig);
+            end
+            testCase.verifyEqual(bodies{1},bodies{2}); testCase.verifyEqual(bodies{1},bodies{3});
+        end
+
+        function testBootstrapSavedCriteriaAndConfiguredPriors(testCase)
+            for engine={'fitlme','cmdstan'}
+                pd=localIcData(); pd.rel.engine=engine{1};
+                pd.rel.out.conv.data={'name','n_eff','r_hat';'fitlme_reml',400,1};
+                pd.rel=psyrat_checkconv(pd.rel);
+                folder=tempname; mkdir(folder); testCase.addTeardown(@()rmdir(folder,'s'));
+                pd.proc.savepath=folder; pd.proc.savename='criteria.psyrat';
+                prefs=psyrat_defaults(); prefs.proc.priors=psyrat_default_priors();
+                file=psyrat_write_runconfig(pd,prefs); cfg=jsondecode(fileread(file));
+                testCase.verifyEqual(cfg.priors,prefs.proc.priors);
+                if strcmp(engine{1},'fitlme')
+                    testCase.verifyFalse(cfg.estimation.priors_applied);
+                    testCase.verifyFalse(cfg.estimation.mcmc_settings_applied);
+                    testCase.verifyFalse(isfield(cfg.diagnostics.thresholds,'rhat_less_than'));
+                    testCase.verifyEqual(cfg.diagnostics.thresholds.bootstrap_success_fraction_at_least,.9);
+                    testCase.verifyEqual(cfg.diagnostics.thresholds.bootstrap_success_count_at_least,200);
+                    testCase.verifyEqual(cfg.diagnostics.thresholds.bootstrap_count_floor_applies_from_requested,200);
+                else
+                    testCase.verifyEqual(cfg.diagnostics.thresholds.rhat_less_than,1.1);
+                    testCase.verifyEqual(cfg.diagnostics.thresholds.ess_at_least,10*pd.rel.nchains);
+                end
+            end
+        end
+
+        function testRaggedBootstrapProvenanceSurvivesSave(testCase)
+            pd=localIcData();
+            pd.rel.engine='fitlme';
+            %The real exporter reads raw trial components for provenance.
+            pd.rel.out.sig_trl={ones(9,1),ones(10,1)};
+            a=struct('label','A','bootstrap_reps',10,'bootstrap_ok',9);
+            b=struct('label','B','bootstrap_reps',10,'bootstrap_ok',10);
+            pd.rel.engine_meta=struct('bootstrap_ok',19,'bootstrap_reps',20, ...
+                'fits',[a b],'draw_layout','cell vectors (unequal successful counts)');
+            fig=localBuildOutputFig(testCase,@()psyrat_variancet('psyrat_data',pd,'gui',1));
+            file=[tempname '.csv'];
+            localFireSave(testCase,fig,file);
+            txt=fileread(file);
+            testCase.verifyTrue(contains(txt,'Bootstrap replicates [A]: 9 of 10 succeeded'));
+            testCase.verifyTrue(contains(txt,'Bootstrap replicates [B]: 10 of 10 succeeded'));
+            localCleanFiles({file});
+        end
+
         function testTrtTrialCutoffSaveWritesBothFormats(testCase)
             % Guards F-CM-M4trtcut: firing the test-retest trial-cutoff Save
             % button must not error, and the written header must carry the
@@ -133,11 +242,14 @@ classdef TestExportCallbacks < PsyRATTestBase
                 'header; a garbled diff row fragments into extra lines:\n%s'], ...
                 strjoin(body, newline)));
 
-            % the diff row, cell for cell: label, goodn, dashed badn, the
-            % draw-based coefficient string, then five dashed trial cells
+            % the diff row, cell for cell: label, goodn, numeric badn (G97:
+            % the complement, as the trt sibling prints; it was a dash
+            % inherited from the ERA port), the draw-based coefficient
+            % string, then five dashed trial cells
             ds = pd.relsummary.group(1).diffscore;
-            expected_diff = sprintf('diff score,%d,---,%s,---,---,---,---,---', ...
+            expected_diff = sprintf('diff score,%d,%d,%s,---,---,---,---,---', ...
                 pd.relsummary.group(1).event(2).goodn, ...
+                numel(pd.relsummary.group(1).badids), ...
                 sprintf(' %0.2f CI [%0.2f %0.2f]', ds.pt, ds.ll, ds.ul));
             testCase.verifyEqual(body{3}, expected_diff, ...
                 'diff row must survive as one intact line with its dash cells');
@@ -290,7 +402,9 @@ classdef TestExportCallbacks < PsyRATTestBase
 
             % (b) the Save button stores {fcn, psyrat_data, overalltable};
             % re-fire the same callback with the badn and trial-summary cells
-            % dashed out, the way the depoverallt diff rows dash theirs
+            % dashed out: a latent-hardening injection (since G97 no reachable
+            % route feeds this writer a dashed n Excluded; the depoverallt diff
+            % rows dash only their five trial cells)
             btns = findall(fig, 'Style', 'pushbutton');
             cb = [];
             for b = btns(:)'
@@ -398,7 +512,7 @@ classdef TestExportCallbacks < PsyRATTestBase
             localVerifyProvenance(testCase, csvtxt, 'CSV');
             testCase.verifyTrue(contains(csvtxt,'Criterion Cutoff: 0.5000'), ...
                 'CSV header should carry the criterion cutoff');
-            testCase.verifyTrue(contains(csvtxt,'PsyRAT Toolbox v'), ...
+            testCase.verifyTrue(contains(csvtxt,'PsyRAT v'), ...
                 'CSV header should carry the toolbox version');
             testCase.verifyTrue(contains(csvtxt, localScopeSnippet()), ...
                 'CSV header should carry the criterion scope line');
@@ -779,7 +893,13 @@ classdef TestExportCallbacks < PsyRATTestBase
             % added wrap changes a count and trips this pin. The dynrel
             % viewer deliberately keeps its shipped inline copy of the same
             % conditional (pinned behaviorally by its own test above), so it
-            % stays at zero calls.
+            % stays at zero calls. G107 added three header-line wraps to the
+            % sscoeffs block of psyrat_variancet.m (the difference notes, the
+            % difference-section label and its empty status): 11 -> 14. G109
+            % then moved three label lines that carry runtime group/event
+            % names (the event-section label, the difference-section label
+            % and its empty status) to psyrat_csv_field, which also quotes
+            % line breaks: 14 -> 11.
             specs = { ...
                 {fullfile('subroutines','tables','psyrat_fprintf_provenance.m'), 1}; ...
                 {fullfile('subroutines','tables','psyrat_depcutofft.m'), 3}; ...
@@ -849,14 +969,14 @@ classdef TestExportCallbacks < PsyRATTestBase
             csv1 = [tempname '.csv'];
             localFireSave(testCase, fig, csv1, 'Save variance table');
             testCase.assertEqual( ...
-                localSplitsDesignValue(testCase, csv1, 'n_occasions'), 3, ...
+                localSplitsDesignValue(testCase, csv1, 'reference_n_occasions'), 3, ...
                 'Precondition: 3.499999 should resolve to n''_o = 3');
 
             localSetEditByLabel(testCase, fig, 'Occasions n', '3.5');
             csv2 = [tempname '.csv'];
             localFireSave(testCase, fig, csv2, 'Save variance table');
             testCase.verifyEqual( ...
-                localSplitsDesignValue(testCase, csv2, 'n_occasions'), 4, ...
+                localSplitsDesignValue(testCase, csv2, 'reference_n_occasions'), 4, ...
                 'Second save must recompute the summary: 3.5 rounds to n''_o = 4');
 
             localCleanFiles({csv1, csv2});
@@ -913,7 +1033,8 @@ end
 
 function pd = localIcDiffData()
 % one-facet difference fixture (ic_diff): two event rows plus the diff-score
-% row whose badn and trial-summary cells carry the '---' placeholder (G47)
+% row whose five trial-summary cells carry the '---' placeholder (G47; its
+% n Excluded is numeric since G97)
 pd = PsyRATTestDataFactory.makeICDiffSummaryData();
 pd = localAddSaveHeaderFields(pd);
 end
@@ -1167,7 +1288,7 @@ testCase.verifyTrue(contains(txt,'Seed: 12345'), ...
     sprintf('%s header should record the estimation seed', fmt));
 testCase.verifyTrue(contains(txt,'Estimation engine: cmdstan'), ...
     sprintf('%s header should record the estimation engine', fmt));
-testCase.verifyTrue(contains(txt,'Converged: Yes'), ...
+testCase.verifyTrue(contains(txt,'Early-workflow Rhat/ESS check: passed'), ...
     sprintf('%s header should record the convergence verdict', fmt));
 end
 

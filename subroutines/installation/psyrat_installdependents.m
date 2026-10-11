@@ -18,7 +18,7 @@ function psyrat_installdependents(varargin)
 % No data are outputted to the Matlab command window. However, software
 %  will be installed and a new Matlab path will be saved.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -465,7 +465,7 @@ else
     fprintf('MatlabStan is installed\n');
 end
 
-%pull up a gui to display the status of the PsyRAT toolbox dependents
+%pull up a gui to display the status of the PsyRAT dependents
 psyrat_guistatus(depcheck);
 
 %check whether the directory to save the files exists, if not create it
@@ -821,7 +821,7 @@ end
 %go back to the starting directory
 cd(startdir);
 
-%rerun PsyRAT Toolbox
+%rerun PsyRAT
 psyrat_start;
 
 end
@@ -989,7 +989,7 @@ else
     fprintf('MatlabStan is installed\n');
 end
 
-%pull up a gui to display the status of the PsyRAT toolbox dependents
+%pull up a gui to display the status of the PsyRAT dependents
 psyrat_guistatus(depcheck);
 
 %check whether the directory to save the files exists, if not create it
@@ -1245,7 +1245,7 @@ end
 %go back to the starting directory
 cd(startdir);
 
-%rerun PsyRAT Toolbox
+%rerun PsyRAT
 psyrat_start;
 
 end
@@ -1415,7 +1415,7 @@ else
     fprintf('MatlabStan is installed\n');
 end
 
-%pull up a gui to display the status of the PsyRAT toolbox dependents
+%pull up a gui to display the status of the PsyRAT dependents
 psyrat_guistatus(depcheck);
 
 %check whether the directory to save the files exists, if not create it
@@ -1687,7 +1687,7 @@ end
 %go back to the starting directory
 cd(startdir);
 
-%rerun PsyRAT Toolbox
+%rerun PsyRAT
 psyrat_start;
 
 end
@@ -1757,7 +1757,8 @@ bundledsrc = fullfile(toolboxroot,'bundled_dependents',...
     strcat('MatlabStan-',depvers.matlabstan));
 
 if exist(bundledsrc,'dir') == 7
-    [~,foldername] = fileparts(bundledsrc);
+    [~,n,e] = fileparts(bundledsrc);   %F4: keep the dotted version whole (fileparts splits at the last dot)
+    foldername = [n e];
     msdir = fullfile(wrkdir,foldername);
     
     if exist(msdir,'dir') ~= 7
@@ -1782,7 +1783,8 @@ bundledsrc = fullfile(toolboxroot,'bundled_dependents',...
     strcat('MatlabProcessManager-',depvers.matlabprocessmanager));
 
 if exist(bundledsrc,'dir') == 7
-    [~,foldername] = fileparts(bundledsrc);
+    [~,n,e] = fileparts(bundledsrc);   %F4: keep the dotted version whole (fileparts splits at the last dot)
+    foldername = [n e];
     mpmdir = fullfile(wrkdir,foldername);
 
     if exist(mpmdir,'dir') ~= 7
@@ -1971,7 +1973,9 @@ warning('off','MATLAB:RMDIR:RemovedFromPath');
 
 %Each target is a directory resolved from the Matlab path, which is not
 %necessarily an installed copy: PsyRAT puts its own vendored bundled_dependents
-%tree on the path and the installed copies carry identical folder names, so a
+%tree on the path and the installed copies hold the same files (copies made from
+%2026-09-16 on also carry the bundled folder names; earlier MatlabProcessManager
+%copies carry a truncated one), so a
 %bare which() can resolve to PsyRAT's own source. psyrat_safe_rmdepdir refuses
 %any target inside the toolbox tree and reports rather than throwing, so one
 %refusal does not abandon the other dependents.

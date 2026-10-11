@@ -4,7 +4,7 @@ function psyrat_startview_criterion(varargin)
 %psyrat_startview_criterion('psyrat_prefs',psyrat_prefs,...
 %    'psyrat_data',psyrat_data,'analysis','sing')
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -338,7 +338,7 @@ cutval = 0;
 try
     if isfield(psyrat_data,'rel') && isfield(psyrat_data.rel,'out') && ...
             isfield(psyrat_data.rel.out,'mu') && ~isempty(psyrat_data.rel.out.mu)
-        cutval = mean(psyrat_data.rel.out.mu(:));
+        cutval = local_mean_of_fit_means(psyrat_data.rel.out.mu);
     end
 catch
     cutval = 0;
@@ -367,7 +367,7 @@ try
     
     if isnan(muval) && isfield(psyrat_data,'rel') && isfield(psyrat_data.rel,'out') && ...
             isfield(psyrat_data.rel.out,'mu') && ~isempty(psyrat_data.rel.out.mu)
-        muval = mean(psyrat_data.rel.out.mu(:));
+        muval = local_mean_of_fit_means(psyrat_data.rel.out.mu);
     end
 catch
     muval = NaN;
@@ -375,5 +375,15 @@ end
 
 if isnan(muval)
     muval = 0;
+end
+end
+
+function value = local_mean_of_fit_means(draws)
+%Equal stratum weights, as the existing rectangular mean and summary route.
+%Refit failures must not silently reweight the criterion's default score.
+if iscell(draws)
+    value = mean(cellfun(@(v)mean(v(:)),draws));
+else
+    value = mean(draws(:));
 end
 end

@@ -3,7 +3,7 @@ function spec = psyrat_scoring_spec_create(varargin)
 %
 % spec = psyrat_scoring_spec_create('name','P3 local','method','local_peak_amplitude',...)
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

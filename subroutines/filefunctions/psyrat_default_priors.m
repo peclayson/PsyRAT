@@ -212,7 +212,7 @@ priors.gamma.nu_sd     = 0.75;      % log-nu grand intercept SD
 % where 2.5 implies a prior-median s_v ~ 1.9, i.e. dispersion varying ~45x across
 % people - an implausible default that only became consequential once the marginal
 % observation term (estimand #2, see documentation/priors_and_sensitivity.md and
-% SCIENTIFIC_FORMULA_AUDIT.md sections 18/11) began using s_v. sig_nu = 1.0 is
+% development formula audit sections 18/11) began using s_v. sig_nu = 1.0 is
 % better calibrated (median s_v ~ 0.77), reduces low-trial residual over-inflation,
 % and does not over-shrink genuine heterogeneity at typical sample sizes (validated
 % by the two identifiability simulations recorded in section 11). Override per run
@@ -240,14 +240,14 @@ priors.gamma.lkj       = 1;         % LKJ(eta) on the 2-D person (mean, log-nu) 
 % one-SD change in the predictor to shift log-mu (or log-nu) by up to ~+/-1 in the
 % 95% prior interval, i.e. a mean (or nu) change of up to ~2.7x per z-SD. Override
 % per run via the 'priors' input if a wider/narrower dimensional effect is
-% warranted. (Owner-confirmable default; see SCIENTIFIC_FORMULA_AUDIT.md sec 18.)
+% warranted. (Owner-confirmable default; see development formula audit sec 18.)
 priors.gamma.b    = 0.5;   % mean dimension slopes:  b    ~ normal(0, b)    (log expected-score scale)
 priors.gamma.b_nu = 0.5;   % log-nu dimension slopes: b_nu ~ normal(0, b_nu)(log-nu scale)
 % LOCATION-SCALE gamma priors (gammascale = 2). This parameterization replaces the
 % log-nu scale submodel with a direct log residual-SD submodel,
 %   log sigma = Intercept_sigma + Xdim*b_sigma + ind_sd[id],   nu = 2*(mu/sigma)^2,
 % so that b_sigma is a PURE residual-SD slope rather than the mean/dispersion
-% blend b_nu carries (documentation/gamma_scale_submodel_decision.md).
+% blend b_nu carries (manual section 15.4; scale-submodel decision record).
 %
 % SCOPE (widened 2026-08-04, owner ruling H). These are no longer dynrel-only.
 % Every gammascale = 2 design draws on this block; the STATIC designs (subject-
@@ -294,7 +294,7 @@ priors.gamma.b_sigma      = 0.25;  % log residual-SD dimension slopes: b_sigma ~
 % correlation is NOT the observed-score residual correlation (the marginals are
 % non-Gaussian); the observed-scale residual cross-covariance is derived by Monte
 % Carlo in psyrat_gamma_extract_diff_copula. Override per run via 'priors'.
-% (Owner-confirmable default; see SCIENTIFIC_FORMULA_AUDIT.md sec 22.)
+% (Owner-confirmable default; see development formula audit sec 22.)
 priors.gamma.rescor_sd = 0.5;  % copula residual corr: rho_e ~ normal(0, rescor_sd)
 % MODULAR CUT-COPULA stage-1 margin priors (analyses 19/20, family = 'gamma',
 % gammascale = 2). These are a SEPARATE block rather than a reuse of the

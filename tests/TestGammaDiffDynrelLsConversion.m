@@ -9,7 +9,7 @@ classdef TestGammaDiffDynrelLsConversion < matlab.unittest.TestCase
     %recovery (TestGammaDiffDynrelLsRecovery) is what checks correctness.
     %
     %The tests are organized around the four claims the derivation in
-    %documentation/gamma_scale_submodel_decision.md section I actually makes:
+    %the scale-submodel decision record, section I, actually makes:
     %  I.2  the residual is decoupled from the mean surface
     %  I.3  psyrat_gamma_crosscov is reused unchanged, and legitimately
     %  I.4  the residual cross-covariance is zero

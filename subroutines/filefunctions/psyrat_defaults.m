@@ -1,10 +1,10 @@
 function psyrat_prefs = psyrat_defaults
-%Default settings for the PsyRAT Toolbox
+%Default settings for PsyRAT
 %
 %
 
-%This script will be read by the PsyRAT Toolbox to define the default settings
-%for analyzing and viewing data in the PsyRAT Toolbox. Should the user want to
+%This script will be read by PsyRAT to define the default settings
+%for analyzing and viewing data in PsyRAT. Should the user want to
 %change any default settings, the values below can be changed. Upon
 %restarting the toolbox, these settings will be read. Comments are provided 
 %for understanding each input.
@@ -17,10 +17,10 @@ function psyrat_prefs = psyrat_defaults
 %
 %Output
 % psyrat_prefs - data structure containing the default processing and viewing
-%  settings for the PsyRAT Toolbox (the per-field defaults set below)
+%  settings for PsyRAT (the per-field defaults set below)
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ psyrat_prefs.proc.family = 'gaussian';
 % []  = unset / Automatic (the default). The warp OMITS the argument, so
 %       psyrat_computevarcomp applies its context-aware default: location-scale
 %       on every design that supports it, log-nu on the rest (rulings 33-36 in
-%       documentation/gamma_scale_submodel_decision.md).
+%       the scale-submodel decision record; manual section 15.4).
 % 1   = log-nu dispersion (relative dispersion / constant CV)
 % 2   = log residual SD (location-scale, absolute residual SD)
 %

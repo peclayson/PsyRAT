@@ -60,7 +60,7 @@ function [T, P] = psyrat_make_manual_splits(outfile, seed)
 %                    + sigma_item^2 / (n_s * n-bar_i))
 %   G = the same without the sigma_s^2 / n_s term
 %
-% (documentation/splits_observed_design_formulas.md). The manual's truth
+% (splits-formula note; manual section 13.3). The manual's truth
 % table is computed from these numbers and the committed file's weights.
 %
 % REPRODUCIBILITY. rng(SEED, 'twister'); measurements rounded to 6 decimals

@@ -100,14 +100,18 @@ et al. (2021), pp. 178 to 183.*
 
 ## 4.3 Reading the variance components in PsyRAT output
 
-Selecting Table: Sources of Variance on the View Results Setup screen produces a
-table of standard deviations, standard errors of measurement, and intraclass
-correlations, each with a point estimate and a credible interval at the width
-selected in the viewer (95% by default). The toolbox reports these components on
-the standard-deviation scale rather than the variance scale, because standard
-deviations are in microvolts and can be compared directly against the ERP scores
-themselves. Every formula in this chapter uses variances, so each printed value
-is squared before it enters a coefficient.
+Selecting Table: Sources of Variance on the View Results Setup screen, then
+Generate Figures/Tables, produces a table of standard deviations, standard
+errors of measurement, and intraclass correlations, each with a point estimate
+and a 95% credible interval (that screen has no width control; a script can
+choose another width through `psyrat_report`, [Chapter 14](14_scripting.md)).
+The toolbox reports these components on the standard-deviation scale rather
+than the variance scale, because standard deviations are in microvolts and can
+be compared directly against the ERP scores themselves. Every formula in this
+chapter uses variances, and the toolbox squares each posterior draw before it
+enters a coefficient; squaring a printed standard deviation and plugging it
+into a formula gives a plug-in value that can differ from the printed
+coefficient, which is a mean over draws.
 
 The mapping between the symbols above and the printed columns is the single most
 useful thing to memorize about the output. For a one-facet analysis:
@@ -124,16 +128,19 @@ Two features of that table are easy to misread. The Within Std Dev column holds
 the residual $\sigma_{pi,e}$ alone, not a combined within-person term, so the
 trial main effect is reported separately in its own column rather than folded
 into it. The SEM and ICC headers carry a parenthetical decision type because
-both quantities change value with the G-Theory Coefficient setting, and an
-archived export would otherwise be impossible to reconstruct. If the analysis
-uses data splits rather than single trials, the Trial Std Dev header reads Split
-Std Dev, and the analysis unit is the split throughout.
+both quantities change value with the G-Theory Coefficient setting, and
+without the label an archived export would not record which error definition
+produced the value. If the analysis uses parallel data splits rather than
+single trials, the Trial Std Dev header reads Split Std Dev, and the analysis
+unit is the split throughout (nonparallel splits have their own viewer,
+described in [Chapter 9](09_viewing-results.md)).
 
 Test-retest analyses print a five-column version of the same table, in which
 Between Std Dev is $\sigma_p$ and Within Std Dev is the three-way residual
-$\sigma_{pio,e}$. All seven components are listed in the window reached through
-the View All Standard Deviations button, two of which repeat the five-column
-table:
+$\sigma_{pio,e}$. On a plain test-retest analysis, clicking the View All
+Standard Deviations button opens the Point Estimates of All Standard Deviation
+Components window, which lists all seven components as point estimates. Two of
+them repeat the five-column table:
 
 | Symbol | Printed column |
 |---|---|
@@ -151,7 +158,8 @@ Comparing the components against one another is the first diagnostic step in any
 generalizability study, because their relative sizes indicate which sources of
 variance dominate the reliability estimate (Clayson, Carbine, et al., 2021,
 p. 180). Which redesign would help follows from where the dominant component
-sits in Equation 5, Equation 6, or Equation 9. A large $\sigma_{pi,e}$ relative
+sits in the coefficient formulas (Equations 5, 6, and 9, in Sections 4.4 and
+4.6). A large $\sigma_{pi,e}$ relative
 to $\sigma_p$ means more trials will help. A large $\sigma_{po}$ relative to
 $\sigma_p$ means more trials will not.
 
@@ -210,22 +218,22 @@ $\sigma^2_p = 4.00$, $\sigma^2_{pi,e} = 30.25$, and $\sigma^2_i = 1.00$.
 Averaged over 17 error trials,
 
 $$
-E\rho^2 = \frac{4.00}{4.00 + 30.25/17} = \frac{4.00}{5.779} = 0.692
+E\rho^2 = \frac{4.00}{4.00 + 30.25/17} = \frac{4.00}{5.779} = .692
 $$
 
 The trial main effect enters absolute error only, so dependability sits below
 that: the absolute error is $(30.25 + 1.00)/17 = 1.838$, and
-$\phi = 4.00/5.838 = 0.685$. With this dataset's modest trial main effect the
+$\phi = 4.00/5.838 = .685$. With this dataset's modest trial main effect the
 gap is small. Now suppose a researcher analyzed real data in which the trial
 main effect was estimated at $\sigma_i = 2.0$ microvolts, so
 $\sigma^2_i = 4.00$. Relative error is unchanged at 1.779, but absolute error
 becomes $(30.25 + 4.00)/17 = 2.015$, and
 
 $$
-\phi = \frac{4.00}{4.00 + 2.015} = 0.665
+\phi = \frac{4.00}{4.00 + 2.015} = .665
 $$
 
-Generalizability of 0.692 and dependability of 0.665 describe the same scores.
+Generalizability of .692 and dependability of .665 describe the same scores.
 They differ because they quantify different error definitions, and the choice
 between them is a research decision, not a statistical one. If the inference concerns the
 relative standing of participants, as it does for correlations, group
@@ -260,10 +268,9 @@ Continuing the example above, the relative standard error at 17 trials is
 $\sqrt{1.779} = 1.33$ microvolts and the absolute standard error is
 $\sqrt{1.838} = 1.36$ microvolts. The between-person standard deviation for
 that cell is 2.0 microvolts, so an individual averaged score carries roughly
-1.4 microvolts of measurement error against 2.0 microvolts of true
-between-person spread, which is the comparison the standard error of
-measurement exists to make available, and which is why the dependability there
-is only .685.
+1.4 microvolts of measurement error against 2.0 microvolts of universe-score
+spread. That is the comparison the standard error of measurement exists to
+make available, and it is why the dependability there is only .685.
 
 The toolbox evaluates Equation 7 at the trial count actually available rather
 than at a single trial. That count is the mean number of retained trials across
@@ -285,10 +292,13 @@ phases. Only $n'_i$ changes.
 
 Because $n'_i$ appears only in the denominator of Equations 5 and 6, the
 projection from those two equations is monotonic: more trials yield a higher
-coefficient, with diminishing returns. (The coefficient of stability of
-Equation 9 is the exception: when the person-by-trial variance is large
-relative to the person-by-occasion terms, adding trials can lower it.) For the
-tutorial values above, dependability rises from 0.390 at 5 trials to 0.561 at 10, 0.685 at 17, 0.793 at 30, and 0.865 at 50.
+coefficient, with diminishing returns. (The test-retest coefficient of
+stability, Equation 9 below, is the exception: because $\sigma^2_{pi}/n'_i$
+leaves its numerator as trials are added, the coefficient falls with more
+trials whenever $\sigma^2_{pi}(\sigma^2_{po} + \sigma^2_o)$ exceeds
+$\sigma^2_p(\sigma^2_{pio,e} + \sigma^2_{io})$.) For the tutorial values
+above, dependability rises from .390 at 5 trials to .561 at 10, .685 at 17,
+.793 at 30, and .865 at 50.
 Inverting Equation 6 gives the count a researcher needs for a target coefficient
 $\rho$:
 
@@ -299,7 +309,7 @@ $$
 
 In words, the required number of trials is the target coefficient expressed as
 odds, multiplied by the ratio of error variance to between-person variance. With
-$\sigma^2_i = 0$, reaching a dependability of 0.80 requires $4 \times (30.25/4.00) = 30.25$ trials, so 31
+$\sigma^2_i = 0$, reaching a dependability of .80 requires $4 \times (30.25/4.00) = 30.25$ trials, so 31
 trials. Adding the hypothetical trial main effect of $\sigma^2_i = 4.00$ raises
 the requirement to 34.25, so 35 trials. That is the practical cost of a trial
 main effect: four additional error trials per participant, in a paradigm where
@@ -307,20 +317,21 @@ error trials are the scarce resource.
 
 ![Dependability as a function of the number of trials retained for averaging, one panel per event and one curve per group, with the reliability cutoff drawn as a dotted horizontal line.](images/fig_rel_vs_trials.png)
 
-The plot produced by the toolbox draws that curve directly, one panel per
-event, with the number of observations on the horizontal axis and the
+Selecting Plot: Trials vs Reliability on the View Results Setup screen draws
+that curve directly, one panel per event, with the number of observations on the horizontal axis and the
 coefficient on the vertical axis, bounded above at 1. The dotted horizontal
 line is the reliability cutoff, and the point where a curve crosses it is the
 trial count that design requires.
 
 Choosing that cutoff is a judgment the software cannot make. Clayson and Miller
-(2017b, p. 62) recommend a threshold of at least 0.70 for exploratory ERP
-research and 0.80 in most contexts. The reasoning behind those two values is that
-0.70 buys enough precision to decide whether a measure is worth developing
-further, while 0.80 is what group-difference research needs before unreliability
-begins attenuating the effects under test. The toolbox default is 0.80. The
-exception runs upward, not downward: when a decision is made about an individual participant's score, as in clinical classification,
-0.90 is a minimum and 0.95 is preferred. The illegitimate reason to lower the
+(2017b, p. 62) recommend a threshold of at least .70 for exploratory ERP
+research and .80 in most contexts. The reasoning behind those two values is
+that .70 buys enough precision to decide whether a measure is worth developing
+further, while .80 is what group-difference research needs before
+unreliability begins attenuating the effects under test. The toolbox default
+is .80. The exception runs upward, not downward: when a decision is made about
+an individual participant's score, as in clinical classification, .90 is a
+minimum and .95 is preferred. The illegitimate reason to lower the
 threshold is that the data did not reach it. A threshold chosen after the
 coefficient is known is not a threshold, and the honest response to a coefficient
 below the stated cutoff is to report it and to state what the analysis therefore
@@ -339,12 +350,14 @@ The person-by-trial component sits in the numerator here, because a coefficient
 of stability treats consistency across trials as part of the universe score and
 asks only whether scores hold up across occasions. The coefficient of
 equivalence exchanges those roles, placing $\sigma^2_{po}$ in the numerator and
-$\sigma^2_{pi}$ in the error term. The coefficient of trial equivalence and
+$\sigma^2_{pi}$ in the error term. The coefficient of equivalence and
 stability keeps $\sigma^2_p$ alone in the numerator and treats both interactions
 as error, which makes it the most demanding of the three.
 
-By the toolbox's convention, every test-retest coefficient defaults to
-$n'_o = 1$. The estimand is then the reliability of a score collected at one
+By the toolbox's convention, every trial-level test-retest coefficient
+defaults to $n'_o = 1$ (the multi-occasion data-splits design is the
+exception: it reports the observed design across the occasions each
+participant has, [Chapter 9](09_viewing-results.md)). The estimand is then the reliability of a score collected at one
 occasion and generalized over the occasion facet, which is the score a researcher
 actually has in hand after a single visit. Setting $n'_o = k$ instead reports the
 reliability of a composite averaged over $k$ occasions, a different and generally
@@ -394,53 +407,56 @@ The subtraction in the numerator is why difference scores are typically less
 dependable than their constituents. Whatever between-person variance the two
 conditions share is removed from the signal, while the error variances add rather
 than cancel. The tutorial dataset makes the arithmetic explicit. Error-trial and
-correct-trial person effects were generated with a correlation of $r = 0.75$,
+correct-trial person effects were generated with a correlation of $r = .75$,
 with $\sigma_p = 2.0$ for error trials and $\sigma_p = 1.7$ for correct trials,
-so $\sigma_{XY(p)} = 0.75 \times 2.0 \times 1.7 = 2.55$. The universe-score
+so $\sigma_{XY(p)} = .75 \times 2.0 \times 1.7 = 2.55$. The universe-score
 variance of the difference is $4.00 + 2.89 - 2(2.55) = 1.79$, which is smaller
-than either constituent. Error trials are noisier and scarcer than correct
-trials, so at 17 error trials and 32 correct trials the relative error variance is
-$30.25/17 + 25.00/32 = 2.561$, and
+than either constituent. Error trials are also noisier and scarcer than
+correct trials: the generating residual standard deviation is 5.5 microvolts
+for error trials and 5.0 microvolts for correct trials ($\sigma^2_{pi,e} =
+30.25$ and 25.00). At 17 error trials and 32 correct trials the relative error
+variance is $30.25/17 + 25.00/32 = 2.561$, and
 
 $$
-E\rho^2_{X-Y} = \frac{1.79}{1.79 + 2.561} = 0.411
+E\rho^2_{X-Y} = \frac{1.79}{1.79 + 2.561} = .411
 $$
 
 The generating trial main effects ($\sigma_i = 1.0$ per cell) are drawn
 independently across conditions, so their cross-condition covariance is zero
 and dependability differs from generalizability only by the two
 $\sigma^2_i/n'_i$ terms: absolute error is $31.25/17 + 26.00/32 = 2.651$ and
-$\phi_{X-Y} = 1.79/4.441 = 0.403$. The constituent generalizability
-coefficients at those same trial counts are 0.692 for error trials and 0.787
+$\phi_{X-Y} = 1.79/4.441 = .403$. The constituent generalizability
+coefficients at those same trial counts are .692 for error trials and .787
 for correct trials. The difference score is markedly less reliable than
 either, and the correlation between conditions is the reason. Had
 the person effects been uncorrelated, the numerator would have been 6.89 instead
-of 1.79, and the same error variance would have produced a coefficient of 0.729.
+of 1.79, and the same error variance would have produced a coefficient of .729.
 
-Two further points govern how the toolbox handles these designs. First, the
+Three further points govern how the toolbox handles these designs. First, the
 residual covariance $\sigma_{XY(pi,e)}$ is estimable only when the two measures
 are recorded concurrently, as in an ipsilateral-versus-contralateral contrast.
-When they come from separate trials, as error and correct trials do, the residual
-covariance is set to zero (Rocha et al., 2026, p. 15). Second, a low
-difference-score coefficient does not by itself indicate a flawed measure. When
-true between-person differences in the contrast are genuinely small, or when
-participants differ but all to the same degree, the numerator is small or zero
-and the coefficient is correspondingly low even for a perfect instrument; the
-toolbox reports a zero numerator as an exact zero with a diagnostic rather
-than treating it as an error (Rocha et al., 2026, Section 5.1, p. 15).
-Correlated measurement error runs the other way and can inflate the
-coefficient. One further property of these estimates deserves stating: the
-difference-score error terms are differences of estimated components, so a
-legitimate posterior draw can push a coefficient outside the zero-to-one range,
-and the toolbox reports the value as evaluated together with a diagnostic
-rather than silently repairing it.
+When they come from separate trials, as error and correct trials do, the
+residual covariance is set to zero (Rocha et al., 2026, p. 15); correlated
+measurement error, where it exists and is estimated, runs the other way and can
+inflate the coefficient. Second, a low difference-score coefficient does not by
+itself indicate a flawed measure. When true between-person differences in the
+contrast are genuinely small, or when participants differ in each condition
+but show the same difference between conditions, the numerator is small or
+zero and the coefficient is correspondingly low even for a perfect instrument
+(Rocha et al., 2026, Section 5.1, p. 15). By the toolbox's convention, a zero
+numerator is reported as an exact zero with a diagnostic rather than treated
+as an error. Third, the difference-score error terms are differences of
+estimated components, so a legitimate posterior draw can push a coefficient
+outside the zero-to-one range, and the toolbox reports the value as evaluated
+together with a diagnostic rather than silently repairing it.
 
 The difference-score row of the All Standard Deviation Components window,
 reached from the View All Standard Deviations button, carries an ICC computed
-at a single observation, labeled ICC (n'=1). It is a derived quantity for the
-difference score rather than an entry in the published difference-score
-formulas; the label records the n'=1 convention, and the derivation is
-documented here and in [Chapter 12](12_tutorial-difference-scores.md).
+at a single observation, labeled ICC (n'=1). It is a derived quantity: the
+difference-score coefficient evaluated at one trial in each condition, rather
+than an entry in the published difference-score formulas. The label records
+the n'=1 convention, and [Chapter 12](12_tutorial-difference-scores.md) works
+through the derivation.
 
 *Where this is derived: Rocha et al. (2026), Table 6 and their Section 5.1
 (pp. 13, 15).*
@@ -459,7 +475,7 @@ $$
 \qquad (12)
 $$
 
-The absolute version has the plainest reading. An absolute ICC of 0.40
+The absolute version has the plainest reading. An absolute ICC of .40
 indicates that 40% of the variance in single-trial scores is stable
 between-person variance and the remaining 60% counts as error for an absolute
 decision. The relative version removes the trial main effect from the
@@ -471,11 +487,11 @@ Because the ICC ignores the number of trials, it is a trial-independent index of
 how much person-level signal each observation carries (Rocha et al., 2026, p. 16).
 That property is what makes it a useful companion to the dependability
 coefficient rather than a substitute for it. The tutorial values illustrate the
-gap. For GroupA error trials the relative ICC is $4.00/34.25 = 0.117$ and the
+gap. For GroupA error trials the relative ICC is $4.00/34.25 = .117$ and the
 absolute ICC, which keeps the trial main effect in the denominator, is
-$4.00/35.25 = 0.113$: fewer than 12% of the variance in a single error trial is
+$4.00/35.25 = .113$: less than 12% of the variance in a single error trial is
 between-person variance either way. The dependability of the same scores
-averaged over 17 trials is 0.685. Averaging is
+averaged over 17 trials is .685. Averaging is
 what converts a weak per-trial signal into a usable score, and a design that
 yields more usable trials can produce more dependable scores from an
 equally noisy signal.
@@ -506,7 +522,7 @@ reasons that bear directly on the structure of ERP data.
 | Problem with the usual approach | What the Bayesian estimates provide |
 |---|---|
 | Random-effects ANOVA on unbalanced data can return negative variance components, which makes the coefficients uninterpretable | Variance components are constrained to be positive by the model's parameter space, so a negative component estimate cannot occur (derived difference-score error terms can still leave the usual range; Section 4.7) |
-| Restricted maximum likelihood sets negative estimates to zero during iteration, which blocks standard errors and intervals | Every component carries a full posterior distribution, so credible intervals accompany the coefficients, standard errors, and intraclass correlations in the main output tables (a few summary windows print point estimates only) |
+| Restricted maximum likelihood sets negative estimates to zero during iteration, which blocks standard errors and intervals | Every component carries a full posterior distribution, so credible intervals accompany the coefficients, standard errors, and intraclass correlations in the main output tables (the test-retest Point Estimates of All Standard Deviation Components window prints point estimates only) |
 | Conventional inference assumes homoscedastic residuals, and departures distort variance-component estimates in the small, unbalanced samples common to psychophysiology | In the subject-level and dynamic designs, residual variance is modeled explicitly rather than assumed constant |
 | Reliability is reported for the group as a whole | The same posterior draws support subject-level coefficients, which the toolbox reports for the designs that estimate them |
 
@@ -514,6 +530,14 @@ Trial counts in ERP research are unbalanced by construction, because artifact
 rejection removes different numbers of epochs from different participants, and
 error trials are scarce. That is the condition under which the first two problems
 actually bite (Rocha et al., 2026, Section 7, pp. 15 to 16).
+
+A native MATLAB engine is used only when you force one on Specify Inputs
+(Native HMC or Native fitlme), or when a `psyrat_run` script on a machine
+without CmdStan falls back from Automatic
+([Chapter 5](05_choosing-an-analysis.md)). Native HMC is also a Bayesian fit. Native fitlme is not: it fits by restricted
+maximum likelihood and turns its estimates into intervals by a parametric
+bootstrap, and its output labels those intervals Bootstrap interval rather than
+credible interval.
 
 ### Priors
 
@@ -528,8 +552,10 @@ the priors the toolbox exposes and how to override them.
 
 ### Sampling controls
 
-Four processing preferences govern the fit. Each is set on the Specify Processing
-Preferences screen, described in [Chapter 7](07_processing.md).
+Four processing preferences carry most of the weight in a fit. Each is set on
+the Specify Processing Preferences screen, described in
+[Chapter 7](07_processing.md), which also holds the two sampler controls, Adapt
+delta and Max tree depth.
 
 | Control | What it does | Default |
 |---|---|---|
@@ -547,11 +573,16 @@ iterations are the controls to raise when a model does not converge.
 ### Convergence
 
 The toolbox checks convergence automatically after every fit and applies two
-rules to every monitored parameter. A run is marked as not converged if any
-parameter has a potential scale reduction factor (R-hat) of 1.1 or higher, or
-if any parameter has an effective sample size below ten times the number of chains,
-which is 40 at the default of four chains. Passing both rules is a necessary
-condition for trusting the estimates, not a sufficient one.
+rules to every monitored parameter that the model does not fix by construction
+(parameters such as correlation-matrix diagonals are excluded and listed by
+name in the output). A run is marked as not converged if any parameter has a
+potential scale reduction factor (R-hat) of 1.1 or higher, or if any parameter
+has an effective sample size below ten times the number of chains, which is 40
+at the default of four chains; the effective sample size read is the smaller
+of CmdStan's bulk and tail values. The toolbox labels this check an
+early-workflow screen. Passing both rules is a necessary condition for trusting
+the estimates, not a sufficient one, and every notice and export header says
+that final-inference readiness is unassessed.
 
 When a fit fails either rule, the toolbox offers to rerun with the warmup and
 sampling iterations doubled. Accepting is usually the right response, because
@@ -561,13 +592,15 @@ reported.
 
 Divergent transitions are counted separately and reported, but they do not
 trigger a rerun. A nonzero count is a warning that the variance components may be
-biased even when both convergence rules pass, and the response is more warmup or
-stronger priors. [Chapter 18](18_troubleshooting.md) covers both cases.
+biased even when both convergence rules pass, and the response is more warmup, a
+higher Adapt delta, or stronger priors. [Chapter 18](18_troubleshooting.md) covers both cases.
 
 ### Credible intervals are not confidence intervals
 
-The intervals PsyRAT prints are credible intervals, and the distinction from
-confidence intervals is not cosmetic. A 95% credible interval is a statement
+The intervals PsyRAT prints from a CmdStan or native HMC fit are credible
+intervals, and the distinction from confidence intervals is not cosmetic. (A
+native fitlme result prints parametric-bootstrap intervals instead, labeled as
+such.) A 95% credible interval is a statement
 about the parameter given the data, the prior, and the model: the posterior
 probability that the dependability coefficient lies between the reported bounds
 is 0.95, up to the Monte Carlo error of a finite sample of draws. A 95%

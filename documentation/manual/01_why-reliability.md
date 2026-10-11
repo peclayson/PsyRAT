@@ -10,9 +10,9 @@ number on screen in one sitting.
 
 Most published ERP work cites reliability rather than estimating it. A methods
 section reports that internal consistency for error-related negativity (ERN)
-scores has been established elsewhere, supplies a citation, and moves on. Clayson and Miller (2017b) named
-this the common misunderstanding that reliability is a fundamental property of a
-measure. It is not. A reliability estimate describes one particular set of
+scores has been established elsewhere, supplies a citation, and moves on. Clayson and Miller (2017b) traced
+this practice to the common misunderstanding that reliability is a fundamental
+property of a measure. It is not. A reliability estimate describes one particular set of
 scores, obtained from one sample, with one task and one processing pipeline.
 
 The evidence against borrowing is not subtle. A preregistered reliability
@@ -38,8 +38,8 @@ task (Clayson & Miller, 2017b). Then there is the processing pipeline, which is
 where the variability is worst. A multiverse analysis computed 3,456 ERN scores
 per person across defensible choices about filtering, ocular correction,
 reference scheme, baseline window, sensor, and scoring approach. Those choices
-changed both the mean amplitudes and the variability of the scores (Clayson,
-2024). Reliability moves with all of it. Your pipeline is not the cited study's
+changed both the mean amplitudes and the variability of the scores (reviewed
+in Clayson, 2024). Reliability moves with all of it. Your pipeline is not the cited study's
 pipeline, and there is no reason to expect its estimate to survive the move.
 
 Trial-count rules of thumb are the most common form the borrowing takes. Olvet
@@ -49,8 +49,8 @@ inclusion rule (Clayson, 2025). Across the ERN literature as a whole, the
 reliability generalization study put the requirement at 9 trials for .70 and 16
 trials for .80. After influential estimates were dropped it was 10 and 17
 (Clayson, 2020). Neither pair is your number. Both were averaged over samples,
-tasks, and pipelines that are not yours, and the second pair was estimated from
-the very heterogeneity that makes the first pair unsafe. Computing reliability on the
+tasks, and pipelines that are not yours, and the second pair comes from the
+same heterogeneous pool with its influential estimates removed. Computing reliability on the
 data in hand replaces a borrowed cutoff with one your own data justify, which is
 the entire reason PsyRAT reports a trial cutoff at all.
 
@@ -105,10 +105,12 @@ and ERN scores in clinical samples do not generally reach that yet (Clayson,
 
 PsyRAT takes a long-format table of single-trial ERP scores and estimates the
 reliability of the averaged scores those trials produce. Variance components come
-from a Bayesian multilevel model, fit in CmdStan whenever it is installed, so
+from a Bayesian multilevel model fit in CmdStan, which the GUI requires, so
 every coefficient arrives as a point estimate with an interval rather than as
-a bare number (a native fallback engine covers a subset of designs with
-approximate intervals; [Chapter 5](05_choosing-an-analysis.md) explains). The
+a bare number. (From a script, two native MATLAB engines cover a subset of
+designs when CmdStan is absent: native HMC is a Bayesian fit, and native fitlme
+is a restricted maximum likelihood fit whose intervals are a parametric
+bootstrap; [Chapter 5](05_choosing-an-analysis.md) explains.) The
 models tolerate unequal trial counts across participants and cells, which is the
 ordinary situation after artifact rejection and which coefficient alpha cannot
 handle without truncating the data (Clayson, 2024).
@@ -119,8 +121,9 @@ which participants clear it. Asking for subject-specific error variances adds
 per-participant (subject-level) estimates, one coefficient per person rather than
 one for the sample. It handles two-event difference scores and the four-event
 difference-of-differences contrast. Supply an occasion column and it estimates
-test-retest reliability. Split means with an items-per-split count are analyzed
-as splits rather than as trials. Supply a continuous between-person dimension
+test-retest reliability. If each row holds a split mean (the average of
+several trials) and you supply the number of trials in each split, PsyRAT
+analyzes the rows as splits rather than as trials. Supply a continuous between-person dimension
 and it estimates reliability as a function of that dimension. Reliability can then be reported conditionally rather than as one
 number for a whole sample (Rast & Clayson, in press).
 [Chapter 5](05_choosing-an-analysis.md) helps you choose, and
@@ -128,23 +131,24 @@ number for a whole sample (Rast & Clayson, in press).
 
 PsyRAT also imports epoched ERP files (EEGLAB `.set` and EP Toolkit exports;
 ERPLAB `.erp` files are averaged and import as reference only) and scores
-single-trial component amplitudes into the table the analysis needs. That path
+single-trial component amplitudes or latencies into the table the analysis
+needs. That path
 is [Chapter 8](08_import-score.md).
 
 The toolbox is GUI-first, and this manual is organized around its screens. Every
 analysis the Process New Data workflow runs is also available from
-`psyrat_run`, which uses the same estimation pipeline and the same seed
-contract, so the same inputs at the same seed on the same CmdStan build give
-the same variance components. Neither route is the lesser one, and I
+`psyrat_run`, which uses the same estimation pipeline, so the same inputs at
+the same seed on the same CmdStan build give the same variance components. Neither route is the lesser one, and I
 use both. [Chapter 14](14_scripting.md) is the scripting reference.
 
 There are four things PsyRAT does not do. It does not record or preprocess EEG:
 filtering, re-referencing, ocular correction, and epoching happen in your
 existing pipeline before PsyRAT sees anything. It does not decide what counts as
-adequate reliability, because you type the threshold and the toolbox applies it.
-It does not establish validity, since reliability limits validity without
-supplying it, and a dependable score can still index something other than the
-construct it was named after. And it does not deliver a biomarker: these
+adequate reliability: you set the threshold and the toolbox applies it, and
+the Reliability Cutoff box opens at the conventional .8 rather than at a value
+derived from your data. It does not establish validity, since reliability
+limits validity without supplying it, and a reliable score can still index
+something other than the construct it was named after. And it does not deliver a biomarker: these
 coefficients say how precisely you measured, which is a precondition for a
 clinical claim rather than a substitute for one (Clayson, 2025).
 
@@ -179,7 +183,9 @@ participant's observed score reflects their absolute level on the construct
 across the conditions being generalized over. It charges systematic differences
 among trials or occasions to error (Rocha et al., 2026). If the value
 of the score matters (a cut score, a change score, a comparison against a norm),
-dependability is the coefficient you want. It is the toolbox's default.
+dependability is the coefficient you want. It is the toolbox's default on
+every viewer except the dynamic-reliability one, which opens on
+Generalizability G(z) ([Chapter 9](09_viewing-results.md)).
 
 Generalizability (the relative-error coefficient) asks how well the scores
 preserve relative differences among people, and it leaves facet main effects out
@@ -200,6 +206,9 @@ variance plus error, which is why both live on the same 0-to-1 scale as a
 classical reliability coefficient and are read the same way. What differs between
 them is only what got counted as error. [Chapter 4](04_gtheory.md) gives the
 formulas and restates each of them in words. Everywhere else, the label tells you
-which one you are looking at. The G-Theory Coefficient control on the viewer
-selects between Dependability and Generalizability, and the exported overall
-and cutoff tables name the coefficient that produced them.
+which one you are looking at. On a plain single-session or test-retest run the
+G-Theory Coefficient control on the viewer selects between Dependability and
+Generalizability (a difference-score run calls it Difference-Score
+Coefficient, and the other viewers name the choice their own way;
+[Chapter 9](09_viewing-results.md) lists each), and the exported overall and
+cutoff tables name the coefficient that produced them.

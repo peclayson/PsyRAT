@@ -40,9 +40,13 @@ installed separately (see "CmdStan discovery" below).
 - Preflight (enforced): `psyrat_require_min_cmdstan`
   (`subroutines/installation/`) detects the installed CmdStan version and
   reports a clear message when it is below 2.26 instead of letting CmdStan emit
-  a cryptic compile error. It runs at startup in `psyrat_start` (warn mode, so
-  the GUI still opens) and again before the first compile in `psyrat_run_stan`
-  (error mode). The check is fail-open: if the version cannot be determined it
+  a cryptic compile error. It runs at the first `psyrat_start` of a MATLAB
+  session (warn mode, so the GUI still opens; later launches in the same
+  session reuse that verdict through `psyrat_startgate_cache` unless the
+  toolbox, CmdStan, MatlabStan or MatlabProcessManager in use changed, and
+  `psyrat_startgate_cache('clear')` reruns it)
+  and again before the first compile in `psyrat_run_stan` (error mode, never
+  reused). The check is fail-open: if the version cannot be determined it
   does not block.
 
 ## Estimation engines (CmdStan and native fallbacks)
@@ -154,6 +158,10 @@ version check (`psyrat_checkversionsofdeps`), the version/availability
 probe (`psyrat_detect_cmdstan_version`), and the stan_home argument injected
 at the `stan()` call (`psyrat_find_cmdstan_home`, which consults the
 resolver ahead of its legacy tiers) all see the install a fit would use.
+Since G91 (2026-09-15) the startup gate's version and release verdicts are
+reused within a MATLAB session (`psyrat_startgate_cache`), but the resolver
+consult itself runs live on every launch and is part of the reuse fingerprint,
+so a changed install is noticed and a fit always resolves fresh.
 Two behavior changes came with that: an environment-variable-only CmdStan
 (not on the MATLAB path) now passes the startup gate instead of hitting the
 install dialog, and its version is read correctly instead of tripping the

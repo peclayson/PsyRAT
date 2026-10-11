@@ -31,12 +31,12 @@ function [removed,reason] = psyrat_safe_rmdepdir(target,label)
 % dependency' is never a reason to do that.
 %
 % The guard is therefore a boundary check, not a confirmation prompt: a directory
-% that lives inside the PsyRAT toolbox tree is source, not an install, and is
+% that lives inside the PsyRAT tree is source, not an install, and is
 % never removable here no matter what a version check reported.
 %
 %SEE ALSO psyrat_installdependents, psyrat_checkversionsofdeps
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -87,7 +87,7 @@ end
 toolboxroot = local_canonical(local_toolboxroot());
 if ~isempty(toolboxroot) && local_is_within(canon,toolboxroot)
     reason = sprintf(['Refusing to remove %s: the resolved path (%s) is ' ...
-        'inside the PsyRAT toolbox directory (%s), so it is PsyRAT''s own ' ...
+        'inside the PsyRAT directory (%s), so it is PsyRAT''s own ' ...
         'vendored copy rather than an installed one. Nothing was removed. ' ...
         'The bundled copy is used directly and does not need reinstalling.'], ...
         label,target,toolboxroot);

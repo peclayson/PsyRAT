@@ -52,8 +52,9 @@ Nonparallel (unequal n_i) means the splits hold different numbers of items.
 PsyRAT then fits a weighted, observed-design model in which each split mean's
 residual is scaled by its own n_i. That model is identified ONLY by variation in
 n_i, which is why declaring nonparallel on a file with equal weights will not
-work, and why declaring parallel on this file would silently treat sixteen
-unequal averages as interchangeable.
+work, and why declaring parallel on this file would treat sixteen unequal
+averages as interchangeable. (PsyRAT warns about the unequal weights in a
+Preflight warnings dialog, but it honors the declaration if you click through.)
 
 Check the weights before you declare. This file has unequal weights, so it is
 nonparallel.
@@ -75,10 +76,13 @@ enough that the model has something real to find, small enough that the
 item-level noise dominates the residual, as it does in split data from an ERP
 task.
 
-Dependability of an equal-weight mean of n_s split means uses the HARMONIC mean
+Dependability of an equal-weight mean of split means uses the HARMONIC mean
 of the items per split, because that is the exact residual scale when split means
-of different sizes are averaged with equal weight. For this file the harmonic
-mean over all 576 splits is
+of different sizes are averaged with equal weight. (When participants contribute
+different numbers of splits, the coefficients use each participant's own counts,
+averaged over participants; this file is balanced at 16 splits each, so the
+pooled harmonic mean below is exact.) For this file the harmonic mean over all
+576 splits is
 
     n-bar_i = 576 / sum(1 / n_i) = 14.757
 
@@ -94,18 +98,19 @@ The true dependability at the observed design (16 splits) is
     absolute error variance of a 16-split mean = (1.694 + 0.74) / 16 = 0.152
     D = 2.0^2 / (2.0^2 + 0.152) = 4.00 / 4.152 = .963
 
-and the absolute standard error of measurement is sqrt(0.152) = 0.39 microvolts.
+and the absolute standard error of measurement (SEM) is sqrt(0.152) = 0.39
+microvolts.
 The true generalizability coefficient drops the split main effect from the
 error, (1.694 + 0.49) / 16 = 0.137, and comes out at 4.00 / 4.137 = .967, with a
 relative standard error of measurement of 0.37. Section 13.6 explains why
 PsyRAT reports the second one as a bound.
 
 For comparison, a straight mean of all 349.9 items, with no split structure at
-all, would have reached 4.00 / (4.00 + 25 / 349.9) = .982. The two hundredths
-between that and .963 split about evenly between the two split-level components,
-which averaging over sixteen splits shrinks by sixteen rather than by three
-hundred and fifty, and the harmonic-mean penalty for unequal weights. Both costs
-are small, and neither is zero.
+all, would have reached 4.00 / (4.00 + 25 / 349.9) = .982. The gap of two
+hundredths between that and .963 has two roughly equal sources. One is the two
+split-level components, which averaging over sixteen splits divides by sixteen
+rather than by about 350. The other is the harmonic-mean penalty for unequal
+weights. Both costs are small, and neither is zero.
 
 ## 13.4 Running the analysis
 
@@ -139,10 +144,10 @@ itself says otherwise.
 
 What comes back is then mislabeled rather than obviously wrong, which is worse.
 The sixteen averages are treated as sixteen trials, so every "trial" in the
-output is really a split; the decision study projects over hypothetical numbers of SPLITS
-while calling them trials, and a trial cutoff of 9 would mean nine splits, not
-nine trials; and the per-item residual, which is the quantity the splits model
-exists to recover, is never estimated at all. The coefficient at the observed
+output is really a split. The decision study projects over hypothetical numbers
+of SPLITS while calling them trials, and a trial cutoff of 9 would mean nine
+splits, not nine trials. The per-item residual, which is the quantity the
+splits model exists to recover, is never estimated at all. The coefficient at the observed
 design happens to come out close either way, because a common residual fitted to
 split means lands near the same place. That coincidence is exactly why the
 mislabeling is easy to miss. Declaring the column costs one click.
@@ -152,31 +157,42 @@ sampling, seed 12345.
 
 Click Analyze and choose a whitespace-free output path.
 
-Checkpoint: the Command Window should print "Model converged", with a maximum
-R-hat of 1.00 and 0 divergent transitions.
+Checkpoint: the Command Window should print "Early-workflow Rhat/ESS check:
+passed" and "Final-inference readiness: unassessed (quantity-specific MCSE and
+uncertainty calibration required)", then "Saving Processed Data...", with no
+divergent-transition warning before them. The largest R-hat in the CmdStan
+summary should be 1.00 (an exported table header records the divergence count,
+here 0).
 
 ## 13.5 The splits viewer
 
-A nonparallel splits run opens its own viewer, not the single-session one.
+A nonparallel splits run opens its own viewer, not the single-session one. A
+small notice titled Estimation diagnostics opens on top of it. It names the
+early-workflow check as passed, gives final-inference readiness as unassessed,
+and lists the diagnostic source for the fit. It does not block anything, so
+read it and close it.
 
 ![Data-Splits Reliability: View Results. The banner names the analysis unit and the red line states the bias caveat that applies to every relative coefficient below.](images/viewer_splits.png)
 
 The window is titled Data-Splits Reliability: View Results. Under the dataset
 name sits a banner reading "Analysis unit: SPLITS (each score is the mean of n_i
-items)", and under that, in red, the caveat this chapter's Section 13.6 explains:
+items)", and under that, in red, the caveat that Section 13.6 explains:
 
 > Dependability is exact; generalizability is a downward-biased lower bound.
 
 Two controls and five buttons follow.
 
 - Credible interval (0-1): the interval width, default `0.95`.
-- Splits n' (blank = observed median): the number of splits the coefficients are
-  reported at. Blank uses each stratum's observed median, which is 16 here.
+- Splits n' (blank = observed design): the number of splits the coefficients are
+  reported at. Blank uses each stratum's observed design, which is 16 here (with
+  unequal counts per participant it is the harmonic mean of the counts).
 - Show coefficients, Show variance components, Save coefficients (CSV),
   Save variance table (CSV), and Done.
 
-A third control, Occasions n' (blank = observed), appears only for the
-multi-occasion split design. This file has one occasion, so it is not there.
+A third control, Occasions n' projection (blank = observed), appears only for
+the multi-occasion split design, where the splits box is also relabeled Splits
+n' projection (blank = observed) and the two save buttons drop the (CSV)
+suffix. This file has one occasion, so none of that is there.
 
 Leave both controls as they are and click Show coefficients.
 
@@ -190,7 +206,9 @@ explains it.
 The window is titled Data-splits reliability: coefficients. Its columns are
 Stratum, Coefficient, n splits, n occasions, Dependability, D low, D high,
 Generalizability (lower bound), G low, G high, SEM (abs), and
-SEM (rel, upper bound). The bias note is repeated in full under the table.
+SEM (rel, upper bound). A fuller version of the bias note sits under the
+table. It adds that the relative SEM is correspondingly an upper bound and
+that dependability is exact for the person-averaged error.
 
 There is one row, because this design has one stratum and one coefficient.
 
@@ -221,7 +239,8 @@ variance components, with the columns Stratum, Component, Symbol, Estimate,
 CI lower, and CI upper.
 
 These are VARIANCES, not standard deviations. The truth column below squares the
-generator's SDs accordingly.
+generator's SDs accordingly, and the last column is the 95% credible interval
+(CrI).
 
 | Component | Symbol | Truth | Estimate | 95% CrI |
 |---|---|---|---|---|
@@ -256,7 +275,8 @@ splits together.
 
 This recovery is an illustration. Thirty-six participants cannot establish that
 an estimator is unbiased, and this run is not evidence that it is; PsyRAT's
-correctness claims rest on the validation suites described in `README.md`.
+correctness claims rest on the validation suites described in
+`documentation/validation_and_testing.md`.
 
 ## 13.6 Why generalizability is only a lower bound
 
@@ -280,7 +300,7 @@ too low. Its SEM is correspondingly too high.
 
 Hence the labeling. Generalizability (lower bound) and SEM (rel, upper bound) are
 honest column headings, and the toolbox flags every relative coefficient it
-reports from split data. Use the dependability coefficient when you can. If your
+reports from this single-occasion nonparallel design. Use the dependability coefficient when you can. If your
 question genuinely requires the relative coefficient, report the value as a bound
 and say why.
 
@@ -289,18 +309,39 @@ item main effect for the estimator to miss. Do not read that as reassurance abou
 your own data. The toolbox cannot tell a tight bound from a loose one, and
 neither can you, from split means alone.
 
-## 13.7 No D-study for the nonparallel design
+Everything above describes analysis 23, the single-occasion design this
+tutorial runs. The multi-occasion design (analysis 24, a nonparallel splits
+file with an Occasion ID column) works differently. Each participant's score is the
+equal-weight mean of the occasions that participant actually has, so a missing
+occasion carries no weight, and the universe-score and error variances are
+averaged over participants before the coefficients are formed; unequal split
+counts enter those weights as well. Its generalizability coefficient uses the
+conventional relative partition, and the toolbox asserts no lower bound and no
+bias guarantee for it, which is why the column reads Generalizability
+(conventional). Dependability is exact only conditional on that score and on
+the fitted model. The viewer banner, the note under the table and the export
+headers all name this target and record the design each participant supplied.
+Two assumptions sit behind it: the splits are matched by their order across
+occasions, and the split-level residuals are independent; the model neither
+verifies that split 1 on one occasion corresponds to split 1 on another nor
+models why an occasion is missing. A participant who lacks an occasion is also
+scored over a different set of occasions from one who has them all, so the
+coefficients of equivalence and stability describe different occasion sets for
+different participants. The reliability of a schedule every participant
+completed is a separate quantity, which a number in the Occasions n' projection
+box requests as a balanced projection.
+
+## 13.7 Projections for the nonparallel design
 
 There is no dependability-versus-splits plot here and no split-cutoff table, and
 the reason is the same identifiability collapse.
 
-A D-study projects reliability onto hypothetical designs: what would this score
+A decision study (D-study) projects reliability onto hypothetical designs: what would this score
 look like at 20 trials, at 40, at 100? That projection requires knowing how each
 variance component scales with the count being varied, and for the nonparallel
 split design the item-level partition needed to project over ITEM counts is not
-recoverable from split means. PsyRAT therefore reports coefficients at the
-OBSERVED design only, and offers exactly one projection it can defend: the
-Splits n' box, which reports the coefficients at a different number of SPLITS,
+recoverable from split means. For this single-occasion tutorial, PsyRAT defaults to the observed design. The
+Splits n' box provides a reference-design projection, which reports the coefficients at a different number of SPLITS,
 holding the harmonic-mean items-per-split fixed at what the data supplied.
 
 Try it. Enter `3` under Splits n' and click Show coefficients again, then try
@@ -308,16 +349,14 @@ Try it. Enter `3` under Splits n' and click Show coefficients again, then try
 variance per split mean, item part plus split-level part) gives
 4.00 / (4.00 + 2.434 / 3) = .831 at three splits and
 4.00 / (4.00 + 2.434 / 12) = .952 at twelve. The viewer does not know the true
-components. It recomputes from the fitted ones, holding the harmonic-mean
-items-per-split fixed at what the data supplied, and the fitted between-person
+components. It recomputes from the fitted ones, and the fitted between-person
 variance came out at 5.52 rather than 4.00, so the printed values run higher.
 Plugging the variance-components table into the same formula
 (0.24 + 0.71 + 21.49 / 14.757 = 2.41 of variance per split mean) gives
 5.52 / (5.52 + 2.41 / 3) = .87 at three splits and
-5.52 / (5.52 + 2.41 / 12) = .96 at twelve. The viewer prints
-.87 at three splits and .96 at twelve. It averages
-the coefficient over the posterior draws rather than plugging in point
-estimates, so it need not match the plug-in arithmetic to the second decimal.
+5.52 / (5.52 + 2.41 / 12) = .96 at twelve. The viewer prints the same .87 and
+.96. It averages the coefficient over the posterior draws rather than plugging
+in point estimates, so in other data the two can differ in the second decimal.
 Those are legitimate projections because the number of splits is a count the
 design does identify.
 
@@ -334,11 +373,14 @@ the two-facet split design, which IS group and event aware.
 Point Group ID or Event Type at a real column on a single-occasion splits file
 and the run stops rather than pooling your groups silently. The Command Window
 prints "Measurement failed:" with the measurement column name, then a "Reason:"
-line, PsyRAT writes a `.txt` error report next to the output path, and a modal dialog reports that the measurement
-failed and points you at that report. Nothing is estimated, and nothing wrong is
-saved. Other combinations the splits path does not support (difference scores,
-subject-level error variances, dynamic reliability) are caught earlier, by a
-modal Reliability with splits dialog raised before CmdStan launches.
+line. PsyRAT writes a `.txt` error report next to the output path, and a modal
+dialog reports that the measurement failed and points you at that report.
+Nothing is estimated, and nothing wrong is saved. Other combinations the splits
+path does not support (difference scores, subject-level error variances,
+dynamic reliability) are caught earlier, by a modal Reliability with splits
+dialog raised before CmdStan launches. A gamma likelihood family is refused
+the same way as a group or event column: the measurement fails, and the reason
+names the family.
 
 ## 13.8 Reporting this analysis
 
@@ -359,8 +401,8 @@ The [Chapter 17](17_reporting.md) template, pre-filled.
 > item main effect cannot be separated from the person-involving item residual
 > when only split means are available.
 
-State that the data were splits, state the items-per-split distribution, and
-state the design the coefficients were reported at. A dependability of .97 from
+Report that the data were splits and give the items-per-split distribution.
+Also state the design at which the coefficients are reported. A dependability of .97 from
 sixteen averages of 4 to 40 trials is a different claim from a dependability of
 .97 from sixteen trials, and a reader who is given only the coefficient cannot
 tell them apart.

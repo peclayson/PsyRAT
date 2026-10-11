@@ -14,6 +14,9 @@ classdef TestDocumentationIntegrity < PsyRATTestBase
     %   * the PsyRAT version literal appears exactly once, in index.md, and
     %     matches psyrat_defineversion (the legacy manual carried five
     %     contradictory version claims; this makes that impossible);
+    %   * every "The current version is `X`" sentence in README.md (or the
+    %     older "current release" wording) carries psyrat_defineversion's
+    %     value (mirrors release/verify_export.sh check 7);
     %   * no chapter references a withheld internal document, the private
     %     dev repository, or a local-only donotsync path (mirrors
     %     release/verify_export.sh checks 5 and 8, which cannot run until
@@ -118,6 +121,42 @@ classdef TestDocumentationIntegrity < PsyRATTestBase
             end
         end
 
+        function testReadmeVersionLiteralMatchesDefineversion(testCase)
+            % README.md states the version in prose, as the sentence
+            % "The current version is `X`.", and those sentences are bumped
+            % by hand. The 0.1.0-beta literals outlived the version bump
+            % because no gate checked the README's version (queue item 6);
+            % this pins every such sentence to psyrat_defineversion, as
+            % release/verify_export.sh check 7 does at export time. The
+            % older wording "The current release is `X`" (README.md:7 before
+            % item 6) is matched too, so a partial reversion cannot hide a
+            % stale literal.
+            vsrc = fileread(fullfile(testCase.projectRoot(), 'subroutines', ...
+                'filefunctions', 'psyrat_defineversion.m'));
+            tok = regexp(vsrc, 'psyratver = ''([^'']+)''', 'tokens', 'once');
+            testCase.assertNotEmpty(tok, ...
+                'could not read psyratver from psyrat_defineversion.m');
+            ver = tok{1};
+
+            % Whitespace is flattened so a hard-wrapped sentence is found.
+            readme = regexprep(fileread(fullfile(testCase.projectRoot(), ...
+                'README.md')), '\s+', ' ');
+            % (?:...) does not capture, so each token is the literal alone.
+            found = regexp(readme, ...
+                '[Tt]he current (?:version|release) is `([^`]+)`', 'tokens');
+
+            % Positive control: with the sentence reworded away this test
+            % would otherwise pass vacuously. Update this pin and check 7
+            % together if the README's wording changes.
+            testCase.verifyNotEmpty(found, ...
+                'README.md no longer contains "The current version is `X`"');
+            for k = 1:numel(found)
+                testCase.verifyEqual(found{k}{1}, ver, sprintf( ...
+                    'README.md states the current version as `%s` but psyrat_defineversion returns %s', ...
+                    found{k}{1}, ver));
+            end
+        end
+
         function testNoChapterReferencesWithheldOrPrivateMaterial(testCase)
             % Mirrors verify_export.sh: check 8's withheld-document pattern,
             % check 5's private-repo slug, plus the local-only donotsync
@@ -139,6 +178,10 @@ classdef TestDocumentationIntegrity < PsyRATTestBase
                 ... % fails on any hit, so the guard that keeps it out of the
                 ... % manual must not itself put the literal into a shipped file.
                 ['peclayson/' 'PsyRAT_' 'test'], ...
+                ... % The two local-only evidence trees check 8 also covers
+                ... % (queue item 22), assembled from parts for the same
+                ... % reason: check 8 counts every shipped file that names them.
+                ['audit' '/'], ['audit 2' '/'], ...
                 'donotsync'};
             for k = 1:numel(testCase.ChapterFiles)
                 txt = fileread(testCase.ChapterFiles{k});
@@ -159,8 +202,9 @@ classdef TestDocumentationIntegrity < PsyRATTestBase
             % omitted. Nothing caught it, because the checks above scope
             % themselves to documentation/manual/ and this file is not in it.
             %
-            % SCOPE, and why it is not wider. verify_export.sh checks 6 and 7
-            % already WARN on tracker names anywhere in the tree, and that
+            % SCOPE, and why it is not wider. verify_export.sh checks 6 and 8
+            % already WARN on tracker and withheld-document names in source
+            % and test files, and that
             % backlog (mostly .m source comments citing dev documents) is
             % owner-ruled not a block. This check covers only prose a reader
             % is told to follow -- README, CHANGELOG, and documentation/**.
@@ -251,6 +295,33 @@ classdef TestDocumentationIntegrity < PsyRATTestBase
             for i = 1:numel(d)
                 testCase.verifyEqual(d(i).name, 'psyrat_manual.pdf', sprintf( ...
                     'unexpected PDF under documentation/manual/: %s', d(i).name));
+            end
+        end
+
+        function testChapter12NamesTheOverallSummarySurface(testCase)
+            % Beta-tester feedback 2026-09-16 (G97): section 12.4 presented
+            % a hand-made reading table without naming the window, the
+            % table heading or the count columns a reader sees, so the
+            % tester looked for a table that does not exist on screen. Pin
+            % only the three strings that carry the mapping, so tutorial
+            % prose is not ossified.
+            % The needles are what the builder composes; assert the composing
+            % expressions are still in the source first, so a GUI rename
+            % fails here instead of silently invalidating the pin.
+            builder = fileread(fullfile(testCase.projectRoot(), ...
+                'subroutines', 'tables', 'psyrat_depoverallt.m'));
+            composers = {'[rel_name '' Analyses'']', '[''Overall '' rel_name]', '''n Excluded'''};
+            for k = 1:numel(composers)
+                testCase.assertTrue(contains(builder, composers{k}), sprintf( ...
+                    'psyrat_depoverallt.m no longer composes %s; update this pin and chapter 12', ...
+                    composers{k}));
+            end
+            f = fullfile(testCase.ManualDir, '12_tutorial-difference-scores.md');
+            txt = regexprep(fileread(f), '\s+', ' ');
+            needles = {'Dependability Analyses', 'Overall Dependability', 'n Excluded'};
+            for k = 1:numel(needles)
+                testCase.verifyTrue(contains(txt, needles{k}), sprintf( ...
+                    'chapter 12 must name the on-screen string "%s"', needles{k}));
             end
         end
 

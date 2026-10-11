@@ -29,7 +29,7 @@ function out = psyrat_gamma_cut_copula_stage(draws, standata, seed, varargin)
 % thousands of pairs) that is months of sampling per chain. Moving the copula
 % probability transforms outside HMC makes the analysis feasible without
 % replacing the person-specific residual SDs with arithmetic sample variances.
-% See documentation/modular_cut_copula_workflow.md.
+% See manual section 15.5.
 %
 % Inputs
 %   draws    - struct of posterior draw arrays from the stage-1 margins fit, with

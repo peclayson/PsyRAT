@@ -15,7 +15,7 @@ classdef TestDodDynrelRecovery < matlab.unittest.TestCase
     % planted-truth recovery is the only end-to-end
     % builder -> sampler -> extraction -> stage-3 check this arm has. It must
     % PASS before the increment merges, not merely run
-    % (SCIENTIFIC_FORMULA_AUDIT.md section 26, validation plan of record).
+    % (development formula audit, section 26, validation plan of record).
     %
     % WHAT IS GATED AND WHAT IS PRINTED. The population G_dod at z = 0 and
     % the per-person rank correlation are gated as in the gamma class.

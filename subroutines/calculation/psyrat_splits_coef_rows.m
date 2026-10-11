@@ -10,7 +10,8 @@ function [data, cols, widths] = psyrat_splits_coef_rows(summ, L)
 %export are identical by construction.
 %
 %Dependability D and generalizability G are each [ll pt ul]; G and the relative
-%SEM are the downward-biased lower/upper bounds (the column headers say so).
+%SEM retain the case23 bound labels; case24 uses explicit conventional-relative
+%labels, reference counts, actual count ranges and a score-design explanation.
 %
 %Input
 % summ - the struct returned by psyrat_splits_summary (per-stratum .coef array).
@@ -18,9 +19,9 @@ function [data, cols, widths] = psyrat_splits_coef_rows(summ, L)
 %        names the per-person count column 'n splits'/'n trials').
 %
 %Output
-% data   - ncoef-by-12 cell array of row values (Stratum first).
-% cols   - 1-by-12 cell array of column header strings.
-% widths - 1-by-12 cell array of uitable column widths (GUI display only; the
+% data   - ncoef-by-12 case23 / ncoef-by-19 case24 rows (Stratum first).
+% cols   - corresponding column header strings.
+% widths - corresponding uitable column widths (GUI display only; the
 %          headless caller ignores it).
 %
 %Example
@@ -49,18 +50,26 @@ ncoef = 0;
 for s = 1:numel(summ.strata)
     ncoef = ncoef + numel(summ.strata(s).coef);
 end
-data = cell(ncoef, 12);
+ismulti = strcmp(summ.analysis,'trt_splits');
+ncols = 12 + 7*ismulti;
+data = cell(ncoef, ncols);
 r = 0;
 for s = 1:numel(summ.strata)
     st = summ.strata(s);
     for c = 1:numel(st.coef)
         k = st.coef(c);
         r = r + 1;
-        data(r,:) = {
+        data(r,1:12) = {
             char(string(st.label)), k.label, st.nsplit, st.nocc, ...
             round(k.D(2),3), round(k.D(1),3), round(k.D(3),3), ...
             round(k.G(2),3), round(k.G(1),3), round(k.G(3),3), ...
             round(k.SEM_abs(2),3), round(k.SEM_rel(2),3)};
+        if ismulti
+            d = st.design;
+            data(r,13:19) = {d.mode,d.score_rule,...
+                min(d.cell_split_counts),max(d.cell_split_counts),...
+                min(d.person_occasion_counts),max(d.person_occasion_counts),jsonencode(d)};
+        end
     end
 end
 cols = {'Stratum','Coefficient',['n ' L.units],'n occasions',...
@@ -68,5 +77,16 @@ cols = {'Stratum','Coefficient',['n ' L.units],'n occasions',...
     'Generalizability (lower bound)','G low','G high',...
     'SEM (abs)','SEM (rel, upper bound)'};
 widths = {110 200 70 80 100 60 60 150 60 60 80 130};
+if ismulti
+    cols{3} = 'n splits (reference)';
+    cols{4} = 'n occasions (reference)';
+    cols{8} = 'Generalizability (conventional)';
+    cols{12} = 'SEM (rel, conventional)';
+    widths([3 4 8 12]) = {140 165 220 180};
+    cols = [cols {'Design mode','Score rule','Observed splits per cell min',...
+        'Observed splits per cell max','Available occasions per person min',...
+        'Available occasions per person max','Design metadata'}];
+    widths = [widths {190 380 200 200 260 260 240}];
+end
 
 end

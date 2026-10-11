@@ -11,12 +11,14 @@ authors:
   - family-names: Clayson
     given-names: Peter E.
     orcid: "https://orcid.org/0000-0003-4437-6598"
-version: 0.1.0-beta
+version: 0.1.1-beta
 license: GPL-3.0-or-later
 repository-code: "https://github.com/peclayson/PsyRAT"
 abstract: >-
   A MATLAB toolbox that uses generalizability theory to evaluate the
-  psychometric reliability of event-related potential (ERP) scores.
+  psychometric reliability of psychophysiological measurements, such as
+  event-related potential (ERP) component scores, oscillatory EEG, skin
+  conductance, and cardiac data.
   Variance components are estimated in a Bayesian framework via CmdStan.
   The toolbox reports dependability (absolute-error) and generalizability
   (relative-error) coefficients for designs with any number of events,

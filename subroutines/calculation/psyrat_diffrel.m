@@ -44,7 +44,7 @@ function diffscore = psyrat_diffrel(varargin)
 %  icc_ul - upper limit of credible interval for ICC
 % 
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

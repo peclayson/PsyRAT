@@ -3,11 +3,13 @@ classdef TestGammaDiffSserrRecovery < PsyRATTestBase
     % SUBJECT-LEVEL two-event DIFFERENCE-score design (analysis 8,
     % ic_diff_sserrvar, NON-concurrent). The gamma case-8 model is the bivariate
     % one-facet gamma difference model (case 7); the subject-level distinction is
-    % the per-participant CONDITIONAL residual per event
-    %   sigma_pi_e2(e,p) = 2*exp(2*(b[e] + u_pe) + 2*sd_trl[e]^2 - (b_nu[e] + v_pe))
-    % (psyrat_gamma_extract_diff_sserr), fed with the group person cross-covariance
-    % through psyrat_ssrel_diff. This test simulates a bivariate person block
-    % (correlated event means + per-event person-VARYING dispersion) and confirms:
+    % the per-participant POOLED residual per event (S20; psyrat_gamma_extract_diff_sserr)
+    %   sigma_pi_e2(e,p) = M_e + 2*exp(2*(b[e] + u_pe) + 2*sd_trl[e]^2 - (b_nu[e] + v_pe)),
+    % M_e the POPULATION person x trial mean interaction of event e and the
+    % exponential the person's OWN trial-averaged observation variance, fed with
+    % the group person cross-covariance through psyrat_ssrel_diff. This test
+    % simulates a bivariate person block (correlated event means + per-event
+    % person-VARYING dispersion) and confirms:
     %   (1) the person log-nu SD s_v is recovered per event (the subject-level
     %       mechanism);
     %   (2) the observed-scale cross-event person covariance (the difference
@@ -18,9 +20,30 @@ classdef TestGammaDiffSserrRecovery < PsyRATTestBase
     %       inside the recovered 95% credible intervals (coverage), with the
     %       sample-mean coefficient recovered.
     %
-    % Ground truth uses the closed forms validated offline (no CmdStan) in
-    % TestGammaDiffSserrReliability + TestGammaSserrConversion. CmdStan-gated
-    % (skips Incomplete, not Failed, when CmdStan/MatlabStan absent).
+    % SCORE, ESTIMAND, CONDITIONING, COUNTS. The score is the difference between
+    % the two events' ntrl-trial means of single-trial gamma observations. The
+    % estimand is the per-person generalizability of that difference,
+    %   G_p = S / (S + E_{1,p}/ntrl + E_{2,p}/ntrl),
+    %   S   = P_1 + P_2 - 2 CovP12,     E_{e,p} = M_e + C_{e,p},
+    % relative error. S, P_e, CovP12 and M_e are POPULATION quantities at the
+    % event intercepts b(e); only C_{e,p} is conditioned on the person's own
+    % (u_pe, v_pe). The person covariance belongs to the SIGNAL and is not
+    % subtracted from the residual; the design is non-concurrent, so the
+    % residual covariance is zero. Allocation: nsub = 60 persons x 2 events x
+    % ntrl = 40 crossed trials per event, n' = 40 for both events.
+    %
+    % Ground truth is the independent 3A reference
+    % (tests/helpers/PsyRAT3ARecoveryReference.m, pinned offline in
+    % tests/TestGamma3ARecoveryReference.m); no production converter is called
+    % for the truth. Before this correction the truth took P_e/CovP12 from
+    % psyrat_gamma_varcomps/psyrat_gamma_crosscov and omitted M_e from the
+    % per-event error; earlier logs remain historical evidence for that stale
+    % target. Design, seed, sampler settings and every assertion tolerance are
+    % unchanged. CmdStan-gated (skips Incomplete, not Failed, when
+    % CmdStan/MatlabStan absent). When PSYRAT_2C_RECOVERY_CAPTURE_DIR is set,
+    % data and truth are captured BEFORE the fit, a fit failure still captures
+    % whatever CmdStan wrote, the complete run is captured BEFORE any assertion,
+    % and the class teardown skips its scratch cleanup.
 
     methods (TestClassSetup)
         function configureDependencies(testCase)
@@ -30,6 +53,14 @@ classdef TestGammaDiffSserrRecovery < PsyRATTestBase
 
     methods (TestClassTeardown)
         function cleanupCmdStanArtifacts(testCase)
+            % When evidence capture is requested, leave the raw scratch untouched
+            % so it survives even a failed capture or a failed test; root's
+            % external artifact guard archives/restores the owned scratch.
+            if ~isempty(PsyRAT2CRecoveryCapture.captureDir())
+                fprintf('[diff sserr recovery] %s set; scratch cleanup skipped.\n', ...
+                    PsyRAT2CRecoveryCapture.EnvVar);
+                return;
+            end
             localCleanupArtifacts(localCmdStanOutputDir(testCase.projectRoot()));
         end
     end
@@ -52,30 +83,71 @@ classdef TestGammaDiffSserrRecovery < PsyRATTestBase
             [dataTbl, u_p, v_p] = localSimulateGammaDiffSserr( ...
                 nsub, ntrl, b, b_nu, s_p, s_v, s_i, rho_mean, rho_pv);
 
-            % ---- Closed-form observed-scale truth ----
-            % numerator: per-event person universe variance (estimand-invariant) and
-            % the observed cross-event person covariance (difference off-diagonal)
-            sigma_p2 = zeros(1,2);
+            % ---- Independent closed-form observed-scale truth (3A reference) ----
+            % SIGNAL (population, estimand-invariant): per event, B_e = exp(2 b(e)
+            % + s_p(e)^2 + s_i(e)^2), P_e = B_e expm1(s_p(e)^2), and the observed
+            % cross-event person covariance CovP12 = m_1 m_2 expm1(rho_mean s_p(1) s_p(2))
+            % with m_e = exp(b(e) + (s_p(e)^2 + s_i(e)^2)/2). S = P_1 + P_2 - 2 CovP12.
+            % The dispersion parameters (s_v, rho_pv) shape the planted (u_p, v_p)
+            % only; none of these population components depends on them.
+            P_true = zeros(1,2); I_true = zeros(1,2); M_true = zeros(1,2); m_true = zeros(1,2);
             for e = 1:2
-                cov_pv_e = rho_pv * s_p(e) * s_v(e);
-                vc = psyrat_gamma_varcomps(b(e), s_p(e), s_i(e), exp(b_nu(e)), s_v(e), cov_pv_e);
-                sigma_p2(e) = vc.sigma_p2;
+                comp = PsyRAT3ARecoveryReference.oneFacetMeanComponents(b(e), s_p(e), s_i(e));
+                P_true(e) = comp.P; I_true(e) = comp.I; M_true(e) = comp.M;
+                m_true(e) = PsyRAT3ARecoveryReference.eventMean(b(e), s_p(e), s_i(e));
             end
-            cc = psyrat_gamma_crosscov(b(1), s_p(1), s_i(1), b(2), s_p(2), s_i(2), rho_mean, 0);
-            cov_p_obs_true = cc.cov_p_obs;
-            var_pdiff_true = sigma_p2(1) + sigma_p2(2) - 2*cov_p_obs_true;
+            cov_p_obs_true = PsyRAT3ARecoveryReference.personCrossCovariance( ...
+                m_true(1), m_true(2), rho_mean * s_p(1) * s_p(2));
+            var_pdiff_true = P_true(1) + P_true(2) - 2*cov_p_obs_true;
 
-            % denominator: each participant's CONDITIONAL per-event residual, summed
-            % over events (non-concurrent) and projected over the per-event n'
-            trueResid = zeros(nsub,1);
+            % RESIDUAL: each event's POOLED own residual E_{e,p} = M_e + C_{e,p}
+            % (M_e = B_e expm1(s_p(e)^2) expm1(s_i(e)^2) the population person x
+            % trial mean interaction at b(e), added exactly once; C_{e,p} =
+            % 2 exp(2 (b(e) + u_pe) + 2 s_i(e)^2 - b_nu(e) - v_pe) the person's own
+            % trial-averaged observation variance), summed over events at the
+            % per-event count: error_p = E_{1,p}/ntrl + E_{2,p}/ntrl, residual
+            % covariance zero (non-concurrent). G_p = S / (S + error_p).
+            C_true = zeros(nsub,2); E_true = zeros(nsub,2);
             for e = 1:2
-                trueResid = trueResid + (2 .* exp(2*(b(e) + u_p(:,e)) + 2*s_i(e)^2 ...
-                    - (b_nu(e) + v_p(:,e)))) ./ ntrl;
+                C_true(:,e) = PsyRAT3ARecoveryReference.ownObservationVariance( ...
+                    b(e), u_p(:,e), s_i(e), b_nu(e), v_p(:,e));
+                E_true(:,e) = PsyRAT3ARecoveryReference.pooledOwnResidual(M_true(e), C_true(:,e));
             end
-            trueG = var_pdiff_true ./ (var_pdiff_true + trueResid);   % generalizability, nsub x 1
+            trueResid = PsyRAT3ARecoveryReference.differenceError( ...
+                E_true(:,1), ntrl, E_true(:,2), ntrl, 0);                       % nsub x 1
+            trueG = PsyRAT3ARecoveryReference.differenceCoefficient( ...
+                var_pdiff_true, trueResid);                                     % generalizability, nsub x 1
+            truth = struct('b', b, 'b_nu', b_nu, 's_p', s_p, 's_v', s_v, 's_i', s_i, ...
+                'rho_mean', rho_mean, 'rho_pv', rho_pv, 'nsub', nsub, 'ntrl', ntrl, ...
+                'P', P_true, 'I', I_true, 'M', M_true, 'm', m_true, ...
+                'cov_p_obs', cov_p_obs_true, 'signal', var_pdiff_true, ...
+                'u_p', u_p, 'v_p', v_p, 'C_p', C_true, 'E_p', E_true, ...
+                'error_p', trueResid, 'G_p', trueG, ...
+                'residual_definition', ['error_p = (M_1 + C_{1,p})/ntrl + (M_2 + C_{2,p})/ntrl ', ...
+                '(population per-event mean interaction plus own observation variance, ', ...
+                'residual covariance zero); G_p = S/(S + error_p), S = P_1 + P_2 - 2 CovP12'], ...
+                'generator', 'continuous gamrnd(nu_pe/2, 2 mu/nu_pe), seed 12345');
 
-            % ---- Fit (case 8 gamma, non-concurrent) ----
-            rel = localRunDiffSserrGamma(testCase, dataTbl, 'recov_gamma_diff_sserr');
+            % ---- Fit (case 8 gamma, non-concurrent), with evidence capture ----
+            % (a no-op unless the capture root is set; see localCaptureStage)
+            fitTag = 'recov_gamma_diff_sserr';
+            outDir = fullfile(localCmdStanOutputDir(testCase.projectRoot()), fitTag);
+            captureMeta = struct('test', 'TestGammaDiffSserrRecovery/testSubjectLevelDifferenceReliabilityRecovered', ...
+                'analysis', 'ic_diff_sserrvar', 'gammascale', 1, 'diffest', 2, 'chains', 2, ...
+                'warmup', 750, 'sampling', 750, 'seed', 12345, 'nsub', nsub, 'ntrl', ntrl, ...
+                'design', 'two-event non-concurrent difference, persons x trials, subject-level');
+            localCaptureStage('static8_lognu_diff_sserr_prefit', [], truth, dataTbl, outDir, ...
+                captureMeta, 'prefit');
+            try
+                rel = localRunDiffSserrGamma(testCase, dataTbl, fitTag);
+            catch fitErr
+                localCaptureStage('static8_lognu_diff_sserr_fitfailed', ...
+                    struct('fit_error', getReport(fitErr, 'extended', 'hyperlinks', 'off')), ...
+                    truth, dataTbl, outDir, captureMeta, 'fitfailed');
+                rethrow(fitErr);
+            end
+            localCaptureStage('static8_lognu_diff_sserr', rel, truth, dataTbl, outDir, ...
+                captureMeta, 'postfit');
 
             testCase.verifyEqual(rel.analysis, 'ic_diff_sserrvar');
             testCase.verifyEqual(rel.family, 'gamma');
@@ -231,6 +303,37 @@ function outdir = localCmdStanOutputDir(projectRoot)
 outdir = fullfile(projectRoot, 'tests', 'integration', 'cmdstan_artifacts');
 if ~exist(outdir, 'dir')
     mkdir(outdir);
+end
+end
+
+function localCaptureStage(tag, rel, truth, dataTbl, outDir, meta, stage)
+% Evidence capture through the existing PsyRAT2CRecoveryCapture API (a no-op
+% unless PSYRAT_2C_RECOVERY_CAPTURE_DIR is set). Three stages, three tags:
+%   prefit    - data + truth only (no REL, no CmdStan output yet). The helper
+%               writes the MAT/CSV/JSON first and then reports the raw capture
+%               as INCOMPLETE because no chain CSV exists; that is the expected
+%               outcome here and is tolerated, so data and truth are on disk
+%               before CmdStan starts.
+%   fitfailed - the fit threw: preserve the error report with whatever CmdStan
+%               wrote (possibly partial or no chain CSVs); an incomplete raw
+%               capture is again tolerated, and the caller rethrows the fit error.
+%   postfit   - the complete REL + raw output, BEFORE any assertion; a capture
+%               failure here is a real failure and propagates (sibling pattern).
+% Any other capture error (non-absolute root, overlap with the scratch, an
+% existing destination) propagates at every stage. Nothing is deleted.
+if isempty(PsyRAT2CRecoveryCapture.captureDir())
+    return;
+end
+meta.stage = stage;
+try
+    PsyRAT2CRecoveryCapture.capture(tag, rel, truth, dataTbl, outDir, 'meta', meta);
+catch capErr
+    if strcmp(stage, 'postfit') || ...
+            ~strcmp(capErr.identifier, 'PsyRAT2CRecoveryCapture:rawCaptureIncomplete')
+        rethrow(capErr);
+    end
+    fprintf(['[3A recovery capture] %s (%s): data/truth preserved; raw CmdStan capture ', ...
+        'incomplete as expected at this stage (%s)\n'], tag, stage, capErr.message);
 end
 end
 

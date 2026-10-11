@@ -4,7 +4,7 @@ function psyrat_criterionfigures(varargin)
 %psyrat_criterionfigures('psyrat_prefs',psyrat_prefs,...
 %    'psyrat_data',psyrat_data,'analysis','sing')
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ function psyrat_criterionfigures(varargin)
 if isempty(psyrat_data)
     error('varargin:psyrat_data',... %Error code and associated error
         strcat('WARNING: psyrat_data not specified \n\n',...
-        'Please input psyrat_data (PsyRAT Toolbox data structure array).\n'));
+        'Please input psyrat_data (PsyRAT data structure array).\n'));
 end
 
 if isempty(psyrat_prefs) || ~isstruct(psyrat_prefs)
@@ -170,14 +170,14 @@ if settings.tablecriterion == 1
     local_tablecriterion(psyrat_data, analysis, settings);
 end
 
-%RC-33. Mirror the two post-rebuild error branches psyrat_relfigures raises
+%RC-33/G88. Mirror the post-rebuild cutoff notices psyrat_relfigures raises
 %(:745-751 and :754-760). This function rebuilds the whole D-study itself, so it
 %recomputes trlcutoff, trlmax and the eventgoodids/eventbadids partition, but it
 %previously reported none of it -- the criterion screens failed more quietly
 %than the view screen the user came from.
 %
 %These sit AFTER the plot and table are drawn, not next to the nogooddata guard
-%above. errordlg is non-modal, so a dialog raised before the output figures
+%above. Both notices are non-modal, so a dialog raised before the output figures
 %would be buried underneath them, which defeats the point; psyrat_relfigures
 %raises both of its dialogs last for the same reason. Neither branch returns:
 %the criterion output is still drawn, exactly as on the view screen.
@@ -227,14 +227,17 @@ if isfield(relerr,'trlcutoff') && relerr.trlcutoff == 1
     errordlg(errorstr,'Cutoff not calculable');
 end
 
-%show an error if none of the data had enough trials to meet the cutoff
+%A positive D-study cutoff remains a valid model projection. The criterion
+%score cutpoint is a separate quantity; neither implies retained observations.
 if isfield(relerr,'trlmax') && relerr.trlmax == 1
     errorstr = {};
-    errorstr{end+1} = ['Not enough ' L.units ' are present in the current data'];
-    errorstr{end+1} = 'Cutoffs represent an extrapolation beyond the data';
+    errorstr{end+1} = ['The D-study reliability cutoff exceeds original observed ' L.unit ' counts'];
+    errorstr{end+1} = 'The D-study coefficient remains a valid model projection';
+    errorstr{end+1} = 'This is distinct from the criterion-score cutpoint';
+    errorstr{end+1} = 'Empty-retention table cells are undefined; curves are model projections';
     errorstr = [errorstr local_divergencenote(analysis, settings, L)];
 
-    errordlg(errorstr,'Extrapolation beyond data');
+    warndlg(errorstr,'Extrapolation beyond data');
 end
 
 end
@@ -434,6 +437,9 @@ fig.Position = [125 630 940 470];
 
 rel_name = local_relname(psyrat_data.relsummary);
 pref = ['Criterion ' rel_name ' v ' L.NumberOf];
+if local_has_reference_or_projection(psyrat_data.relsummary)
+    pref = [pref ' - model projections'];
+end
 ylbl = rel_name;
 
 for eloc = 1:nevents
@@ -529,6 +535,9 @@ labels = {};
 cutoffs = [];
 trlused = [];
 goodns = [];
+badns = [];
+emptyrows = [];
+referenceLines = {};
 muvals = [];
 ptvals = [];
 llvals = [];
@@ -550,13 +559,25 @@ for gloc = 1:ngroups
                 labels{end+1,1} = [gnames{gloc} ' - ' enames{eloc}]; %#ok<AGROW>
         end
 
+        grp = psyrat_data.relsummary.group(gloc);
+        emptyretained = local_empty_retained(grp,ev);
+        population = local_population(grp,ev);
         obs = local_obscount(ev, settings.centmeas);
+        %Do not turn an undefined retained count into a plausible reference
+        %count through local_obscount's legacy minimum-count fallback.
+        if emptyretained && strcmp(population,'empty_retained')
+            obs = NaN;
+        end
         trlused(end+1,1) = obs; %#ok<AGROW>
         cutoffs(end+1,1) = settings.cutoff; %#ok<AGROW>
         goodns(end+1,1) = local_goodn(ev); %#ok<AGROW>
+        badns(end+1,1) = local_badn(grp); %#ok<AGROW>
+        emptyrows(end+1,1) = emptyretained; %#ok<AGROW>
         muvals(end+1,1) = local_muvalue(d); %#ok<AGROW>
 
-        if strcmp(analysis,'sing')
+        if isempty(obs) || ~isfinite(obs)
+            ll = NaN; pt = NaN; ul = NaN;
+        elseif strcmp(analysis,'sing')
             [ll,pt,ul] = local_cutscore_sing(d, settings.cutoff, obs, ...
                 psyrat_data.relsummary.ciperc);
         else
@@ -584,6 +605,29 @@ for gloc = 1:ngroups
         ptvals(end+1,1) = pt; %#ok<AGROW>
         llvals(end+1,1) = ll; %#ok<AGROW>
         ulvals(end+1,1) = ul; %#ok<AGROW>
+        if emptyretained
+            if strcmp(population,'full_sample_reference')
+                detail = 'full-sample reference at the recorded count';
+            elseif strcmp(population,'legacy_recorded_count_reference')
+                detail = 'reference at recorded count; original summary population unavailable';
+            else
+                detail = 'no defined retained-sample count or coefficient';
+            end
+            referenceLines{end+1,1} = sprintf(...
+                '%s: no participants retained; ordinary summary cells show dashes; %s.',...
+                labels{end},detail); %#ok<AGROW>
+            referenceLines{end+1,1} = sprintf(...
+                ['Raw criterion reference (%s): population=%s; %s used=%.12g; '...
+                'criterion-score cutpoint=%.12g; mu=%.12g; D [lower point upper]='...
+                '[%.12g %.12g %.12g].'],labels{end},population,L.Units,obs,...
+                settings.cutoff,muvals(end),ll,pt,ul); %#ok<AGROW>
+        end
+        if isfield(ev,'cutoff_extrapolated') && ev.cutoff_extrapolated
+            referenceLines{end+1,1} = sprintf(...
+                ['%s: the D-study reliability cutoff is a model projection beyond '...
+                'original observed counts; it is distinct from the criterion-score cutpoint.'],...
+                labels{end}); %#ok<AGROW>
+        end
     end
 end
 
@@ -609,27 +653,24 @@ end
 %comparing the two Ns is the whole point. It is NOT named off psyrat_unitlabels:
 %goodn counts participants, whereas L.Units is trials/splits and is already
 %spoken for by the [L.Units '_Used'] column beside it.
-tbl = table(labels, goodns, cutoffs, trlused, muvals, ptvals, llvals, ulvals, ...
+%The first eight columns remain in their established order. Preserve the
+%computed raw reference in export metadata before dashing undefined ordinary
+%retained-population cells; exclusion counts use the observed group roster.
+if any(emptyrows)
+    trlused = num2cell(trlused); ptvals = num2cell(ptvals);
+    llvals = num2cell(llvals); ulvals = num2cell(ulvals);
+    trlused(logical(emptyrows)) = {'---'}; ptvals(logical(emptyrows)) = {'---'};
+    llvals(logical(emptyrows)) = {'---'}; ulvals(logical(emptyrows)) = {'---'};
+end
+tbl = table(labels, goodns, cutoffs, trlused, muvals, ptvals, llvals, ulvals, badns, ...
     'VariableNames', ...
     {'Label','n_Included','Criterion_Cutoff',[L.Units '_Used'],'Mu',...
-    [rel_name '_PointEstimate'], [rel_name '_LowerCI'], [rel_name '_UpperCI']});
+    [rel_name '_PointEstimate'], [rel_name '_LowerCI'], [rel_name '_UpperCI'],...
+    'n_Excluded'});
 
-%widened from 700 when n_Included was added. The ColumnWidth list below already
-%summed to more than the table's own width, so this table scrolled horizontally
-%even before an eighth column existed.
-%
-%The arithmetic: sum(ColumnWidth) = 800, and the table Position below leaves
-%2*25 px of margin, so figwidth must be at least 850. **850 is not enough.** At
-%exactly 850 the table is 800 px for 800 px of columns and the uitable's own
-%grid/border eats into the last column -- the final digit of the Upper CI value
-%renders clipped. That is invisible to a `sum(ColumnWidth) <= table width`
-%check, which passes at equality; it was caught by looking at the window. 870
-%leaves 20 px of slack and the last column renders whole.
-%
-%Every control in this figure is positioned off figwidth, so this one number is
-%the whole layout change. If a column is ever added or widened, re-derive this
-%AND look at the result -- there is no slack to borrow from.
-figwidth = 870;
+%Nine columns total 965 pixels. Keep the 50-pixel outer margins plus
+%40 pixels for grid/border slack; the footer sits above the save button.
+figwidth = 1055; % 965 pixels of columns + margins and grid slack
 figheight = 430;
 
 %The occasion note is appended only when there is one (two-facet data), so the
@@ -670,15 +711,26 @@ t = uitable('Parent',fig,'Position',...
     'Data',table2cell(tbl));
 set(t,'ColumnName',{'Label' 'n Included' 'Criterion Cutoff' [L.Units ' Used']...
     'Mu' ...
-    [rel_name ' Point Estimate'] [rel_name ' Lower CI'] [rel_name ' Upper CI']});
-set(t,'ColumnWidth',{160 75 105 85 90 95 95 95});
+    'D Point Estimate' 'D Lower CI' 'D Upper CI' 'n Excluded'});
+%Criterion outputs are always absolute dependability. Short GUI headings
+%remain readable; the exported table retains its established variable names.
+set(t,'ColumnWidth',{160 95 120 90 75 130 100 100 95});
 set(t,'RowName',[]);
 
 uicontrol(fig,'Style','push','fontsize',13,...
     'HorizontalAlignment','center',...
     'String','Save Table',...
     'Position', [figwidth/3 24 figwidth/3 50],...
-    'Callback',{@local_save_table, psyrat_data, tbl, settings.cutoff});
+    'Callback',{@local_save_table, psyrat_data, tbl, settings.cutoff, referenceLines});
+
+footnote = 'Mu is the fitted model mean from the estimation sample.';
+if any(emptyrows)
+    footnote = [footnote ' Dashed rows retain nobody; raw criterion references are saved in export metadata.'];
+elseif ~isempty(referenceLines)
+    footnote = [footnote ' D-study cutoff projections are distinct from criterion cutpoints.'];
+end
+uicontrol(fig,'Style','text','FontSize',10,'HorizontalAlignment','center',...
+    'String',footnote,'Position',[25 76 figwidth-50 17]);
 
 end
 
@@ -726,7 +778,7 @@ elseif isfield(d,'sd_id') && isfield(d,'b_sigma')
     %the top of this function blocks ic_diff/ic_diff_sserrvar (and the other
     %unsupported designs) by rel.analysis, so reaching this branch now takes a
     %doctored struct that carries the sd_id/b_sigma shape without one of the
-    %blocked labels. See RC-05 in PSYRAT_AUDIT_FINDINGS.md.
+    %blocked labels. See finding RC-05.
     bp = cell2mat(d.sd_id.raw);
     wp = exp(cell2mat(d.b_sigma.raw));
     mu = mean(bp) * ones(size(bp));
@@ -761,6 +813,47 @@ if isfield(ev,'trlinfo')
     end
 end
 obs = max(1, round(obs));
+end
+
+function tf = local_empty_retained(grp,ev)
+if isfield(grp,'goodids')
+    tf = isempty(grp.goodids);
+else
+    tf = local_goodn(ev) == 0;
+end
+end
+
+function population = local_population(grp,ev)
+if isfield(ev,'summary_population')
+    population = ev.summary_population;
+elseif local_empty_retained(grp,ev)
+    %Legacy bad-ID fallbacks can omit source IDs through the former roster
+    %asymmetry. A finite count alone does not establish full-sample provenance.
+    population = 'empty_retained';
+    if isfield(ev,'trlinfo') && isfield(ev.trlinfo,'mean') && ...
+            isscalar(ev.trlinfo.mean) && isfinite(ev.trlinfo.mean) && ev.trlinfo.mean > 0
+        population = 'legacy_recorded_count_reference';
+    end
+else
+    population = 'retained';
+end
+end
+
+function n = local_badn(grp)
+n = NaN;
+if isfield(grp,'badids'); n = numel(grp.badids); end
+end
+
+function tf = local_has_reference_or_projection(rs)
+tf = false;
+for g = 1:numel(rs.group)
+    for e = 1:numel(rs.group(g).event)
+        ev = rs.group(g).event(e);
+        tf = tf || local_empty_retained(rs.group(g),ev) || ...
+            (isfield(ev,'cutoff_extrapolated') && ev.cutoff_extrapolated) || ...
+            strcmp(local_population(rs.group(g),ev),'full_sample_reference');
+    end
+end
 end
 
 function n = local_goodn(ev)
@@ -885,6 +978,7 @@ function local_save_table(varargin)
 psyrat_data = varargin{3};
 tbl = varargin{4};
 cutoff = varargin{5};
+referenceLines = varargin{6};
 
 %XLSX now writes cross-platform via writecell/writetable, so both formats are
 %offered on every platform (including macOS).
@@ -903,7 +997,7 @@ end
 %all -- so a saved criterion table recorded no seed, engine, priors or
 %convergence verdict and could not be interpreted on its own (RC-28).
 filehead = {'Table Generated on'; datestr(clock);''};
-filehead{end+1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+filehead{end+1} = sprintf('PsyRAT v%s',psyrat_data.ver);
 filehead{end+1} = sprintf('Dataset: %s',psyrat_data.rel.filename);
 filehead{end+1} = sprintf('Criterion Cutoff: %0.4f', cutoff);
 %run provenance (seed/engine/priors/convergence); fail-open
@@ -921,31 +1015,46 @@ filehead = [filehead; psyrat_provenance_lines(psyrat_data)];
 filehead{end+1} = ['Scope: criterion cut-scores are always absolute-error '...
     '(dependability) at n''_o = 1, regardless of any coefficient selection '...
     'reported above.'];
+filehead{end+1} = 'Mu is the fitted model mean from the estimation sample.';
+filehead = [filehead; referenceLines(:)];
 filehead{end+1} = '';
 
 if strcmpi(ext,'.xlsx')
-    writecell(filehead,fullfile(savepath,savename));
-    writetable(tbl,fullfile(savepath,savename),...
-        'Range',strcat('A',num2str(length(filehead)+1)));
+    %the same header and table rows into a fresh workbook, checked cell by cell
+    %before it replaces the chosen file (G110)
+    psyrat_replace_workbook(fullfile(savepath,savename),filehead,tbl,...
+        length(filehead)+1);
 else
-    if ~strcmpi(ext,'.csv')
-        savename = [savename '.csv'];
+    %a name without .csv still gets it appended. G109: that appended name was
+    %never shown in the save dialog, so an existing file of that name is
+    %replaced only after the user confirms that exact file.
+    [target, ok] = psyrat_export_destination(savepath,savename,'.csv');
+    if ~ok
+        return;
     end
     %CSV: write the header lines, then append the table (its own column names
     %plus data) so every column is handled without a hand-rolled formatspec --
     %which is also why adding the RC-36 n_Included column needed no change on
     %either export branch. 'WriteMode','append' defaults WriteVariableNames to
     %false, so force it on to keep the column-name row, matching the .xlsx
-    %branch. Same idiom as psyrat_startview_splits/-_dynrel.
-    fid = fopen(fullfile(savepath,savename),'w');
+    %branch. Same idiom as psyrat_startview_splits/-_dynrel. Both parts go to a
+    %temporary file that is moved onto the target only after both were written
+    %without a reported error (G109).
+    [fid, stage] = psyrat_export_stage('open',target);
+    if fid < 0
+        return;
+    end
+    stageguard = onCleanup(@() psyrat_export_stage('abort',fid,stage,target)); %#ok<NASGU>
     %quote per the CSV convention (B19): a comma-bearing header line must
     %stay ONE spreadsheet field; comma-free lines stay byte-identical
     for i = 1:numel(filehead)
         fprintf(fid,'%s\n',psyrat_quote_csv_header(filehead{i}));
     end
-    fclose(fid);
-    writetable(tbl,fullfile(savepath,savename),...
+    %a checked close: a write error or failed close stops the export here
+    psyrat_export_stage('close',fid,stage);
+    writetable(tbl,stage,...
         'WriteMode','append','WriteVariableNames',true);
+    psyrat_export_stage('commit',fid,stage,target);
 end
 
 end

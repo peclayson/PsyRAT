@@ -20,7 +20,7 @@ function pit = psyrat_gamma_pit(y, mu, sigma, clip)
 % PARAMETERIZATION. shape = (mu/sigma)^2 and rate = mu/sigma^2, so that
 % E(Y) = shape/rate = mu and Var(Y) = shape/rate^2 = sigma^2 exactly. This is
 % the same moment matching the location-scale Stan models use (nu = 2*(mu/sigma)^2
-% for the scaled chi-square); see documentation/gamma_scale_submodel_decision.md.
+% for the scaled chi-square); see manual section 15.4 for the two parameterizations.
 %
 % WHY THE TWO-TAIL FORM IS REQUIRED, NOT AN OPTIMIZATION. The normal score of an
 % observation deep in the UPPER tail cannot be recovered from the lower-tail CDF:

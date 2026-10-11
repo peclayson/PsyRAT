@@ -9,9 +9,10 @@ classdef TestGammaTrtSserrConversion < matlab.unittest.TestCase
     % participant their own scaled-chi-square residual, so no location-scale
     % residual submodel is needed. The new work is the EXTRACTION
     % (psyrat_gamma_extract_trt_sserr), which CONDITIONS on each person's own
-    % log-mean (u_p) and log-nu (v_p) to form the per-subject residual
+    % log-mean (u_p) and log-nu (v_p) to form the OBSERVATION part of the
+    % per-subject residual,
     %
-    %   sigma_pot_e2(p) = 2*exp(2*(alpha + u_p) + 2*V_w - (beta + v_p)),
+    %   C_p = 2*exp(2*(alpha + u_p) + 2*V_w - (beta + v_p)),
     %   V_w = s_o^2 + s_t^2 + s_po^2 + s_pt^2 + s_ot^2,
     %
     % the expected WITHIN-person observation variance E_{o,t,po,pt,ot}[2*mu^2/nu_p].
@@ -21,10 +22,18 @@ classdef TestGammaTrtSserrConversion < matlab.unittest.TestCase
     % and it is the genuinely new mathematics in analysis 25 - hence
     % testPerSubjectResidualMatchesConditionalMonteCarlo is the decisive test here.
     %
+    % THIS FILE PINS THE INGREDIENT C_p, NOT THE WHOLE RESIDUAL. Since the Q8
+    % ruling (2026-09-13, gamma_target_version 2) the extractor's per-subject
+    % residual is E_p = R + C_p, with R the population highest-order (person x
+    % occasion x trial) mean-surface remainder (psyrat_gamma_mean_remainder_trt),
+    % encoded as pop_sdlog = .5 log(R + C_typ), ind_sdlog = .5 log(R + C_p) -
+    % pop_sdlog. R and the composite encoding are pinned by
+    % tests/TestGammaTwoFacetResidualPooling; nothing below adds R.
+    %
     % Exact under the ID-only nu structure (nu is subject-constant, so there is no
-    % lognormal-approximation error). It is the subject-level COMPLEMENT of the
-    % group estimand #2 (psyrat_gamma_varcomps_trt.e_cond_var), which MARGINALIZES
-    % the same quantity over the person dispersion population.
+    % lognormal-approximation error). C_p is the subject-level COMPLEMENT of the
+    % group observation term (psyrat_gamma_varcomps_trt.e_cond_var), which
+    % MARGINALIZES the same quantity over the person dispersion population.
     %
     % All draws use base-MATLAB randn only (no Statistics Toolbox), matching
     % TestGammaSserrConversion: E[2*mu^2/nu_p] is a function of (mu, nu_p) only, so
@@ -43,8 +52,9 @@ classdef TestGammaTrtSserrConversion < matlab.unittest.TestCase
         end
 
         function r = condResid(alpha, u_p, V_w, beta, v_p)
-            % A RE-IMPLEMENTATION of the formula psyrat_gamma_extract_trt_sserr
-            % implements. It is NOT the production function: that is a local
+            % A RE-IMPLEMENTATION of the observation ingredient C_p that
+            % psyrat_gamma_extract_trt_sserr forms (its full residual is R + C_p
+            % since Q8). It is NOT the production function: that is a local
             % function of psyrat_computevarcomp and is unreachable from a test.
             %
             % So be clear about what this file does and does not prove. It proves
@@ -139,13 +149,14 @@ classdef TestGammaTrtSserrConversion < matlab.unittest.TestCase
         end
 
         function testConditionalResidualDiffersFromMarginalSigmaRes2(testCase)
-            % GUARD against a tempting "reconciliation". psyrat_gamma_varcomps_trt
-            % recovers sigma_res2 BY SUBTRACTION from total_var, so it bundles the
-            % higher-order lognormal leftover of the mean surface together with the
-            % dispersion. The conditional residual is the PURE per-person dispersion.
-            % The two are different estimands on purpose (identical, maintainer-
-            % sanctioned mismatch to case 6 vs case 1) - assert they differ so a
-            % future change that "fixes" one into the other fails loudly.
+            % psyrat_gamma_varcomps_trt recovers sigma_res2 BY SUBTRACTION from
+            % total_var, so it is R + C_pop: the higher-order mean-surface
+            % remainder plus the marginal observation variance. C_typ alone
+            % (the INGREDIENT this file pins) must be strictly smaller: the
+            % difference is exactly the R that the Q8 extractor now pools plus
+            % the marginalization gap. This is no longer a "do not reconcile"
+            % guard (that reading predated S17/S20 and the Q8 ruling); it
+            % asserts that the observation ingredient is not the whole residual.
             alpha = log(5.0); s_p = 0.45;
             s_o = 0.20; s_t = 0.25; s_po = 0.15; s_pt = 0.22; s_ot = 0.10;
             beta = log(16);
@@ -158,9 +169,9 @@ classdef TestGammaTrtSserrConversion < matlab.unittest.TestCase
             typical = TestGammaTrtSserrConversion.condResid(alpha, 0, V_w, beta, 0);
 
             testCase.verifyGreaterThan(vc.sigma_res2, typical, ...
-                ['sigma_res2 is subtraction-derived and must exceed the pure ' ...
-                'conditional dispersion; if these ever coincide the derivation ' ...
-                'has changed - see psyrat_gamma_extract_trt_sserr''s header.']);
+                ['sigma_res2 = R + C_pop must exceed the observation ingredient ' ...
+                'C_typ alone; if these ever coincide the derivation has changed ' ...
+                '- see psyrat_gamma_extract_trt_sserr''s header.']);
         end
 
         function testSsrelTrtLogSdEncodingRoundTrips(testCase)

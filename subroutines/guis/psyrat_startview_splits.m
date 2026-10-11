@@ -2,25 +2,26 @@ function psyrat_startview_splits(varargin)
 %Viewer for nonparallel data-splits results (Rocha Tables 4/5, observed design;
 %analysis cases 23 = ic_splits single occasion, 24 = trt_splits multi occasion).
 %Each score is the mean of n_i items in a split, and unequal n_i make the splits
-%nonparallel, so the summary reports coefficients at the OBSERVED design only --
-%there is no D-study projection over hypothetical item counts and no cut-score
+%nonparallel. The default summary uses the observed score; numeric split/occasion
+%counts request a reference-design projection. There is no D-study projection
+%over hypothetical item counts and no cut-score
 %search (split means lose the item-level partition; see psyrat_splits_summary and
-%documentation/splits_observed_design_formulas.md). The viewer therefore has no
+%manual sections 13.5 and 13.7). The viewer therefore has no
 %projection plot and no trial/split-cutoff table; it shows the per-stratum
 %dependability/generalizability coefficients, SEMs, and variance components, and
 %exports them.
 %
-%Because the per-item residual lumps the item main effect into relative error,
-%dependability (absolute) is exact while generalizability (relative) is a
-%downward-biased observed-design LOWER BOUND (and the relative SEM an upper
-%bound); every reported relative coefficient is flagged accordingly.
+%Case23 retains its existing bound interpretation. Case24 reports D conditional
+%on the specified score and fitted restricted model, and the conventional G
+%partition without a blanket bound or estimation-bias guarantee. Its default
+%score equally weights available occasion means; numeric counts are projections.
 %
 %psyrat_startview_splits('psyrat_prefs',psyrat_prefs,'psyrat_data',psyrat_data)
 %
 %Required Input
-% psyrat_data - PsyRAT Toolbox data structure array (REL.analysis = 'ic_splits'
+% psyrat_data - PsyRAT data structure array (REL.analysis = 'ic_splits'
 %  or 'trt_splits')
-% psyrat_prefs - PsyRAT Toolbox preferences structure array
+% psyrat_prefs - PsyRAT preferences structure array
 %
 %Output
 % No variables are returned. Tables are created on demand and can be saved from
@@ -57,6 +58,9 @@ issingle = strcmp(REL.analysis,'ic_splits');
 
 %analysis-unit labels (split, not trial) for the banner and the table headers.
 L = psyrat_unitlabels(REL.splits);
+if ~issingle
+    L.banner = 'Nonparallel splits: available occasions / count projection';
+end
 
 %close the setup gui if open
 psyrat_gui = findobj('Tag','psyrat_gui');
@@ -65,6 +69,7 @@ if ~isempty(psyrat_gui)
 end
 
 figwidth = 560;
+if ~issingle; figwidth = 700; end
 rowspace = 35;
 figheight = 430;
 if ~issingle
@@ -96,26 +101,33 @@ uicontrol(psyrat_gui,'Style','text','fontsize',fsize,...
     'Position',[0 row figwidth 25]);
 row = row - rowspace*.9;
 
-%bias caveat: generalizability is a lower bound (full note exported with tables)
+% Case24 interpretations are conditional on its stated score and model.
+if issingle
+    biasline = 'Dependability is exact; generalizability is a downward-biased lower bound.';
+    splitprompt = 'Splits n'' (blank = observed design):';
+else
+    biasline = 'D is conditional on score/model; G uses the conventional relative partition.';
+    splitprompt = 'Splits n'' projection (blank = observed):';
+end
 uicontrol(psyrat_gui,'Style','text','fontsize',fsize-1,...
     'HorizontalAlignment','center','ForegroundColor',[0.45 0.20 0.20],...
-    'String',['Dependability is exact; generalizability is a '...
-    'downward-biased lower bound.'],...
+    'String',biasline,...
     'Position',[10 row figwidth-20 25]);
 row = row - rowspace*1.0;
 
-%credible interval
+%Interval width; method follows the saved engine.
 uicontrol(psyrat_gui,'Style','text','fontsize',fsize,...
-    'HorizontalAlignment','left','String','Credible interval (0-1):',...
+    'HorizontalAlignment','left','String',[psyrat_interval_label(REL) ' (0-1):'],...
     'Position',[lcol row 220 25]);
 hci = uicontrol(psyrat_gui,'Style','edit','fontsize',fsize,...
     'String','0.95','Position',[rcol row 200 28]);
 row = row - rowspace;
 
-%splits per person n_s (blank = observed median)
+%Blank retains each case's observed score; numeric case24 counts project to a
+%balanced design. Case23 retains its corrected effective-count convention.
 uicontrol(psyrat_gui,'Style','text','fontsize',fsize,...
     'HorizontalAlignment','left',...
-    'String','Splits n'' (blank = observed median):',...
+    'String',splitprompt,...
     'Position',[lcol row 320 25]);
 hobs = uicontrol(psyrat_gui,'Style','edit','fontsize',fsize,...
     'String','','Position',[rcol row 200 28]);
@@ -126,7 +138,7 @@ if ~issingle
     row = row - rowspace;
     uicontrol(psyrat_gui,'Style','text','fontsize',fsize,...
         'HorizontalAlignment','left',...
-        'String','Occasions n'' (blank = observed):',...
+        'String','Occasions n'' projection (blank = observed):',...
         'Position',[lcol row 320 25]);
     hnocc = uicontrol(psyrat_gui,'Style','edit','fontsize',fsize,...
         'String','','Position',[rcol row 200 28]);
@@ -142,11 +154,17 @@ uicontrol(psyrat_gui,'Style','push','fontsize',fsize,...
     'String','Show variance components',...
     'Position',[lcol+bw+20 row bw 32],'Callback',@showVarcomp);
 row = row - rowspace*1.1;
+saveCoefLabel = 'Save coefficients (CSV)';
+saveVarLabel = 'Save variance table (CSV)';
+if ~issingle
+    saveCoefLabel = 'Save coefficients';
+    saveVarLabel = 'Save variance table';
+end
 uicontrol(psyrat_gui,'Style','push','fontsize',fsize,...
-    'String','Save coefficients (CSV)',...
+    'String',saveCoefLabel,...
     'Position',[lcol row bw 32],'Callback',@saveCoef);
 uicontrol(psyrat_gui,'Style','push','fontsize',fsize,...
-    'String','Save variance table (CSV)',...
+    'String',saveVarLabel,...
     'Position',[lcol+bw+20 row bw 32],'Callback',@saveVarcomp);
 row = row - rowspace*1.1;
 uicontrol(psyrat_gui,'Style','push','fontsize',fsize,...
@@ -208,15 +226,42 @@ cachedKey = '';
     function showCoef(~,~)
         summ = buildSummary();
         [data,cols,widths] = coefDisplay(summ);
+        height = 360;
+        tablepos = [0.02 0.12 0.96 0.86];
+        notepos = [0.02 0.01 0.96 0.09];
+        note = summ.gbias_note;
+        if ~issingle
+            height = 520;
+            tablepos = [0.02 0.34 0.96 0.57];
+            notepos = [0.02 0.02 0.96 0.28];
+            if strcmp(summ.strata(1).design.mode,'balanced_projection')
+                scoreline = 'Balanced projection: explicit counts; common reference support; observed missingness is not projected.';
+                modeline = 'Design mode: balanced reference projection';
+            else
+                scoreline = 'Observed score: equally weighted available occasion means; missing occasions receive no score weight.';
+                modeline = 'Design mode: observed available occasions';
+            end
+            note = {scoreline;...
+                'Participant universe/error variances are averaged before coefficients and SEMs are calculated.';...
+                'D is exact conditional on this score and the fitted shared-ordinal split model with independent row residuals.';...
+                'G uses the conventional relative partition; no universal lower-bound, bias or coverage guarantee is asserted.';...
+                'Observed CE/CS may have person-specific fixed-facet support; missingness is not modeled.';...
+                'Scalar counts are references. Scroll right for actual count ranges, design mode and full weight metadata.'};
+        end
         f = figure('Name','Data-splits reliability: coefficients',...
             'NumberTitle','off','Tag','psyrat_output',...
-            'Position',[200 200 1080 360]);
+            'Position',[200 200 1080 height]);
         uitable(f,'Data',data,'ColumnName',cols,...
-            'Units','normalized','Position',[0.02 0.12 0.96 0.86],...
+            'Units','normalized','Position',tablepos,...
             'ColumnWidth',widths);
         uicontrol(f,'Style','text','HorizontalAlignment','left',...
-            'Units','normalized','Position',[0.02 0.01 0.96 0.09],...
-            'String',summ.gbias_note,'FontSize',fsize-1);
+            'Units','normalized','Position',notepos,...
+            'String',note,'FontSize',fsize-1);
+        if ~issingle
+            uicontrol(f,'Style','text','HorizontalAlignment','left',...
+                'Units','normalized','Position',[0.02 0.93 0.96 0.05],...
+                'String',modeline,'FontSize',fsize,'FontWeight','bold');
+        end
     end
 
     function T = concatVarcomp(summ)
@@ -275,23 +320,31 @@ cachedKey = '';
         head{end+1} = sprintf('PsyRAT data-splits reliability: %s',label);
         head{end+1} = sprintf('Generated: %s',datestr(clock));
         if isfield(psyrat_data,'ver')
-            head{end+1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+            head{end+1} = sprintf('PsyRAT v%s',psyrat_data.ver);
         end
         head{end+1} = sprintf('Dataset: %s',REL.filename);
         head{end+1} = L.banner;
         if isfield(REL,'nchains') && isfield(REL,'niter')
             head{end+1} = psyrat_iterline(REL);
         end
-        head{end+1} = sprintf('Credible interval: %.3g',summ.ci);
+        head{end+1} = sprintf('%s: %.3g',psyrat_interval_label(REL),summ.ci);
         head{end+1} = summ.gbias_note;
+        if isfield(summ,'design_note')
+            head{end+1} = summ.design_note;
+            for ds = 1:numel(summ.strata)
+                head{end+1} = sprintf('Design %s: %s',summ.strata(ds).label,...
+                    jsonencode(summ.strata(ds).design));
+            end
+        end
         %run provenance (seed/engine/priors/convergence); fail-open
         head = [head, psyrat_provenance_lines(psyrat_data)'];
         head{end+1} = '';
         head{end+1} = '';
 
         if strcmpi(ext,'.xlsx')
-            writecell(head',outfile);
-            writetable(T,outfile,'Range',strcat('A',num2str(numel(head))));
+            %a fresh, checked workbook replaces the chosen file (G110); a
+            %refused save raises, so the "Saved" line below is not printed
+            psyrat_replace_workbook(outfile,head',T,numel(head));
         else
             %CSV: write the header lines, then append the table (its own column
             %names + data) so arbitrary table columns are handled robustly.

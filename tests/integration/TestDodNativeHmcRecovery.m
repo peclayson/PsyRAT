@@ -71,6 +71,7 @@ classdef TestDodNativeHmcRecovery < PsyRATTestBase
 
             testCase.verifyEqual(rel.analysis, 'ic_dodiff');
             testCase.verifyEqual(rel.engine, 'hmc');
+            psyrat_test_record_native_diagnostics(testCase,rel);
 
             % ---- extracted draws ----
             bsig = rel.out.b_sigma{1};      % draws x 4 (b_sigma_cell)

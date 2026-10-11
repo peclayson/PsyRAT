@@ -154,7 +154,11 @@ end
 end
 
 function local_show_gui(psyrat_data,observedtable,meta)
-figwidth = 1320;
+%F5: 1440 px of columns + the 2 x 20 px margins and 20 px of grid slack
+%(G104: 90 px count columns and 100 px mean-trial columns for their two-line
+%headers; capped at the display width, where the table scrolls)
+figwidth = 1500;
+figwidth = psyrat_fitfigwidth(figwidth);   %G104: capped at the display width (the table scrolls when capped)
 figheight = 320;
 rowspace = 25;
 row = figheight - rowspace*2;
@@ -166,6 +170,7 @@ fig = psyrat_newfigure('unit','pix',...
     'name','Observed Difference-of-Differences Reliability',...
     'numbertitle','off',...
     'resize','off');
+movegui(fig,'onscreen');   %G104: slide the window inside the display, never off it
 
 uicontrol(fig,'Style','text','fontsize',14,...
     'HorizontalAlignment','center',...
@@ -184,8 +189,11 @@ uicontrol(fig,'Style','text','fontsize',12,...
 
 t = uitable('Parent',fig,'Position',[20 82 figwidth-40 130],...
     'Data',table2cell(observedtable));
-set(t,'ColumnName',observedtable.Properties.VariableNames);
-set(t,'ColumnWidth',{320 80 80 140 140 130 130 95 95 95 95});
+%G104: the screen breaks the count and mean-trial names onto two lines
+%('n' / 'Included', 'Mean Trials' / 'ERP 1', psyrat_uitable_headers); the
+%saved CSV keeps the variable names
+set(t,'ColumnName',psyrat_uitable_headers(observedtable.Properties.VariableNames));
+set(t,'ColumnWidth',{320 90 90 140 140 130 130 100 100 100 100});
 set(t,'RowName',[]);
 
 uicontrol(fig,'Style','push','fontsize',13,...
@@ -217,7 +225,7 @@ head = {};
 head{end+1} = 'Table Generated on';
 head{end+1} = datestr(clock);
 head{end+1} = '';
-head{end+1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+head{end+1} = sprintf('PsyRAT v%s',psyrat_data.ver);
 head{end+1} = '';
 head{end+1} = sprintf('Dataset: %s',psyrat_data.rel.filename);
 head{end+1} = psyrat_iterline(psyrat_data.rel);
@@ -235,12 +243,12 @@ head{end+1} = '';
 head{end+1} = '';
 
 if strcmpi(ext,'.xlsx')
-    writecell(head',outfile);
-    writetable(observedtable,outfile,'Range',strcat('A',num2str(length(head))));
+    %a fresh, checked workbook replaces the chosen file (G110)
+    psyrat_replace_workbook(outfile,head',observedtable,length(head));
 elseif strcmpi(ext,'.csv')
     fid = fopen(outfile,'w');
-    %quote per the CSV convention (B19): a comma-bearing header line must
-    %stay ONE spreadsheet field; comma-free lines stay byte-identical
+    %quote per the CSV convention (B19): a header line with a comma, quote,
+    %CR or LF must stay ONE spreadsheet field; other lines stay byte-identical
     for i = 1:numel(head)
         fprintf(fid,'%s\n',psyrat_quote_csv_header(head{i}));
     end
@@ -254,6 +262,15 @@ elseif strcmpi(ext,'.csv')
     end
     fprintf(fid,'%s\n',strjoin(out,','));
     fclose(fid);
+else
+
+    %F3: a name that ends in neither .xlsx nor .csv (a typed extension the
+    %dialog's filter did not supply) used to fall through this chain silently,
+    %so nothing was written and nothing said so.
+    errordlg({sprintf('The file name "%s" does not end in .xlsx or .csv; nothing was saved.',savename);...
+        'How to fix: choose the Excel or CSV file type in the save dialog, or type a name ending in .xlsx or .csv, then save again.'},...
+        'Unsupported File Type','modal');
+
 end
 end
 
@@ -366,7 +383,7 @@ else
 end
 
 out = strrep(out,'"','""');
-if contains(out,',') || contains(out,'"') || contains(out,newline)
+if contains(out,',') || contains(out,'"') || contains(out,newline) || contains(out,char(13))
     out = ['"' out '"'];
 end
 end

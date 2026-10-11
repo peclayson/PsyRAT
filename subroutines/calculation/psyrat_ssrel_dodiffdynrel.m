@@ -3,7 +3,7 @@ function [ssrel,drawlevel] = psyrat_ssrel_dodiffdynrel(varargin)
 %differences reliability for the one-facet GAUSSIAN design (analysis 28,
 %ic_dodiff_dynrel_sserrvar, family = 'gaussian'). The Gaussian sibling of
 %PSYRAT_SSREL_DODIFFDYNREL_GAMMA_LS (no family marker in the name, the
-%toolbox convention). Derivation: SCIENTIFIC_FORMULA_AUDIT.md section 26.
+%toolbox convention). Derivation: development formula audit, section 26.
 %
 %[ssrel,drawlevel] = psyrat_ssrel_dodiffdynrel('b',b,...)
 %

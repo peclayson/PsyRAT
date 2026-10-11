@@ -5,7 +5,7 @@ function psyrat_relfigures(varargin)
 %
 %
 %Required Inputs:
-% psyrat_data - PsyRAT Toolbox data structure array containing outputs from
+% psyrat_data - PsyRAT data structure array containing outputs from
 %  CmdStan
 % analysis - 'sing' for single session data, 'trt' for data with multiple
 %  occasions
@@ -88,7 +88,7 @@ function psyrat_relfigures(varargin)
 %  for numbers of trials to achieve a given level of reliability will
 %  have a button to save the ids of participants to include and exclude.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -589,10 +589,21 @@ trt_ss = strcmp(analysis,'trt') && isfield(psyrat_data.rel,'analysis') && ...
 switch analysis
     case {'sing','sing_diff'}
         if pdep == 1
+            %RC-31 residual. On 'sing_diff' the summary resolves its one
+            %coefficient from diffgcoeff (the only coefficient control that
+            %viewer shows), while gcoeff here is a stored preference the user
+            %cannot see on that screen. Passing gcoeff drew the per-event curve
+            %at the hidden choice, so it follows the resolved summary value
+            %instead. Plain 'sing' keeps its own visible gcoeff; trt_diff keeps
+            %its two independent selectors (below).
+            curvegcoeff = gcoeff;
+            if strcmp(analysis,'sing_diff')
+                curvegcoeff = psyrat_data.relsummary.gcoeff;
+            end
             psyrat_depvtrialsplot('psyrat_data',psyrat_data,...
                 'trials',[1 plotntrials],...
                 'depline',plotdepline,...
-                'gcoeff',gcoeff,...
+                'gcoeff',curvegcoeff,...
                 'depcutoff',depcutoff);
         end
     case {'sing_sserr','sing_diff_sserr'}
@@ -753,13 +764,14 @@ if relerr.trlcutoff == 1
     errordlg(errorstr,'Cutoff not calculable');
 end
 
-%show an error if none of the data had enough trials to meet the cutoff
+%Show valid D-study extrapolation separately from a failed cutoff search.
 if relerr.trlmax == 1
     errorstr = {};
-    errorstr{end+1} = ['Not enough ' L.units ' are present in the current data'];
-    errorstr{end+1} = 'Cutoffs represent an extrapolation beyond the data';
+    errorstr{end+1} = ['Projected cutoffs exceed original observed ' lower(L.Unit) ' counts'];
+    errorstr{end+1} = 'Valid projected coefficients are retained and labeled in the cutoff table';
+    errorstr{end+1} = 'These projections are not retained-sample estimates';
 
-    errordlg(errorstr,'Extrapolation beyond data');
+    warndlg(errorstr,'Extrapolation beyond data');
 end
 
 %Show the admissibility note when a quantity that must be a variance came out

@@ -1,0 +1,60 @@
+{
+  "provenance": "Frozen independent anchors for the DoD trial-count heatmap (2B / G11, declared 2026-09-13 BEFORE any production change). Derived by hand from the contrast algebra of a four-event difference of differences under the retained pairwise harmonic-mean covariance scaler (Rocha et al., 2026, Table 6 convention): u = c' Sp c; bt_scaled = sum_i c_i^2 Sb_ii/n_i + sum_{i<j} 2 c_i c_j Sb_ij / H(n_i,n_j) with H the harmonic mean; er_scaled = sum_i c_i^2 E_i/n_i; D = u/(u + bt_scaled + er_scaled); G = u/(u + er_scaled). The audit record is finding PBA-07 / G11 (classical-alignment review of 2026-09-12, with its executed probe; local development evidence). No value here was read from psyrat_startview_dodiff.m, psyrat_dodiffrel.m or PsyRATAccuracyOracle.m.",
+  "contrast": [1, -1, -1, 1],
+  "anchors": [
+    {
+      "name": "psd_block_unequal_counts",
+      "description": "PSD between-trial block [[1,2],[2,4]] on events 1-2, all other trial entries 0; universe diag([1,0,0,0]); residual variances [1,1,1,1]; counts [1,100,1,1]. The harmonic-scaled trial contrast is negative while the final dependability lies inside [0,1], so a range-only mask calls the cell valid.",
+      "obs": [1, 100, 1, 1],
+      "universe": 1,
+      "bt_scaled": -0.98,
+      "er_scaled": 3.01,
+      "dependability_denominator": 3.03,
+      "dependability": 0.330033003300330,
+      "generalizability_denominator": 4.01,
+      "generalizability": 0.249376558603491,
+      "component_admissible": false,
+      "range_mask_says_valid": true
+    },
+    {
+      "name": "psd_block_equal_counts_control",
+      "description": "Same components at counts [1,1,1,1]: harmonic, geometric and arithmetic means coincide, so the projected block is the raw block and every quantity is a variance.",
+      "obs": [1, 1, 1, 1],
+      "universe": 1,
+      "bt_scaled": 1,
+      "er_scaled": 4,
+      "dependability_denominator": 6,
+      "dependability": 0.166666666666667,
+      "generalizability": 0.2,
+      "component_admissible": true
+    },
+    {
+      "name": "strict_pd_block_unequal_counts",
+      "description": "Strictly positive-definite raw block: [[1,1.9],[1.9,4]] on events 1-2 (det .39) plus .1 on the two remaining trial diagonals. No PSD test of the raw block can catch this; only the projected component check does. Counts [1,100,1,1].",
+      "obs": [1, 100, 1, 1],
+      "universe": 1,
+      "bt_scaled": -0.679,
+      "er_scaled": 3.01,
+      "dependability_denominator": 3.331,
+      "dependability": 0.300210147102972,
+      "component_admissible": false,
+      "equal_count_bt_scaled": 1.4
+    },
+    {
+      "name": "two_draw_nonlinear_summary",
+      "description": "Two equally weighted admissible draws with universe variance 1 and 9, residual error 1 at one trial, no trial variance. Posterior mean of the draw-level ratios (the table) is .7; the plug-in ratio of posterior mean components (the heatmap) is 5/6. Both are correct under their own label; they are distinct summaries, not a scientific choice left open.",
+      "obs": [1, 1, 1, 1],
+      "draw_universe": [1, 9],
+      "draw_ratios": [0.5, 0.9],
+      "table_posterior_mean_of_ratios": 0.7,
+      "grid_plug_in_ratio_of_means": 0.833333333333333
+    }
+  ],
+  "closed_forms": {
+    "psd_block_first_heatmap": "With events 3-4 fixed at one trial each: bt_scaled(n1,n2) = 1/n1 + 4/n2 - 4/H(n1,n2) = -1/n1 + 2/n2, so the cell is component-admissible iff n2 <= 2*n1; D(n1,n2) = n2/(3*n2 + 3); G(n1,n2) = 1/(3 + 1/n1 + 1/n2).",
+    "psd_block_second_heatmap": "With events 1-2 fixed at [1,100]: bt_scaled = -.98 for every cell, so every cell with n3,n4 >= 1 is inadmissible; D(n3,n4) = 1/(1.03 + 1/n3 + 1/n4); G(n3,n4) = 1/(2.01 + 1/n3 + 1/n4).",
+    "strict_pd_first_heatmap": "bt_scaled(n1,n2) = -0.9/n1 + 2.1/n2 + 0.2 with events 3-4 at one trial each.",
+    "non_psd_block": "Raw block [[1,3],[3,4]] (det -5): unscaled contrast variance c' Sb c = -1 at every cell; scaled form -2/n1 + 1/n2 is positive when n1 > 2*n2, so the single-observation (ICC) record is the only flag on those cells."
+  },
+  "zero_count_convention": "A cell with any zero entered/grid count reports 0 by the existing convention (local_dod_summary and the red note), is not a computed coefficient, and stays visible."
+}

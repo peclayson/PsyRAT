@@ -3,7 +3,7 @@ function [template,titleText] = psyrat_formula_template(varargin)
 %
 %[template,titleText] = psyrat_formula_template('formula_id','t2_global_d')
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -152,7 +152,8 @@ switch lower(formula_id)
         template = ['% Nonparallel splits, single occasion (analysis 23, p x (i:s)). Estimated ',...
             'data-driven via Specify Inputs: one row per split, the required n_i (weight) column, ',...
             'and Nonparallel. psyrat_splits_summary reuses psyrat_rel_sing with an SD-scaled residual ',...
-            '(nbar_i = harmonic mean of n_i). Dependability (absolute) is exact.'];
+            '(nbar_i = harmonic mean of n_i; with unequal split counts per person, ns and nbar_i are ',...
+            'the effective per-person values). Dependability (absolute) is exact for the person-averaged error.'];
     case 't4_g'
         titleText = 'Rocha Table 4 | Splits one-facet | Relative (G)';
         template = ['% As t4_d but the relative coefficient. Generalizability is a downward-biased ',...

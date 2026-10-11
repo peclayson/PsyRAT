@@ -50,11 +50,21 @@ function report = psyrat_report(psyrat_data, varargin)
 %   mismatch against).
 % 'marginal' - dynamic-reliability only: 0 (default) typical-person surface
 %   (delta_p = 0), 1 population-average (lognormal). Forced to 0 (with a warning
-%   from psyrat_dynrel_summary) for the difference variants.
+%   from psyrat_dynrel_summary) for the difference variants and for every gamma
+%   run (where it never selected anything).
+% 'surface_target' - gamma non-difference dynamic designs (11/26/14/27) only
+%   (Q9): [] (default) the population-marginal primary, or 'typical_person'
+%   for the zero-person-effects companion. Any other value, or any value on a
+%   design it does not apply to, errors in psyrat_dynrel_summary. It never
+%   changes the per-participant table.
 % 'reltype'  - dynamic-reliability two-facet variants only: 1/2/3 coefficient of
 %   equivalence / stability / both-random (default 3). Inert otherwise.
-% 'nocc'     - dynamic-reliability two-facet variants only: occasion n' ([]
-%   default -> 1; or 'observed'). Inert otherwise.
+% 'nocc'     - dynamic-reliability two-facet variants: occasion n' ([] -> 1;
+%   or 'observed'). For case24 splits, []/'observed' uses available occasions;
+%   a numeric count requests a balanced reference-design projection.
+% 'obs'      - nonparallel splits only: explicit split-count projection. Case24
+%   labels any numeric obs/nocc as a balanced projection; blank uses observed
+%   available-occasion scores with participant-averaged universe/error variances.
 % 'ngrid'    - dynamic-reliability only: grid points per dimension axis for the
 %   reliability surface (default 25).
 % 'ntrials'  - one-facet / test-retest families only: the maximum trial count for
@@ -71,14 +81,24 @@ function report = psyrat_report(psyrat_data, varargin)
 %                  families; .diffcurve [difference-score reliability vs n trials]
 %                  additionally for the two-facet difference design 'trt_diff';
 %                  .variance/.sscoeffs for the subject-level (sserr)
-%                  family; .coefficients/.varcomp for the data-splits family;
+%                  family, plus .sscoeffs_diff [per-participant difference
+%                  rows, see psyrat_sscoeffs_diff_table] for ic_diff_sserrvar;
+%                  .coefficients/.varcomp for the data-splits family;
 %                  .surface/.varcomp[/.ssrel] for the dynamic-reliability family).
 %   .provenance  - the provenance header lines (cell of char).
-%   .gbias_note  - (data-splits only) the generalizability lower-bound caveat,
+%   .gbias_note  - (data-splits only) the relative-coefficient interpretation,
 %                  also written into the header of the exported splits tables.
+%   .design_note / .splits_design - case24 score/model explanation and full
+%                  per-stratum incidence and projection metadata.
+%   .retention_note - distinguishes retained summaries from full-sample references.
 %   .estimand_note - (dynamic-reliability only) the surface estimand (typical
 %                  person vs population average; plus reltype/occasion n' for the
 %                  two-facet variants), also written into each exported header.
+%                  For the gamma non-difference designs it is the explicit
+%                  target caption (psyrat_gamma_target_lines, joined by ' | ').
+%   .gamma_target - (dynamic-reliability only) the explicit Q9/Q8 target
+%                  contract from psyrat_dynrel_summary for the gamma
+%                  non-difference designs; [] otherwise.
 %   .curve_note  - (one-facet / test-retest only) the reliability-vs-n curve
 %                  coefficient label, also written into each exported header. That
 %                  curve is PER-CONDITION on every analysis, the difference designs
@@ -92,11 +112,16 @@ function report = psyrat_report(psyrat_data, varargin)
 %   .sscoeff_note- (subject-level sserr only) the per-subject coefficient label
 %                  (dependability vs generalizability), also written into each
 %                  exported header.
-%   .cutoff_note - (one-facet / test-retest families only) explains the -1
+%   .sscoeffs_diff_note - (ic_diff_sserrvar only) the notes that say what the
+%                  difference rows are, plus an empty-status line for any group
+%                  whose stored difference table has zero rows; written into
+%                  the .sscoeffs_diff file's header only.
+%   .cutoff_note - (one-facet / test-retest families only) explains projections and -1
 %                  sentinel cells the .cutoff table can carry: a cutoff that
 %                  could not be calculated (no trial count in the projected
 %                  range reached the threshold) or one that extrapolates beyond
-%                  every participant's observed count. Empty for a clean run;
+%                  original observed counts. Valid projected values are retained;
+%                  legacy -1 values remain explicitly described. Empty for a clean run;
 %                  also written into each exported header. The GUI raises the
 %                  same two conditions as dialogs (G1).
 %   .strata      - (dynamic-reliability only) the raw psyrat_dynrel_summary
@@ -119,7 +144,7 @@ function report = psyrat_report(psyrat_data, varargin)
 %surface + variance components [+ per-participant table for subject-level
 %variants] via psyrat_dynrel_summary).
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -161,8 +186,13 @@ if isempty(ciperc)
 end
 % Dynamic-reliability passthrough options (inert for the other families).
 marginal = local_opt(varargin,'marginal',0);
+% Q9: explicit gamma surface target ([] -> population-marginal primary;
+% 'typical_person' -> companion). Validated by psyrat_dynrel_summary, which
+% errors on any other value or on a design it does not apply to.
+surface_target = local_opt(varargin,'surface_target',[]);
 reltype  = local_opt(varargin,'reltype',3);
 nocc     = local_opt(varargin,'nocc',[]);
+obs      = local_opt(varargin,'obs',[]); % nonparallel split-count projection
 ngrid    = local_opt(varargin,'ngrid',25);
 % One-facet / test-retest reliability-vs-n curve upper bound (GUI plot default).
 ntrials  = local_opt(varargin,'ntrials',50);
@@ -226,10 +256,14 @@ switch psyrat_analysis_family(report.rel_analysis)
         % Nonparallel data-splits: psyrat_splits_summary reads REL.out directly
         % (no relsummary, like DoD) and is render-free. Assemble the same two
         % tables the splits viewer shows -- reliability coefficients and variance
-        % components -- and surface the generalizability lower-bound caveat.
+        % components -- and surface the score/model interpretation.
         report.analysis = 'splits';
-        [report.tables.coefficients, report.tables.varcomp, report.gbias_note] = ...
-            local_splits_tables(psyrat_data, ciperc);
+        [report.tables.coefficients, report.tables.varcomp, report.gbias_note, ...
+            design_note, splits_design] = local_splits_tables(psyrat_data, ciperc, obs, nocc);
+        if ~isempty(splits_design)
+            report.design_note = design_note;
+            report.splits_design = splits_design;
+        end
     case 'dynrel'
         % Dynamic reliability (Rast & Clayson): psyrat_dynrel_summary reads
         % REL.out directly (no relsummary, like splits/DoD) and is render-free.
@@ -240,8 +274,9 @@ switch psyrat_analysis_family(report.rel_analysis)
         % shared classifier (same accepted set as psyrat_dynrel_summary).
         report.analysis = 'dynrel';
         [report.tables.surface, report.tables.varcomp, ssrelTbl, ...
-            report.estimand_note, report.strata] = ...
-            local_dynrel_tables(psyrat_data, ciperc, marginal, reltype, nocc, ngrid);
+            report.estimand_note, report.strata, report.gamma_target] = ...
+            local_dynrel_tables(psyrat_data, ciperc, marginal, reltype, nocc, ...
+            ngrid, surface_target);
         if ~isempty(ssrelTbl)
             report.tables.ssrel = ssrelTbl;
         end
@@ -302,10 +337,27 @@ switch psyrat_analysis_family(report.rel_analysis)
                 % psyrat_savesscoeffs CSV loop). No reliability-vs-n curve here --
                 % the GUI shows a per-subject plot for sserr, not a D-study
                 % projection, and the per-subject table already carries those values.
+                %
+                % G107: the subject-level difference analysis adds a third table,
+                % .sscoeffs_diff, with the per-participant DIFFERENCE rows (the
+                % rows whose flag decides retention); .sscoeffs keeps the event
+                % rows unchanged. Every group's stored difference table is
+                % validated FIRST, before any table is built or any file is
+                % written: a missing or malformed one raises an error naming the
+                % group and how to rebuild the summary.
+                isdiff = strcmp(report.rel_analysis,'ic_diff_sserrvar');
+                if isdiff
+                    [difftable, diffinfo] = psyrat_sscoeffs_diff_table(psyrat_data);
+                end
                 report.tables.variance = ...
                     psyrat_variancet('psyrat_data',psyrat_data,'gui',0);
                 [report.tables.sscoeffs, report.sscoeff_note] = ...
                     local_sserr_table(psyrat_data);
+                if isdiff
+                    report.tables.sscoeffs_diff = difftable;
+                    report.sscoeffs_diff_note = [diffinfo.notes, ...
+                        diffinfo.emptyStatus(~cellfun(@isempty,diffinfo.emptyStatus))]';
+                end
             otherwise
                 error('psyrat_report:unsupported', ...
                     ['Headless reporting is not yet available for analysis ''%s''. ', ...
@@ -369,8 +421,11 @@ if isempty(ciperc_stored) && ...
         isfield(report.tables, 'dod_varcomp') || ...
         strcmp(report.analysis, 'splits') || ...
         strcmp(report.analysis, 'dynrel'))
-    report.ci_width_note = sprintf('Credible interval: %g%%', 100 * ciperc);
+    report.ci_width_note = sprintf('%s: %g%%',psyrat_interval_label(psyrat_data.rel),100 * ciperc);
 end
+
+% Population labels are carried by the summary, independently of cutoff support.
+report.retention_note = local_retention_note(psyrat_data);
 
 % ---- write the tables, if requested ----------------------------------------
 if ~isempty(outdir)
@@ -380,7 +435,7 @@ if ~isempty(outdir)
     [base, base_is_default] = local_base(psyrat_data);
     % Analysis-specific caveats (when present) are appended to every exported
     % table header so a standalone CSV/XLSX records them: the data-splits
-    % generalizability lower-bound caveat and the dynamic-reliability surface
+    % score/model interpretation and the dynamic-reliability surface
     % estimand. Concatenated (not grown in a loop) to keep checkcode clean.
     extralines = {};
     %the resolved-width line leads: it plays the role the provenance block's
@@ -390,6 +445,12 @@ if ~isempty(outdir)
     end
     if isfield(report,'gbias_note') && ~isempty(report.gbias_note)
         extralines = [extralines; {report.gbias_note}];
+    end
+    if isfield(report,'design_note') && ~isempty(report.design_note)
+        extralines = [extralines; {report.design_note}];
+    end
+    if ~isempty(report.retention_note)
+        extralines = [extralines; {report.retention_note}];
     end
     if isfield(report,'estimand_note') && ~isempty(report.estimand_note)
         extralines = [extralines; {report.estimand_note}];
@@ -446,7 +507,13 @@ if ~isempty(outdir)
         end
     end
     for k = 1:numel(fn)
-        head = local_table_header(psyrat_data, fn{k}, report.provenance, extralines);
+        % G107: the difference table's notes (and any empty-group status) head
+        % that file only, so the other tables' headers are unchanged
+        tablelines = extralines;
+        if strcmp(fn{k},'sscoeffs_diff') && isfield(report,'sscoeffs_diff_note')
+            tablelines = [extralines; report.sscoeffs_diff_note];
+        end
+        head = local_table_header(psyrat_data, fn{k}, report.provenance, tablelines);
         psyrat_write_table(fpaths{k}, head, report.tables.(fn{k}));
         report.files{end+1} = fpaths{k};
     end
@@ -503,28 +570,9 @@ end
 end
 
 function note = local_cutoff_note(psyrat_data)
-%Explain the -1 sentinel cells a .cutoff table can carry (G1, 2026-09-05).
-%
-%psyrat_relsummary records two D-study failures per group x event cell and
-%raises neither as an error. When no trial count in the projected range
-%reaches the threshold it stores trlcutoff = -1 and writes -1 into the
-%coefficient slots ("Cutoff not calculable"); when the cutoff it found exceeds
-%every participant's observed count it keeps that cutoff and overwrites the
-%coefficient slots with -1 ("Extrapolation beyond data"). The one-facet
-%families keep the coefficient under event(eloc).rel, the test-retest families
-%under event(eloc).relcutoff. The GUI turns both conditions into dialogs from
-%relerr, psyrat_relsummary's second output; a headless caller sees no dialog,
-%and relerr is not stored on psyrat_data, so this function reads the per-cell
-%markers instead, which is the contract psyrat_relsummary's own header states
-%("No cutoff was found is recorded by relerr.trlcutoff and by the per-cell
-%event(eloc).trlcutoff = -1"). A coefficient of exactly -1 cannot come out of
-%the ratio formulas, so the value is unambiguous as a marker. The cells are
-%left as the GUI export prints them (both routes write the same -1); this note
-%only explains them. The difference-score row of the one-facet and two-facet
-%difference designs carries its own search result in diffscore.trlcutoff.ntrials,
-%-1 when no count up to the search bound reached the threshold
-%(psyrat_diffrel_trlcutoff). Returns '' for a clean run. The wording mirrors the
-%two GUI dialogs, with the coefficient named as the summary named it.
+%G88: valid projections retain their coefficients and explicit support flags.
+%Older summaries used -1 for extrapolation; explain those without inventing a
+%recoverable coefficient. The not-calculable sentinel remains distinct.
 note = '';
 if ~isfield(psyrat_data,'relsummary') || ~isstruct(psyrat_data.relsummary) || ...
         ~isfield(psyrat_data.relsummary,'group')
@@ -543,6 +591,7 @@ if isfield(relsummary,'gcoeff_name') && strcmpi(relsummary.gcoeff_name,'gen')
 end
 notcalc = {};
 extrap = {};
+legacy_extrap = {};
 for gloc = 1:numel(relsummary.group)
     grp = relsummary.group(gloc);
     if isfield(grp,'event') && isstruct(grp.event)
@@ -560,18 +609,21 @@ for gloc = 1:numel(relsummary.group)
             hascoef = isnumeric(coef) && isscalar(coef);
             if hascut && ev.trlcutoff == -1
                 notcalc{end+1} = label; %#ok<AGROW>
-            elseif hascut && hascoef && coef == -1 && ev.trlcutoff > 0
+            elseif hascut && ev.trlcutoff > 0 && isfield(ev,'cutoff_extrapolated') && ev.cutoff_extrapolated
                 extrap{end+1} = sprintf('%s (cutoff %d)', label, ev.trlcutoff); %#ok<AGROW>
+            elseif hascut && hascoef && coef == -1 && ev.trlcutoff > 0
+                legacy_extrap{end+1} = sprintf('%s (cutoff %d)', label, ev.trlcutoff); %#ok<AGROW>
             end
         end
     end
-    %the difference-score row (one-facet and two-facet difference designs)
     if isfield(grp,'diffscore') && isstruct(grp.diffscore) && ...
-            isfield(grp.diffscore,'trlcutoff') && isstruct(grp.diffscore.trlcutoff) && ...
-            isfield(grp.diffscore.trlcutoff,'ntrials')
-        dn = grp.diffscore.trlcutoff.ntrials;
-        if isnumeric(dn) && isscalar(dn) && dn == -1
-            notcalc{end+1} = local_cutoff_cell_label(grp, struct('name','diff score')); %#ok<AGROW>
+            isfield(grp.diffscore,'trlcutoff') && isstruct(grp.diffscore.trlcutoff)
+        dc = grp.diffscore.trlcutoff;
+        label = local_cutoff_cell_label(grp,struct('name','diff score'));
+        if isfield(dc,'ntrials') && isnumeric(dc.ntrials) && isscalar(dc.ntrials) && dc.ntrials == -1
+            notcalc{end+1} = label; %#ok<AGROW>
+        elseif isfield(dc,'cutoff_extrapolated') && dc.cutoff_extrapolated
+            extrap{end+1} = label; %#ok<AGROW>
         end
     end
 end
@@ -583,13 +635,48 @@ if ~isempty(notcalc)
         L.Unit, relname, strjoin(notcalc, ', '), L.units, lower(L.Cutoff));
 end
 if ~isempty(extrap)
-    parts{end+1} = sprintf(['Note: not enough %s are present in the current data ' ...
-        'for %s; the cutoff is an extrapolation beyond the data and the ' ...
-        'coefficient cells print -1.'], L.units, strjoin(extrap, ', '));
+    parts{end+1} = sprintf(['Note: the cutoff for %s is an extrapolation beyond the data, ' ...
+        'judged against original observed counts before retention filtering. The valid ' ...
+        'projected coefficient is retained and labeled; it is not a retained-sample estimate.'], ...
+        strjoin(extrap, ', '));
+end
+if ~isempty(legacy_extrap)
+    parts{end+1} = sprintf(['Note: the stored cutoff for %s is an extrapolation beyond the data; ' ...
+        'legacy coefficient cells print -1. Recompute the summary from fitted draws ' ...
+        'to recover the projected coefficient and original-support metadata.'],strjoin(legacy_extrap, ', '));
 end
 if ~isempty(parts)
     note = strjoin(parts, newline);
 end
+end
+
+function note = local_retention_note(pd)
+%Raw references remain available while ordinary empty-retention rows show dashes.
+note = '';
+if ~isfield(pd,'relsummary') || ~isfield(pd.relsummary,'group'); return; end
+parts = {};
+for g = 1:numel(pd.relsummary.group)
+    grp = pd.relsummary.group(g);
+    if ~isfield(grp,'event'); continue; end
+    for e = 1:numel(grp.event)
+        ev = grp.event(e);
+        if ~isfield(ev,'summary_population'); continue; end
+        label = local_cutoff_cell_label(grp,ev);
+        if isfield(grp,'goodids') && isempty(grp.goodids)
+            parts{end+1} = sprintf(['%s: no participants retained; ordinary retained-sample ' ...
+                'summary cells show dashes. Raw values and full-sample reference provenance ' ...
+                '(when available) are preserved in the summary.'],label); %#ok<AGROW>
+        elseif strcmp(ev.summary_population,'full_sample_reference')
+            parts{end+1} = sprintf('%s: displayed values are a full-sample reference.',label); %#ok<AGROW>
+        end
+    end
+    if isfield(grp,'diffscore') && isfield(grp.diffscore,'summary_population') && ...
+            strcmp(grp.diffscore.summary_population,'full_sample_reference')
+        parts{end+1} = sprintf('%s: the difference coefficient is a full-sample reference.', ...
+            local_cutoff_cell_label(grp,struct('name','diff score'))); %#ok<AGROW>
+    end
+end
+if ~isempty(parts); note = strjoin(parts,newline); end
 end
 
 function label = local_cutoff_cell_label(grp, ev)
@@ -693,16 +780,21 @@ vcTbl  = vertcat(vcParts{:});
 adm_note = psyrat_admissibility_note([admParts{:}]);
 end
 
-function [coefTbl, vcTbl, gbias_note] = local_splits_tables(psyrat_data, ciperc)
+function [coefTbl, vcTbl, gbias_note, design_note, designs] = local_splits_tables(psyrat_data, ciperc, obs, nocc)
 %Build the nonparallel data-splits coefficient and variance-component tables,
-%render-free, at the observed design (no D-study projection -- split means lose
-%the item partition). psyrat_splits_summary is the compute layer; this only
+%render-free, at the observed score or explicit balanced reference projection.
+%Split means do not identify a projection over item counts. psyrat_splits_summary is the compute layer; this only
 %flattens its per-stratum summary into tables, mirroring the splits viewer's
 %coefDisplay/concatVarcomp assembly (psyrat_startview_splits) so the headless
 %output matches the GUI export.
 rel = psyrat_data.rel;
-summ = psyrat_splits_summary(rel, 'CI', ciperc, 'obs', [], 'nocc', []);
+summ = psyrat_splits_summary(rel, 'CI', ciperc, 'obs', obs, 'nocc', nocc);
 gbias_note = summ.gbias_note;
+design_note = ''; designs = [];
+if isfield(summ,'design_note')
+    design_note = summ.design_note;
+    designs = [summ.strata.design];
+end
 
 % Unit label ('split' vs 'trial') for the n-per-person column, matching the
 % viewer. Real splits results carry rel.splits (= 2/3); default to nonparallel
@@ -726,8 +818,9 @@ coefTbl = cell2table(data,'VariableNames',matlab.lang.makeValidName(cols));
 vcTbl = psyrat_splits_varcomp_concat(summ);
 end
 
-function [surfaceTbl, vcTbl, ssrelTbl, estimand_note, strata] = ...
-    local_dynrel_tables(psyrat_data, ciperc, marginal, reltype, nocc, ngrid)
+function [surfaceTbl, vcTbl, ssrelTbl, estimand_note, strata, gamma_target] = ...
+    local_dynrel_tables(psyrat_data, ciperc, marginal, reltype, nocc, ngrid, ...
+    surface_target)
 %Build the dynamic-reliability tables, render-free, from psyrat_dynrel_summary
 %(the compute layer, which reads REL.out directly -- no relsummary / D-study
 %projection). Three outputs: the flattened G(z)/D(z)/ICC reliability surface (the
@@ -739,10 +832,24 @@ function [surfaceTbl, vcTbl, ssrelTbl, estimand_note, strata] = ...
 %contract). The varcomp/ssrel ports match what the viewer's save callbacks
 %export (the raw concatenated tables), not the on-screen display subset.
 rel = psyrat_data.rel;
+%'surface_target' is forwarded only when set, so a Gaussian or difference
+%run never receives an option the summary would (rightly) reject.
+targetArg = {};
+if ~isempty(surface_target)
+    targetArg = {'surface_target',surface_target};
+end
 summ = psyrat_dynrel_summary(rel,'CI',ciperc,'marginal',marginal,...
-    'reltype',reltype,'nocc',nocc,'ngrid',ngrid);
+    'reltype',reltype,'nocc',nocc,'ngrid',ngrid,targetArg{:});
 strata = summ.strata;
 ndim = summ.ndim;
+%the explicit Q9/Q8 target contract ([] for every non-gamma-non-difference
+%design), returned so a scripted caller can read the resolved target and
+%subject scheme programmatically rather than parsing the note
+if isfield(summ,'gamma_target')
+    gamma_target = summ.gamma_target;
+else
+    gamma_target = [];
+end
 
 % ---- reliability surface: one row per z grid point (port of the plot) -------
 % G and D are structs with ll/pt/ul over the grid; ICCg/ICCd point estimates.
@@ -830,7 +937,7 @@ ssrelTbl = psyrat_dynrel_ssrel_concat(summ);
 %silently drop the "reference curve only" and per-participant clauses. The
 %wording is identical across families - the per-cell log residual SD
 %conditioning statement is true for both, because the scale submodel is
-%log-linked in both (SCIENTIFIC_FORMULA_AUDIT.md section 26). The surfaces
+%log-linked in both (development formula audit, section 26). The surfaces
 %are the TYPICAL-PERSON estimand (all person effects at zero); presence-keyed
 %on the dod_labels carrier. Mirrors psyrat_startview_dynrel.
 isdodsum = isfield(summ,'dod_labels') && ~isempty(summ.dod_labels);
@@ -864,11 +971,19 @@ elseif isdodrun
             '; per-participant table = undetermined without the '...
             'dod_labels carrier'];
     end
+elseif ~isempty(gamma_target)
+    %gamma NON-difference designs (11/26/14/27): the explicit Q9/Q8 target
+    %contract names the surface target (primary or companion), the
+    %per-participant conditioning set and remainder scheme (a LEGACY unstamped
+    %analysis-27 result is reported as such), and the count sources. Shared
+    %writer with the viewer export header and the figure caption.
+    estimand_note = strjoin(psyrat_gamma_target_lines(summ,~isempty(ssrelTbl))',' | ');
 elseif isfield(summ,'isgamma') && summ.isgamma
-    %Neither gamma parameterization has a delta_p, so the Gaussian typical-person
-    %label never applies: the surface is always marginal over the person scale
-    %population, and any per-participant table reported alongside it is the
-    %complementary CONDITIONAL read-out.
+    %Remaining gamma designs (two-event difference / copula): neither gamma
+    %parameterization has a delta_p, so the Gaussian typical-person label
+    %never applies: the surface is marginal over the person scale population,
+    %and any per-participant table reported alongside it is the complementary
+    %CONDITIONAL read-out.
     %
     %WHAT they marginalize and condition on DIFFERS, so the wording is branched.
     %Under gammascale = 1 there is no log-residual submodel at all and the person
@@ -1322,7 +1437,7 @@ head = cell(0,1);
 head{end+1,1} = sprintf('Table Generated on %s', char(datetime('now')));
 % Always identify the toolbox version: the version the data were created with
 % when recorded, otherwise the running toolbox version, otherwise 'unknown'.
-head{end+1,1} = sprintf('PsyRAT Toolbox v%s', local_toolbox_version(psyrat_data));
+head{end+1,1} = sprintf('PsyRAT v%s', local_toolbox_version(psyrat_data));
 dataset = local_dataset_name(psyrat_data);
 if ~isempty(dataset)
     head{end+1,1} = sprintf('Dataset: %s', dataset);

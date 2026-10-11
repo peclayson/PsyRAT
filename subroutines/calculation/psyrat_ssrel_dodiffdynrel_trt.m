@@ -3,7 +3,7 @@ function [ssrel,drawlevel] = psyrat_ssrel_dodiffdynrel_trt(varargin)
 %differences reliability for the TWO-FACET (trials x occasions) GAUSSIAN
 %design (analysis 29, ic_dodiff_dynrel_sserrvar_trt, family = 'gaussian').
 %The Gaussian sibling of PSYRAT_SSREL_DODIFFDYNREL_TRT_GAMMA_LS. Derivation:
-%SCIENTIFIC_FORMULA_AUDIT.md section 26.
+%development formula audit, section 26 (not shipped).
 %
 %[ssrel,drawlevel] = psyrat_ssrel_dodiffdynrel_trt('b',b,...)
 %

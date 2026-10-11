@@ -1,5 +1,5 @@
 function psyrat_printversions
-%Print the versions of Matlab, PsyRAT Toolbox, and dependents to command
+%Print the versions of Matlab, PsyRAT, and dependents to command
 %window
 %
 %
@@ -15,7 +15,7 @@ function psyrat_printversions
 % The versions are printed in the command window
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ versions.matlabprocessmanager = [];
 %store verion of Matlab
 versions.matlab = version;
 
-%store version of the PsyRAT Toolbox
+%store version of PsyRAT
 versions.PsyRAT = psyrat_defineversion;
 
 %check the version of cmdstan
@@ -99,7 +99,7 @@ versions.matlabprocessmanager = str(c_beg(1)+1:c_beg(2)-1);
 
 %print information to command window
 fprintf('\nMatlab version: %s', versions.matlab);
-fprintf('\nPsyRAT Toolbox version: %s', versions.PsyRAT);
+fprintf('\nPsyRAT version: %s', versions.PsyRAT);
 fprintf('\nCmdStan version: %s', versions.cmdstan);
 fprintf('\nMatlabStan version: %s', versions.matlabstan);
 fprintf('\nMatlab Process Manager version: %s\n\n',...

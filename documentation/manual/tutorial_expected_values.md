@@ -101,9 +101,9 @@ dependability-versus-trials figure at 50 trials.
 | t1_cut70_grpB_incerr_n | 32 |
 | t1_cut70_grpB_inccor_dep | .70 [.57, .82] |
 | t1_cut70_grpB_inccor_n | 20 |
-| t1_cut80_grpA_incerr_n | 38 (extrapolated: -1 sentinel in the coefficient cell) |
+| t1_cut80_grpA_incerr_n | 38 (projection beyond observed data) |
 | t1_cut80_grpA_inccor_n | 31 |
-| t1_cut80_grpB_incerr_n | 55 (extrapolated: -1 sentinel in the coefficient cell) |
+| t1_cut80_grpB_incerr_n | 55 (projection beyond observed data) |
 | t1_cut80_grpB_inccor_n | 34 |
 | t1_plot_grpA_incerr_dep50 | .84 |
 | t1_plot_grpA_inccor_dep50 | .87 |

@@ -3,7 +3,7 @@ function out = psyrat_rel_dodiffdynrel_trt(varargin)
 %difference-of-differences for the TWO-FACET (trials x occasions) GAUSSIAN
 %design (analysis 29, family = 'gaussian'). The Gaussian sibling of
 %PSYRAT_REL_DODIFFDYNREL_TRT_GAMMA_LS. Derivation:
-%SCIENTIFIC_FORMULA_AUDIT.md section 26.
+%development formula audit, section 26 (not shipped).
 %
 % out = psyrat_rel_dodiffdynrel_trt('b',b,...,'sd_occ',sd_occ,...
 %   'nocc',nocc,'reltype',reltype,...)

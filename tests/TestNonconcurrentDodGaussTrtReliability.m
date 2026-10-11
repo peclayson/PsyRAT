@@ -12,7 +12,7 @@ classdef TestNonconcurrentDodGaussTrtReliability < matlab.unittest.TestCase
     % Same evidence posture as the one-facet class: no frozen fixture lane
     % exists for this arm (the reference bundle is gamma end to end); live
     % CmdStan planted-truth recovery is the load-bearing end-to-end gate
-    % (SCIENTIFIC_FORMULA_AUDIT.md section 26, owner ruling 3 - extended to
+    % (development formula audit, section 26, owner ruling 3 - extended to
     % the two-facet analysis exactly as the gamma-29 ruling was).
     %
     % Tolerances: AbsTol 1e-10 for longhand closed-form transcriptions;

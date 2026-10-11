@@ -34,7 +34,7 @@ function post = psyrat_copula_rho_grid(sufficient, uniform_draw, grid_points, ..
 % more accurate and far cheaper than sampling, and it removes Monte Carlo noise
 % from the conditional summaries entirely. This is what makes the two-stage
 % (cut/modular) construction computationally feasible; see
-% documentation/modular_cut_copula_workflow.md.
+% manual section 15.5.
 %
 % The posterior is evaluated in logs and shifted by its maximum before
 % exponentiating, so the normalization is stable even when the likelihood is

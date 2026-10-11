@@ -13,11 +13,10 @@ classdef TestGammaTrtSserrRecovery < PsyRATTestBase
     % end under real CmdStan.
     %
     % WHAT IT PINS. The design is Persons x Trials x Occasions with a per-subject
-    % dispersion. Under gamma the per-subject residual is NOT a separate
-    % location-scale parameter (as it is for the Gaussian analysis 25) - it is
-    % implied by each person's own log-mean u_p and log-nu v_p:
+    % dispersion. The Q8 residual retains the population highest-order mean
+    % remainder R and each person's conditional observation variance:
     %
-    %   sigma_pot_e2(p) = 2*exp(2*(alpha + u_p) + 2*V_w - (beta + v_p)),
+    %   sigma_pot_e2(p) = R + 2*exp(2*(alpha + u_p) + 2*V_w - (beta + v_p)),
     %   V_w = s_o^2 + s_t^2 + s_po^2 + s_pt^2 + s_ot^2.
     %
     % The interesting failure mode is the one TestTrtSserrRecovery pins for the
@@ -33,8 +32,8 @@ classdef TestGammaTrtSserrRecovery < PsyRATTestBase
     % Data are simulated from the crossed model the family assumes: a LOG-LINKED
     % mean carrying six independent normal random effects, a PERSON-VARYING
     % log-nu correlated with the person mean, and a scaled-chi-square observation
-    % Y = (mu/nu_p) * chi2(nu_p). Base MATLAB randn only (the chi-square draw is a
-    % sum of squared standard normals), so no Statistics Toolbox is required.
+    % Y = gamrnd(nu_p/2,2*mu/nu_p). Statistics Toolbox is required. This
+    % replaces the historical rounded-df DGP; earlier evidence remains preserved.
     %
     % Like the other CmdStan integration tests, dependency setup uses assumptions,
     % so the test is skipped cleanly (Incomplete, not Failed) when CmdStan or
@@ -49,12 +48,17 @@ classdef TestGammaTrtSserrRecovery < PsyRATTestBase
 
     methods (TestClassTeardown)
         function cleanupCmdStanArtifacts(testCase)
+            if ~isempty(PsyRAT2CRecoveryCapture.captureDir())
+                return; % Root artifact guard preserves all scratch, including capture failures.
+            end
             localCleanupArtifacts(localCmdStanOutputDir(testCase.projectRoot()));
         end
     end
 
     methods (Test)
         function testSubjectLevelGammaTestRetestRecovers(testCase)
+            testCase.assumeTrue(logical(exist('gamrnd','file')), ...
+                'Statistics Toolbox required for continuous gamma recovery.');
             % ---- Known truth (log expected-score scale) ----
             alpha = log(5.5);   % log-mean grand intercept
             beta  = log(20);    % log-nu grand intercept (population dispersion)
@@ -74,6 +78,8 @@ classdef TestGammaTrtSserrRecovery < PsyRATTestBase
 
             % ---- Fit ----
             rel = localRunTrtSserrGamma(testCase, dataTbl, 'recov_gamma_trtss');
+            PsyRAT2CRecoveryCapture.capture('static25_lognu',rel,truth,dataTbl, ...
+                fullfile(localCmdStanOutputDir(testCase.projectRoot()),'recov_gamma_trtss'));
 
             % Provenance: the gamma SUBJECT-LEVEL test-retest path really ran.
             testCase.verifyEqual(rel.analysis, 'trt_sserrvar');
@@ -147,31 +153,14 @@ classdef TestGammaTrtSserrRecovery < PsyRATTestBase
                 'planted truth. Either the conditional conversion is wrong or the ', ...
                 'ind_sdlog columns are misaligned against id2.'], r));
 
-            % SCALE, and tight enough to discriminate a wrong V_w. A correlation is
-            % rank-invariant, so it cannot see a constant multiplicative error -
-            % and every plausible V_w mistake IS a constant factor on err_ss:
-            %   err_ss is proportional to exp(V_w), so leaking the person facet in
-            %   (V_w + s_p^2) multiplies every residual by exp(s_p^2).
-            % Rather than assert an absolute window (which would have to be wide
-            % enough to absorb posterior uncertainty and would then admit the
-            % mutant), assert that the observed ratio is closer to 1 than to the
-            % mutant's prediction, on the log scale. This is self-calibrating: it
-            % tightens automatically as s_p grows.
-            % SCALE -- and an explicit statement of what this run can and cannot
-            % discriminate. Comparing the recovered residual scale against the
-            % planted one does NOT test V_w here: at nocc = 4 the whole observed
-            % scale is estimated high (measured on this exact design: sig_occ x1.66,
-            % sig_occxid x1.56, the observed grand mean x1.28, mean crossed ratio
-            % x1.32), which shifts the log-residual by ~+0.133 with a CORRECT V_w.
-            % A person-facet leak into V_w would add only s_p^2 = 0.1225. The
-            % estimation bias is larger than the mutant signal, so any assertion on
-            % this quantity either fails on correct code or admits the mutant.
-            % Report it, do not gate on it.
+            % Broad scale sanity only. The historical rounded-df fixture showed
+            % small-sample inflation, so its unchanged .60 log-scale bound is
+            % not a decisive pooling check. Under Q8, R is additive: a V_w error
+            % no longer multiplies the complete residual by a constant factor.
+            % The exact retained-draw identities below establish the encoding.
             logErrHat = mean(rel.out.pop_sdlog + indsdlog, 1);      % 1 x NSUB
             logShift  = mean(logErrHat(:) - log(truth.errSsTrue(:)));
-            fprintf(['[gamma trt sserr recovery] log-residual shift = %+.4f ', ...
-                '(small-sample scale inflation; a V_w person-facet leak would add ', ...
-                '%+.4f, which this design cannot separate)\n'], logShift, sP^2);
+            fprintf('[gamma trt sserr recovery] pooled log-residual shift = %+.4f (broad scale sanity only)\n',logShift);
             testCase.verifyLessThan(abs(logShift), 0.60, ...
                 ['Recovered per-subject residuals are wildly off scale - far beyond ', ...
                 'the small-sample inflation this design exhibits.']);
@@ -195,10 +184,17 @@ classdef TestGammaTrtSserrRecovery < PsyRATTestBase
             testCase.verifyGreaterThan(mean(abs(gd.V_w - (V_w_expected + mean(s_p_draws(:,1)).^2))), 1e-6, ...
                 'V_w appears to include a person-facet term.');
             % (ii) the typical-subject reference residual must be the closed form
-            %      2*exp(2*alpha + 2*V_w - log(nu)) that pop_sdlog encodes.
-            popExpected = 2 .* exp(2.*gd.alpha + 2.*gd.V_w - log(gd.nu));
-            testCase.verifyEqual(gd.sigma_pot_e2_pop, popExpected, 'RelTol', 1e-10);
-            testCase.verifyEqual(rel.out.pop_sdlog, 0.5 .* log(gd.sigma_pot_e2_pop), ...
+            %      R+2*exp(2*alpha+2*V_w-log(nu)) in the composite encoding.
+            % P = mu_observed^2 * expm1(s_p_log^2); gro_sds stores observed SD.
+            muDraw = rel.out.mu(:,1);
+            spLog = sqrt(log1p(s_p_draws(:,1).^2 ./ muDraw.^2));
+            kDraw = PsyRAT2CMeanReference(gd.alpha,spLog,gd.s_o,gd.s_t, ...
+                gd.s_po,gd.s_pt,gd.s_ot);
+            popExpected = kDraw(:,7) + 2 .* exp(2.*gd.alpha + 2.*gd.V_w - log(gd.nu));
+            testCase.verifyEqual(gd.sigma_pot_e2_pop,popExpected,'RelTol',1e-10);
+            testCase.verifyEqual(rel.out.gamma_resid{1}.obs_var_typ, ...
+                popExpected-kDraw(:,7),'RelTol',1e-10);
+            testCase.verifyEqual(rel.out.pop_sdlog, 0.5 .* log(popExpected), ...
                 'RelTol', 1e-12, ...
                 'pop_sdlog is not the log-SD encoding of the typical-subject residual.');
 
@@ -269,8 +265,8 @@ meas = zeros(nrow, 1);
 r = 0;
 for p = 1:nsub
     nu_p = exp(beta + v_p(p));
-    % integer df for the toolbox-free chi-square draw
-    nuDraw = max(2, round(nu_p));
+    % Continuous model-matched gamma DGP; preserve old rounded-df evidence.
+    nuDraw = nu_p;
     for o = 1:nocc
         for t = 1:ntrl
             r = r + 1;
@@ -279,8 +275,7 @@ for p = 1:nsub
             logmu = alpha + u_p(p) + u_o(o) + u_t(t) ...
                 + u_po(p, o) + u_pt(p, t) + u_ot(t, o);
             mu = exp(logmu);
-            chi2 = sum(randn(nuDraw, 1).^2);      % chi-square(nuDraw)
-            meas(r) = (mu / nuDraw) * chi2;       % E = mu, Var = 2 mu^2 / nuDraw
+            meas(r) = gamrnd(nuDraw/2, 2*mu/nuDraw);
         end
     end
 end
@@ -288,17 +283,17 @@ tbl = table(ids, meas, time, 'VariableNames', {'id', 'meas', 'time'});
 
 % ---- Closed-form observed-scale truth ----
 % Group components at the population log-mean intercept (estimand-invariant).
-vc = psyrat_gamma_varcomps_trt(alpha, sP, sO, sT, sPO, sPT, sOT, exp(beta), sV, ...
-    rho * sP * sV);
-truth.sd = struct( ...
-    'bp',  sqrt(vc.sigma_p2),  'bo',  sqrt(vc.sigma_o2), ...
-    'bt',  sqrt(vc.sigma_t2),  'txp', sqrt(vc.sigma_pt2), ...
-    'oxp', sqrt(vc.sigma_po2), 'txo', sqrt(vc.sigma_ot2));
+% Frozen support-union products, independent of production converters.
+k = PsyRAT2CMeanReference(alpha,sP,sO,sT,sPO,sPT,sOT);
+truth.sd = struct('bp',sqrt(k(1)),'bo',sqrt(k(2)),'bt',sqrt(k(3)), ...
+    'oxp',sqrt(k(4)),'txp',sqrt(k(5)),'txo',sqrt(k(6)));
+truth.mean_remainder = k(7);
 
 % Per-person residual SD: the conditional formula under test, evaluated at each
 % planted (u_p, v_p). V_w excludes the person main effect sP^2 by construction.
 V_w = sO^2 + sT^2 + sPO^2 + sPT^2 + sOT^2;
-truth.errSsTrue = sqrt(2 .* exp(2*(alpha + u_p) + 2*V_w - (beta + v_p)));
+truth.errSsTrue = sqrt(truth.mean_remainder + ...
+    2 .* exp(2*(alpha + u_p) + 2*V_w - (beta + v_p)));
 truth.u_p = u_p;
 truth.v_p = v_p;
 end

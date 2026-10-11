@@ -26,11 +26,33 @@ function summary = psyrat_dynrel_summary(REL,varargin)
 %            (REL.out.ntrials).
 % marginal - 0 (default): typical person, delta_p = 0. 1: lognormal
 %            population-average over the person scale random effect.
+%            GAUSSIAN non-difference designs only; forced to 0 (with a
+%            warning) under gamma, where it never selected anything.
+% surface_target - gamma NON-difference designs (11/26/14/27) only (Q9):
+%            'population_marginal' (the primary, observation variance
+%            marginalized over the person scale population before each draw's
+%            coefficient - the surface every earlier version reported) or
+%            'typical_person' (companion; zero person effects in the
+%            observation variance). [] resolves to a VALID stored
+%            REL.out.gamma_target.surface_target when present, else to the
+%            population-marginal primary (psyrat_gamma_target_resolve). Any
+%            other value, or any value on another design, is an error. Never
+%            changes the per-participant table.
+% remainder_scheme - analysis 27 only (Q8 legacy routing): overrides the
+%            per-participant remainder scheme resolved from the result's
+%            gamma_target stamp. Requesting the v2 scheme on an unstamped
+%            (pre-Q8) saved result is refused; migrate the file instead.
 %
 %Output (struct)
 % summary.ndim, summary.dim_names, summary.ci, summary.marginal
 % summary.isgamma, summary.isgamma_ls - family/parameterization flags for the
 %            viewer and headless report (estimand labeling)
+% summary.surface_target - the resolved gamma surface target ('' otherwise)
+% summary.gamma_target - the explicit target contract for the gamma
+%            non-difference designs ([] otherwise): gamma_target_version,
+%            surface_target, subject_target, remainder_scheme,
+%            parameterization, count_source, surface_count_source, analysis,
+%            subject_scheme_source, stamped (see psyrat_gamma_target_resolve)
 % summary.copula_labels - modular cut-copula provenance labels (any design
 %            storing REL.out.copula; copied from the stage output via
 %            psyrat_copula_labels; [] for every other design). Programmatic
@@ -87,6 +109,15 @@ marginal = psyrat_opt(varargin,'marginal',0);
 %coefficient (see psyrat_rel_trt).
 nocc_in  = psyrat_opt(varargin,'nocc',[]);
 reltype  = psyrat_opt(varargin,'reltype',3);
+%Q9: explicit SURFACE target for the gamma non-difference dynamic designs
+%(11/26/14/27): [] -> 'population_marginal' (the primary, and what every
+%earlier version reported); 'typical_person' -> the companion. The Gaussian
+%'marginal' Boolean above is a different mechanism (delta_p) and keeps its
+%meaning. Q8 legacy routing: 'remainder_scheme' overrides the per-participant
+%remainder scheme resolved from the result's gamma_target stamp (see
+%psyrat_gamma_target_resolve); both are validated and never coerced.
+surface_target_in   = psyrat_opt(varargin,'surface_target',[]);
+remainder_scheme_in = psyrat_opt(varargin,'remainder_scheme',[]);
 
 %accepted-set guard: psyrat_analysis_family is the single source of truth for
 %which analysis strings are dynamic-reliability variants (shared with the GUI
@@ -186,7 +217,7 @@ issubjtrt = strcmp(REL.analysis,'ic_diff_dynrel_sserrvar_trt');
 %28 one-facet / 29 two-facet): four margins fitted jointly, all six
 %observation-level residual covariances fixed to zero by the estimand. Two
 %families exist - gamma location-scale and, since the 2026-08-20 owner ruling,
-%Gaussian (SCIENTIFIC_FORMULA_AUDIT.md section 26) - and the engine guards
+%Gaussian (development formula audit, section 26) - and the engine guards
 %guarantee no other stamp can be produced; the branch below still fails loudly
 %by name on any other arrival rather than misrouting - the exact
 %silent-fall-through failure the case-13 note in the isdiff branch records.
@@ -231,11 +262,14 @@ isgamma = isfield(REL,'family') && strcmp(REL.family,'gamma');
 isgamma_ls = isgamma && isfield(REL,'gammascale') && isequal(REL.gammascale,2);
 if marginal == 1 && isgamma
     warning('dynrel:marginalgamma',...
-        ['The population-average (marginal) toggle does not apply to the gamma / '...
-        'scaled-chi-square dynamic reliability. The non-difference and '...
-        'two-event designs report the estimand-#2 (marginal-over-dispersion) '...
-        'surface; the nonconcurrent difference-of-differences designs report '...
-        'the typical-person surface (all person effects at zero).']);
+        ['The Gaussian population-average (marginal) toggle does not apply to '...
+        'the gamma / scaled-chi-square dynamic reliability and is ignored. '...
+        'The non-difference designs report the population-marginal surface '...
+        'by default and select the typical-person companion with '...
+        '''surface_target'' (Q9); the two-event designs report the '...
+        'estimand-#2 (marginal-over-dispersion) surface; the nonconcurrent '...
+        'difference-of-differences designs report the typical-person surface '...
+        '(all person effects at zero).']);
     marginal = 0;
 end
 %the nonconcurrent DoD designs report the typical-person surface in EVERY
@@ -249,6 +283,20 @@ if marginal == 1 && (isdod || isdodtrt)
         'typical-person surface (marginal = 0).']);
     marginal = 0;
 end
+
+%Q9/Q8: resolve the explicit gamma surface target and the per-participant
+%remainder scheme for the gamma NON-difference dynamic designs (11/26/14/27),
+%independently of the Boolean above. Precedence: the explicit option > a
+%VALID stored REL.out.gamma_target.surface_target (so a saved explicit choice
+%reopens to itself) > the historical population-marginal default. A gamma
+%result's historical marginal = 0 (and a requested marginal = 1, forced off
+%above) both mean the population surface and are never reinterpreted. A
+%present stamp is validated for version and coherence with this design and
+%refused loudly if wrong (psyrat_gamma_target_resolve). gamma_target is []
+%for every other design, and an explicit 'surface_target' or
+%'remainder_scheme' on such a design is an error, not a silent no-op.
+[surface_target, gamma_target] = psyrat_gamma_target_resolve(REL, ...
+    surface_target_in, remainder_scheme_in, obs_in);
 
 ndim = REL.ndim;
 nstrata = numel(REL.out.labels);
@@ -275,6 +323,15 @@ summary.isgamma = isgamma;
 %psyrat_ssrel_dynrel_gamma_ls), so carrying the log-nu wording over would be
 %wrong in both halves.
 summary.isgamma_ls = isgamma_ls;
+%Q9/Q8 explicit target contract (gamma non-difference designs only; [] and ''
+%otherwise). gamma_target carries: gamma_target_version (2), surface_target,
+%subject_target, remainder_scheme, parameterization, count_source,
+%surface_count_source, analysis, subject_scheme_source and stamped. The viewer,
+%plot, headless report and exports read THIS carrier, never isgamma alone, to
+%name the surface and the per-participant target. Legacy (unstamped) results
+%are flagged, not relabeled.
+summary.surface_target = surface_target;
+summary.gamma_target = gamma_target;
 %The modular cut-copula provenance labels ride on the summary as the
 %PROGRAMMATIC carrier for API consumers and tests; the PRINTED disclosure the
 %user sees (report + export headers + viewer note) is emitted by
@@ -487,7 +544,7 @@ for s = 1:nstrata
             %family selects the calculator set; the argument contracts are
             %identical (the slot SEMANTICS differ - Gaussian b/mu_ss* are
             %natural-scale means - and each calculator carries the right
-            %interpretation; see SCIENTIFIC_FORMULA_AUDIT.md section 26)
+            %interpretation; see development formula audit, section 26)
             if isgamma_ls
                 rel = psyrat_rel_dodiffdynrel_trt_gamma_ls(dargs{:},facetargs{:},...
                     'nocc',nocc4,'reltype',reltype);
@@ -781,21 +838,23 @@ for s = 1:nstrata
                 'sig_occ',s_occ,'sig_trl',s_trl,'sig_trlxid',s_txp,...
                 'sig_occxid',s_oxp,'sig_trlxocc',s_txo,...
                 'ndim',ndim,'z1',z1,'obs',obs,'nocc',nocc_used,...
-                'reltype',reltype,'CI',ciperc};
+                'reltype',reltype,'CI',ciperc,'surface_target',surface_target};
             if ndim == 2; args = [args, {'z2',z2}]; end %#ok<AGROW>
             rel = psyrat_rel_dynrel_trt_gamma_ls(args{:});
             varcomp = local_gamma_trt_ls_varcomp_table(alpha0,logsig0,bmean,bsig,...
                 sig_p,sig_sd,s_occ,s_trl,s_txp,s_oxp,s_txo,rho_ps,ndim,...
-                REL.dim_names,ciperc);
+                REL.dim_names,ciperc,surface_target);
             sige_pt = rel.sige_pt;
             if issubjnondiff_trt
                 %per-participant CONDITIONAL phi_s(z)/G_s(z) (analysis 27 under
-                %gammascale = 2). Each participant's residual is read straight off
-                %ind_sdlog rather than derived from two person effects, and their
-                %own log-mean does not enter at all.
+                %gammascale = 2). Each participant's observation variance is
+                %read straight off ind_sdlog rather than derived from two person
+                %effects, and their own log-mean does not enter at all. The
+                %remainder scheme (Q8 v2 or legacy for unstamped saved results)
+                %comes from gamma_target; the surface target never reaches it.
                 ssrel = local_subj_ssrel_table_nondiff_trt_gamma_ls(REL,s,alpha0,...
                     bmean,logsig0,bsig,sig_p,s_occ,s_trl,s_txp,s_oxp,s_txo,...
-                    reltype,nocc_used,ciperc,ndim);
+                    reltype,nocc_used,ciperc,ndim,gamma_target.remainder_scheme);
             end
         elseif isgamma
             %gamma / scaled-chi-square two-facet dynrel: no log-residual submodel;
@@ -817,25 +876,27 @@ for s = 1:nstrata
                 'sig_occ',s_occ,'sig_trl',s_trl,'sig_trlxid',s_txp,...
                 'sig_occxid',s_oxp,'sig_trlxocc',s_txo,...
                 'ndim',ndim,'z1',z1,'obs',obs,'nocc',nocc_used,...
-                'reltype',reltype,'CI',ciperc};
+                'reltype',reltype,'CI',ciperc,'surface_target',surface_target};
             if ndim == 2; args = [args, {'z2',z2}]; end %#ok<AGROW>
             rel = psyrat_rel_dynrel_trt_gamma(args{:});
             varcomp = local_gamma_trt_varcomp_table(alpha0,lognu0,bmean,bnu,...
                 sig_p,sig_v,s_occ,s_trl,s_txp,s_oxp,s_txo,rho_pv,ndim,...
-                REL.dim_names,ciperc);
+                REL.dim_names,ciperc,surface_target);
             sige_pt = rel.sige_pt;
             if issubjnondiff_trt
                 %per-participant CONDITIONAL phi_s(z)/G_s(z) for the gamma
                 %two-facet subject-level design (analysis 27). The surface above
-                %is the population reference and MARGINALIZES over person
-                %dispersion (estimand #2); this table instead CONDITIONS on each
-                %participant's own log-mean (ind_bs) and log-nu (ind_nu) at their
-                %own z. Unlike the Gaussian branch below, the five crossed facet
-                %SDs cannot be broadcast as population values: under gamma they
-                %also move with z - see psyrat_ssrel_dynrel_trt_gamma.
+                %is the population reference at the selected surface target;
+                %this table instead CONDITIONS on each participant's own log-mean
+                %(ind_bs) and log-nu (ind_nu) at their own z, with the remainder
+                %scheme from gamma_target (Q8 v2, or legacy for an unstamped
+                %saved result). The surface target never reaches it. Unlike the
+                %Gaussian branch below, the five crossed facet SDs cannot be
+                %broadcast as population values: under gamma they also move
+                %with z - see psyrat_ssrel_dynrel_trt_gamma.
                 ssrel = local_subj_ssrel_table_nondiff_trt_gamma(REL,s,alpha0,...
                     bmean,lognu0,bnu,sig_p,s_occ,s_trl,s_txp,s_oxp,s_txo,...
-                    reltype,nocc_used,ciperc,ndim);
+                    reltype,nocc_used,ciperc,ndim,gamma_target.remainder_scheme);
             end
         else
             gro   = cell2mat(REL.out.gro_sds{s});      % draws x 2 (sigma_p, sigma_delta_p)
@@ -1085,11 +1146,12 @@ for s = 1:nstrata
         rho_ps  = chol(:,2,1);
         args = {'alpha0',alpha0,'b',bmean,'logsig0',logsig0,'b_sigma',bsig,...
             'sig_p',sig_p,'sig_sd',sig_sd,'sig_i',sig_i,...
-            'ndim',ndim,'z1',z1,'obs',obs,'CI',ciperc};
+            'ndim',ndim,'z1',z1,'obs',obs,'CI',ciperc,...
+            'surface_target',surface_target};
         if ndim == 2; args = [args, {'z2',z2}]; end %#ok<AGROW>
         rel = psyrat_rel_dynrel_gamma_ls(args{:});
         varcomp = local_gamma_ls_varcomp_table(alpha0,logsig0,bmean,bsig,...
-            sig_p,sig_sd,sig_i,rho_ps,ndim,REL.dim_names,ciperc);
+            sig_p,sig_sd,sig_i,rho_ps,ndim,REL.dim_names,ciperc,surface_target);
         sige_pt = rel.sige_pt;
         if issubjnondiff
             %per-participant CONDITIONAL phi_s(z)/G_s(z) (analysis 26 under
@@ -1119,11 +1181,12 @@ for s = 1:nstrata
         rho_pv = chol(:,2,1);
         args = {'alpha0',alpha0,'b',bmean,'lognu0',lognu0,'b_nu',bnu,...
             'sig_p',sig_p,'sig_v',sig_v,'rho_pv',rho_pv,'sig_i',sig_i,...
-            'ndim',ndim,'z1',z1,'obs',obs,'CI',ciperc};
+            'ndim',ndim,'z1',z1,'obs',obs,'CI',ciperc,...
+            'surface_target',surface_target};
         if ndim == 2; args = [args, {'z2',z2}]; end %#ok<AGROW>
         rel = psyrat_rel_dynrel_gamma(args{:});
         varcomp = local_gamma_varcomp_table(alpha0,lognu0,bmean,bnu,...
-            sig_p,sig_v,sig_i,rho_pv,ndim,REL.dim_names,ciperc);
+            sig_p,sig_v,sig_i,rho_pv,ndim,REL.dim_names,ciperc,surface_target);
         sige_pt = rel.sige_pt;
         if issubjnondiff
             %per-participant CONDITIONAL phi_s(z)/G_s(z) for the gamma
@@ -1565,12 +1628,15 @@ ssinfo = REL.out.ssinfo{s};
 ind_bs = cell2mat(REL.out.ind_bs{s});   % draws x NSUB (person log-mean u_p)
 ind_nu = cell2mat(REL.out.ind_nu{s});   % draws x NSUB (person log-nu  v_p)
 nsub   = size(ind_bs,2);
-%local_dynrel_ssinfo builds id2 = sort(unique(id2)) = 1:NSUB, so row r <-> id2 r
-%<-> draw column r. Assert to fail loudly if a future change breaks that
-%invariant and starts assigning per-person values to the wrong participants.
-assert(isequal(ssinfo.id2(:)',1:nsub),...
+%local_dynrel_ssinfo builds id2 = sort(unique(id2)) = 1:NSUB, and the
+%calculator indexes the draw columns by idtable.id2 (psyrat_ssrel_dynrel_gamma
+%:181), so any ROW ORDER that is a permutation of 1:NSUB is valid, as the
+%two-facet helpers already accept. The assert guards the id2/column
+%correspondence (no missing, repeated or out-of-range id2), which is what
+%would assign one participant's effects to another.
+assert(isequal(sort(ssinfo.id2(:)'),1:nsub),...
     'psyrat_dynrel_summary:ssinfoindex',...
-    'ssinfo.id2 must equal 1:NSUB in row order.');
+    'ssinfo.id2 must be a permutation of 1:NSUB.');
 
 [gen,dep] = psyrat_ssrel_dynrel_gamma('alpha0',alpha0,'b',bmean,...
     'lognu0',lognu0,'b_nu',bnu,'sig_p',sig_p,'sig_i',sig_i,...
@@ -1595,12 +1661,12 @@ function ssrel = local_subj_ssrel_table_nondiff_gamma_ls(REL,s,alpha0,bmean,...
 ssinfo = REL.out.ssinfo{s};
 ind_sd = cell2mat(REL.out.ind_sdlog{s});   % draws x NSUB (person log-sigma w_p)
 nsub   = size(ind_sd,2);
-%local_dynrel_ssinfo builds id2 = sort(unique(id2)) = 1:NSUB, so row r <-> id2 r
-%<-> draw column r. Assert to fail loudly if a future change breaks that
-%invariant and starts assigning per-person values to the wrong participants.
-assert(isequal(ssinfo.id2(:)',1:nsub),...
+%the calculator indexes the draw columns by idtable.id2
+%(psyrat_ssrel_dynrel_gamma_ls :196), so any row order that is a permutation
+%of 1:NSUB is valid; the assert guards the id2/column correspondence only.
+assert(isequal(sort(ssinfo.id2(:)'),1:nsub),...
     'psyrat_dynrel_summary:ssinfoindex',...
-    'ssinfo.id2 must equal 1:NSUB in row order.');
+    'ssinfo.id2 must be a permutation of 1:NSUB.');
 
 [gen,dep] = psyrat_ssrel_dynrel_gamma_ls('alpha0',alpha0,'b',bmean,...
     'logsig0',logsig0,'b_sigma',bsig,'sig_p',sig_p,'sig_i',sig_i,...
@@ -1610,7 +1676,8 @@ ssrel = local_pack_ssrel_nondiff(ssinfo,gen,dep);
 end
 
 function ssrel = local_subj_ssrel_table_nondiff_trt_gamma(REL,s,alpha0,bmean,...
-    lognu0,bnu,sig_p,s_occ,s_trl,s_txp,s_oxp,s_txo,reltype,nocc,ciperc,ndim)
+    lognu0,bnu,sig_p,s_occ,s_trl,s_txp,s_oxp,s_txo,reltype,nocc,ciperc,ndim,...
+    remainder_scheme)
 %Per-participant subject-level TWO-FACET non-difference dynamic reliability for
 %stratum s under the GAMMA / scaled-chi-square family (analysis 27). The gamma
 %twin of local_subj_ssrel_table_nondiff_trt.
@@ -1633,19 +1700,23 @@ assert(isequal(sort(ssinfo.id2(:)'),1:nsub),...
     'psyrat_dynrel_summary:ssinfoindex',...
     'ssinfo.id2 must be a permutation of 1:NSUB.');
 
+%remainder_scheme is resolved by psyrat_gamma_target_resolve from the result's
+%gamma_target stamp (Q8 v2) or its absence (legacy observation-only), never
+%from the surface target.
 [gen,dep] = psyrat_ssrel_dynrel_trt_gamma('alpha0',alpha0,'b',bmean,...
     'lognu0',lognu0,'b_nu',bnu,'sig_p',sig_p,...
     'sig_occ',s_occ,'sig_trl',s_trl,'sig_occxid',s_oxp,...
     'sig_trlxid',s_txp,'sig_trlxocc',s_txo,...
     'ind_bs',ind_bs,'ind_nu',ind_nu,'idtable',ssinfo,'ndim',ndim,...
-    'reltype',reltype,'nocc',nocc,'CI',ciperc);
+    'reltype',reltype,'nocc',nocc,'CI',ciperc,...
+    'remainder_scheme',remainder_scheme);
 
 ssrel = local_pack_ssrel_nondiff(ssinfo,gen,dep);
 end
 
 function ssrel = local_subj_ssrel_table_nondiff_trt_gamma_ls(REL,s,alpha0,...
     bmean,logsig0,bsig,sig_p,s_occ,s_trl,s_txp,s_oxp,s_txo,reltype,nocc,...
-    ciperc,ndim)
+    ciperc,ndim,remainder_scheme)
 %Per-participant subject-level TWO-FACET non-difference dynamic reliability for
 %stratum s under the LOCATION-SCALE GAMMA family (analysis 27, gammascale = 2).
 %The location-scale twin of local_subj_ssrel_table_nondiff_trt_gamma, and the
@@ -1674,12 +1745,14 @@ assert(isequal(sort(ssinfo.id2(:)'),1:nsub),...
     'psyrat_dynrel_summary:ssinfoindex',...
     'ssinfo.id2 must be a permutation of 1:NSUB.');
 
+%remainder_scheme: see the log-nu twin above.
 [gen,dep] = psyrat_ssrel_dynrel_trt_gamma_ls('alpha0',alpha0,'b',bmean,...
     'logsig0',logsig0,'b_sigma',bsig,'sig_p',sig_p,...
     'sig_occ',s_occ,'sig_trl',s_trl,'sig_occxid',s_oxp,...
     'sig_trlxid',s_txp,'sig_trlxocc',s_txo,...
     'ind_sd',ind_sd,'idtable',ssinfo,'ndim',ndim,...
-    'reltype',reltype,'nocc',nocc,'CI',ciperc);
+    'reltype',reltype,'nocc',nocc,'CI',ciperc,...
+    'remainder_scheme',remainder_scheme);
 
 ssrel = local_pack_ssrel_nondiff(ssinfo,gen,dep);
 end
@@ -1872,7 +1945,7 @@ nocc = max(1,round(nocc));
 end
 
 function T = local_gamma_varcomp_table(alpha0,lognu0,bmean,bnu,sig_p,sig_v,...
-    sig_i,rho_pv,ndim,dim_names,ciperc)
+    sig_i,rho_pv,ndim,dim_names,ciperc,surface_target)
 %Posterior summaries of the reported gamma / scaled-chi-square dynrel components
 %(one-facet). The gamma family estimates LOG-scale parameters, so the log-mean /
 %log-nu intercepts, the person (mean, log-nu) SDs and their correlation, the
@@ -1880,7 +1953,7 @@ function T = local_gamma_varcomp_table(alpha0,lognu0,bmean,bnu,sig_p,sig_v,...
 %scale, alongside the OBSERVED-score variance components at z = 0 (via
 %psyrat_gamma_varcomps, estimand #2) for interpretability. Reporting s_v / rho_pv
 %/ the log-nu slopes matters: the dispersion side is weakly identified at low
-%trial counts (mean-coupled residual; see SCIENTIFIC_FORMULA_AUDIT.md section 18).
+%trial counts (mean-coupled residual; see development formula audit, section 18).
 [add,getT] = local_vc_accumulator(ciperc);
 
 alpha0 = alpha0(:); lognu0 = lognu0(:);
@@ -1892,7 +1965,17 @@ cov_pv = rho_pv .* sig_p .* sig_v;
 vc0 = psyrat_gamma_varcomps(alpha0, sig_p, sig_i, exp(lognu0), sig_v, cov_pv);
 add('Between-person variance at z = 0 (observed score)','sigma^2_p(0)', vc0.sigma_p2);
 add('Trial main-effect variance at z = 0 (observed score)','sigma^2_i(0)', vc0.sigma_i2);
-add('Residual variance at z = 0 (observed score)','sigma^2_pi,e(0)', vc0.sigma_pi_e2);
+%residual row at the SELECTED surface target (Q9), the same construction
+%psyrat_rel_dynrel_gamma uses per z: population person x trial mean term M
+%plus C_pop (marginal) or C_typ (both person effects zero).
+if strcmp(surface_target,'typical_person')
+    resid0 = max(vc0.var_mu - vc0.sigma_p2 - vc0.sigma_i2, 0) ...
+        + 2 .* exp(2.*alpha0 + 2.*sig_i.^2 - lognu0);
+else
+    resid0 = vc0.sigma_pi_e2;
+end
+add(['Residual variance at z = 0 (observed score' ...
+    local_surface_target_suffix(surface_target) ')'],'sigma^2_pi,e(0)', resid0);
 
 %log-scale parameters (what the model estimates)
 add('Log-mean grand intercept (z = 0)','alpha(0)', alpha0);
@@ -1916,7 +1999,7 @@ T = getT();
 end
 
 function T = local_gamma_ls_varcomp_table(alpha0,logsig0,bmean,bsig,sig_p,...
-    sig_sd,sig_i,rho_ps,ndim,dim_names,ciperc)
+    sig_sd,sig_i,rho_ps,ndim,dim_names,ciperc,surface_target)
 %Posterior summaries of the reported LOCATION-SCALE gamma dynrel components
 %(one-facet, gammascale = 2). The location-scale twin of
 %local_gamma_varcomp_table.
@@ -1943,7 +2026,15 @@ sig_p = sig_p(:); sig_sd = sig_sd(:); sig_i = sig_i(:); rho_ps = rho_ps(:);
 vc0 = psyrat_gamma_varcomps_ls(alpha0, sig_p, sig_i, logsig0, sig_sd);
 add('Between-person variance at z = 0 (observed score)','sigma^2_p(0)', vc0.sigma_p2);
 add('Trial main-effect variance at z = 0 (observed score)','sigma^2_i(0)', vc0.sigma_i2);
-add('Residual variance at z = 0 (observed score)','sigma^2_pi,e(0)', vc0.sigma_pi_e2);
+%residual row at the SELECTED surface target (Q9): M + C_pop (marginal) or
+%M + exp(2 log sigma(0)) (typical person, w_p = 0), as psyrat_rel_dynrel_gamma_ls.
+if strcmp(surface_target,'typical_person')
+    resid0 = max(vc0.var_mu - vc0.sigma_p2 - vc0.sigma_i2, 0) + exp(2.*logsig0);
+else
+    resid0 = vc0.sigma_pi_e2;
+end
+add(['Residual variance at z = 0 (observed score' ...
+    local_surface_target_suffix(surface_target) ')'],'sigma^2_pi,e(0)', resid0);
 
 %log-scale parameters (what the model estimates)
 add('Log-mean grand intercept (z = 0)','alpha(0)', alpha0);
@@ -2279,7 +2370,7 @@ T = getT();
 end
 
 function T = local_gamma_trt_varcomp_table(alpha0,lognu0,bmean,bnu,sig_p,sig_v,...
-    s_occ,s_trl,s_txp,s_oxp,s_txo,rho_pv,ndim,dim_names,ciperc)
+    s_occ,s_trl,s_txp,s_oxp,s_txo,rho_pv,ndim,dim_names,ciperc,surface_target)
 %Posterior summaries of the reported gamma / scaled-chi-square dynrel components
 %(trial + occasion two-facet). The gamma family estimates LOG-scale parameters,
 %so the log-mean / log-nu intercepts, person (mean, log-nu) SDs and correlation,
@@ -2287,7 +2378,7 @@ function T = local_gamma_trt_varcomp_table(alpha0,lognu0,bmean,bnu,sig_p,sig_v,.
 %the log scale, alongside the OBSERVED-score variance components at z = 0 (via
 %psyrat_gamma_varcomps_trt, estimand #2). Reporting s_v / rho_pv / the log-nu
 %slopes matters: the dispersion side is weakly identified at low trial counts
-%(mean-coupled residual; see SCIENTIFIC_FORMULA_AUDIT.md section 18).
+%(mean-coupled residual; see development formula audit, section 18).
 [add,getT] = local_vc_accumulator(ciperc);
 
 alpha0 = alpha0(:); lognu0 = lognu0(:);
@@ -2308,7 +2399,18 @@ add('Trial variance at z = 0 (observed score)','sigma^2_t(0)', vc0.sigma_t2);
 add('Trial x person variance at z = 0','sigma^2_pt(0)', vc0.sigma_pt2);
 add('Occasion x person variance at z = 0','sigma^2_po(0)', vc0.sigma_po2);
 add('Trial x occasion variance at z = 0','sigma^2_ot(0)', vc0.sigma_ot2);
-add('Residual variance at z = 0 (observed score)','sigma^2_pto,e(0)', vc0.sigma_res2);
+%residual row at the SELECTED surface target (Q9), as psyrat_rel_dynrel_trt_gamma
+%per z: R + C_pop (marginal, the subtraction sigma_res2) or R + C_typ (both
+%person effects zero) with R from psyrat_gamma_mean_remainder_trt.
+if strcmp(surface_target,'typical_person')
+    V_w0 = s_occ.^2 + s_trl.^2 + s_oxp.^2 + s_txp.^2 + s_txo.^2;
+    resid0 = psyrat_gamma_mean_remainder_trt(alpha0, sig_p, s_occ, s_trl, ...
+        s_oxp, s_txp, s_txo) + 2 .* exp(2.*alpha0 + 2.*V_w0 - lognu0);
+else
+    resid0 = vc0.sigma_res2;
+end
+add(['Residual variance at z = 0 (observed score' ...
+    local_surface_target_suffix(surface_target) ')'],'sigma^2_pto,e(0)', resid0);
 
 %log-scale parameters (what the model estimates)
 add('Log-mean grand intercept (z = 0)','alpha(0)', alpha0);
@@ -2336,7 +2438,8 @@ T = getT();
 end
 
 function T = local_gamma_trt_ls_varcomp_table(alpha0,logsig0,bmean,bsig,sig_p,...
-    sig_sd,s_occ,s_trl,s_txp,s_oxp,s_txo,rho_ps,ndim,dim_names,ciperc)
+    sig_sd,s_occ,s_trl,s_txp,s_oxp,s_txo,rho_ps,ndim,dim_names,ciperc,...
+    surface_target)
 %Posterior summaries of the reported LOCATION-SCALE gamma dynrel components
 %(trial + occasion two-facet, gammascale = 2). The location-scale twin of
 %local_gamma_trt_varcomp_table, and the two-facet sibling of
@@ -2378,7 +2481,17 @@ add('Trial variance at z = 0 (observed score)','sigma^2_t(0)', vc0.sigma_t2);
 add('Trial x person variance at z = 0','sigma^2_pt(0)', vc0.sigma_pt2);
 add('Occasion x person variance at z = 0','sigma^2_po(0)', vc0.sigma_po2);
 add('Trial x occasion variance at z = 0','sigma^2_ot(0)', vc0.sigma_ot2);
-add('Residual variance at z = 0 (observed score)','sigma^2_pto,e(0)', vc0.sigma_res2);
+%residual row at the SELECTED surface target (Q9), as
+%psyrat_rel_dynrel_trt_gamma_ls per z: R + C_pop (marginal) or
+%R + exp(2 log sigma(0)) (typical person, w_p = 0).
+if strcmp(surface_target,'typical_person')
+    resid0 = psyrat_gamma_mean_remainder_trt(alpha0, sig_p, s_occ, s_trl, ...
+        s_oxp, s_txp, s_txo) + exp(2.*logsig0);
+else
+    resid0 = vc0.sigma_res2;
+end
+add(['Residual variance at z = 0 (observed score' ...
+    local_surface_target_suffix(surface_target) ')'],'sigma^2_pto,e(0)', resid0);
 
 %log-scale parameters (what the model estimates)
 add('Log-mean grand intercept (z = 0)','alpha(0)', alpha0);
@@ -2529,7 +2642,7 @@ function T = local_dod_varcomp_table(bb,bsig,bdim,bsigdim,sdid,corid,...
 %family (analyses 28/29, family = 'gaussian'), the sibling of
 %local_gamma_dod_varcomp_table_ls below. Under the identity link the person
 %and facet SDs ARE observed-scale quantities and are constant in z
-%(SCIENTIFIC_FORMULA_AUDIT.md section 26), so - unlike the gamma table's
+%(development formula audit, section 26), so - unlike the gamma table's
 %log-scale disclaimer - these rows are the observed-scale components
 %themselves. The residual row stays exp(bsig).^2: the scale submodel is
 %log-linked in both families. Argument shapes as the gamma sibling; bb is a
@@ -2722,4 +2835,13 @@ warning('dynrel:dodinvalidity',...
     'summary.strata(s).dod_flags and the per-participant invalid_frac '...
     'columns.'],...
     char(string(label)),flags.n_invalid,flags.n_evals,flags.n_invalid_std);
+end
+
+function sfx = local_surface_target_suffix(surface_target)
+%Label suffix naming the surface target a residual row was computed at.
+if strcmp(surface_target,'typical_person')
+    sfx = '; typical-person surface';
+else
+    sfx = '; population-marginal surface';
+end
 end

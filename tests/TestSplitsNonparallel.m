@@ -9,7 +9,10 @@ classdef TestSplitsNonparallel < PsyRATTestBase
     % occasions, harmonic-mean items-per-split n_i) from REL.data; the tests build
     % a synthetic REL with a KNOWN design and verify both that the summary
     % recovered that design and that the coefficients/SEMs match the oracle fed
-    % the same design. Single-draw inputs collapse the credible interval to the
+    % the same design. The single-occasion design is derived independently by
+    % PsyRATAccuracyOracle.splitsEffectiveDesign (per-person error terms
+    % averaged over persons, Q7), which no longer mirrors the summary's own
+    % reduction. Single-draw inputs collapse the credible interval to the
     % point estimate for exact checks; one test uses a draw vector to exercise the
     % interval path.
 
@@ -20,11 +23,13 @@ classdef TestSplitsNonparallel < PsyRATTestBase
         function testSingleOccasionMatchesOracle(testCase)
             p = localSinglePars();
             REL = localSingleREL(p);
-            [nsplit,nbar_i] = localSingleDesign(REL);
+            [nsplit,nbar_i] = PsyRATAccuracyOracle.splitsEffectiveDesign( ...
+                REL.data.id, REL.data.weight);
             s = psyrat_splits_summary(REL, 'CI', .95);
 
-            % the summary recovered the known observed design
-            testCase.verifyEqual(s.strata(1).nsplit, nsplit);
+            % the summary recovered the known observed design (the balanced
+            % fixture: the effective count is the common count, 4)
+            testCase.verifyEqual(s.strata(1).nsplit, nsplit, 'AbsTol', 1e-12);
             testCase.verifyEqual(s.strata(1).nocc, 1);
             testCase.verifyEqual(s.strata(1).nbar_i, nbar_i, 'AbsTol', 1e-12);
 
@@ -63,12 +68,79 @@ classdef TestSplitsNonparallel < PsyRATTestBase
             p.sig_ps = abs(1.4 + 0.3 * randn(300,1));
             p.sig_err = abs(2.8 + 0.5 * randn(300,1));
             REL = localSingleREL(p);
-            [nsplit,nbar_i] = localSingleDesign(REL);
+            [nsplit,nbar_i] = PsyRATAccuracyOracle.splitsEffectiveDesign( ...
+                REL.data.id, REL.data.weight);
             s = psyrat_splits_summary(REL, 'CI', .90);
             c = s.strata(1).coef(1);
             G = row3(@() PsyRATAccuracyOracle.splitsSingle(2, p.sig_u, ...
                 p.sig_trl, p.sig_ps, p.sig_err, nsplit, nbar_i, .90));
             testCase.verifyEqual(c.G, G, 'AbsTol', 1e-12);
+        end
+
+        % ---- unequal split counts per person (post-beta review PBA-06; Q7) ----
+
+        function testUnequalSplitCountsUsePersonAveragedError(testCase)
+            % Two persons: S = 2 splits with n = [1 2] items, and S = 4 splits
+            % with n = 100 each. Per-person absolute error variances are
+            % (1 + 2.25)/2 + 9*(1 + 1/2)/4 = 5 and 3.25/4 + 9*(4/100)/16 = 0.835;
+            % their mean is 2.9175, so D = 4/(4 + 2.9175) = 0.578244. Before Q7
+            % the summary used the median count (3) and a harmonic mean pooled
+            % over all six splits (3.8961) and reported D = 0.683371.
+            p = localSinglePars();
+            REL = localSingleREL(p);
+            REL.data = table([1;1;2;2;2;2], (1:6)', [1;2;100;100;100;100], ...
+                'VariableNames', {'id','meas','weight'});
+            s = psyrat_splits_summary(REL, 'CI', .95);
+            st = s.strata(1);
+            c = st.coef(1);
+            testCase.verifyEqual(st.nsplit, 1/mean([1/2 1/4]), 'AbsTol', 1e-12);
+            testCase.verifyEqual(st.nocc, 1);
+            testCase.verifyEqual(c.D(2), 4/(4 + 2.9175), 'AbsTol', 1e-10);
+            testCase.verifyEqual(c.SEM_abs(2)^2, 2.9175, 'AbsTol', 1e-10);
+            % relative error drops sigma_s^2/S_p per person: 4.5 and 0.585, mean 2.5425
+            testCase.verifyEqual(c.G(2), 4/(4 + 2.5425), 'AbsTol', 1e-10);
+            testCase.verifyEqual(c.SEM_rel(2)^2, 2.5425, 'AbsTol', 1e-10);
+            % the independent effective design reproduces the same coefficient
+            % through the unchanged closed form
+            [obs_eff, nbar_eff] = PsyRATAccuracyOracle.splitsEffectiveDesign( ...
+                REL.data.id, REL.data.weight);
+            D = row3(@() PsyRATAccuracyOracle.splitsSingle(1, p.sig_u, ...
+                p.sig_trl, p.sig_ps, p.sig_err, obs_eff, nbar_eff, .95));
+            testCase.verifyEqual(c.D, D, 'AbsTol', 1e-10);
+            testCase.verifyEqual(st.nbar_i, nbar_eff, 'AbsTol', 1e-12);
+        end
+
+        function testBalancedCountsKeepThePooledArithmetic(testCase)
+            % With equal split counts per person the pooled harmonic mean IS the
+            % person-averaged residual scale (1/H_pool = mean_p(1/H_p)), and the
+            % summary must keep today's arithmetic exactly: an integer count and
+            % the pooled harmonic mean, with no tolerance.
+            REL = localSingleREL(localSinglePars());
+            s = psyrat_splits_summary(REL, 'CI', .95);
+            w = double(REL.data.weight);
+            testCase.verifyEqual(s.strata(1).nsplit, 4);
+            testCase.verifyEqual(s.strata(1).nbar_i, numel(w) / sum(1 ./ w));
+            [obs_eff, nbar_eff] = PsyRATAccuracyOracle.splitsEffectiveDesign( ...
+                REL.data.id, w);
+            testCase.verifyEqual(obs_eff, 4, 'AbsTol', 1e-12);
+            testCase.verifyEqual(nbar_eff, numel(w) / sum(1 ./ w), 'AbsTol', 1e-12);
+        end
+
+        function testObsOverrideKeepsProjectionSemantics(testCase)
+            % a user-supplied n' is a balanced projection at that count with the
+            % pooled items per split, unchanged by Q7
+            p = localSinglePars();
+            REL = localSingleREL(p);
+            REL.data = table([1;1;2;2;2;2], (1:6)', [1;2;100;100;100;100], ...
+                'VariableNames', {'id','meas','weight'});
+            s = psyrat_splits_summary(REL, 'CI', .95, 'obs', 6);
+            w = double(REL.data.weight);
+            nbar_pool = numel(w) / sum(1 ./ w);
+            testCase.verifyEqual(s.strata(1).nsplit, 6);
+            testCase.verifyEqual(s.strata(1).nbar_i, nbar_pool, 'AbsTol', 1e-12);
+            D = row3(@() PsyRATAccuracyOracle.splitsSingle(1, p.sig_u, ...
+                p.sig_trl, p.sig_ps, p.sig_err, 6, nbar_pool, .95));
+            testCase.verifyEqual(s.strata(1).coef(1).D, D, 'AbsTol', 1e-10);
         end
 
         % ---- multi occasion (trt_splits, Rocha Table 5) ----------------------
@@ -103,7 +175,9 @@ classdef TestSplitsNonparallel < PsyRATTestBase
                     p.sig_trlxocc, p.sig_posxid, p.sig_err, nsplit, nocc, ...
                     nbar_i, .95));
                 testCase.verifyEqual(c.SEM_abs, semabs, 'AbsTol', 1e-10);
-                testCase.verifyTrue(c.gbias);
+                % Case24 asserts no universal bound or estimation-bias claim.
+                testCase.verifyFalse(c.gbias);
+                testCase.verifyFalse(c.relative_approximation);
             end
         end
 
@@ -205,12 +279,6 @@ REL.out.sig_trl      = p.sig_trl(:);
 REL.out.sig_splitxid = p.sig_ps(:);
 REL.out.sig_err      = p.sig_err(:);
 REL.out.labels = 'measure';
-end
-
-function [nsplit,nbar_i] = localSingleDesign(REL)
-w = double(REL.data.weight);
-nbar_i = numel(w) / sum(1 ./ w);
-nsplit = median(localCounts(REL.data.id));
 end
 
 function p = localTrtPars()

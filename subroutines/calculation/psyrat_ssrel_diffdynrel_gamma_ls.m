@@ -88,7 +88,7 @@ function [gen,dep] = psyrat_ssrel_diffdynrel_gamma_ls(varargin)
 %     which understated every participant's error - the pre-fix behavior and
 %     its magnitude (3.9% to 67% of the retained residual across plausible
 %     designs, 0.02% in the owner's reference ERP data) are finding S17; see
-%     gamma_scale_submodel_decision.md section J.6.
+%     the scale-submodel decision record, section J.6 (not shipped).
 %
 %     TWO CAVEATS THAT SURVIVE THE POOLING.
 %       - The pooled term is the POPULATION-AVERAGE person x trial term at the

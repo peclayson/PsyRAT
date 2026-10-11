@@ -32,7 +32,7 @@ function [allPassed, results] = runAccuracyValidationSuite(varargin)
 % Do not cite a green run of this suite as evidence of accuracy for a design
 % family that none of the three covers.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

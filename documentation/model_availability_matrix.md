@@ -57,7 +57,7 @@ chain is exhaustive, so an unrouted value is unreachable.
 | Mark | Meaning |
 |---|---|
 | **@** | Shipped and supported |
-| **~** | Shipped, but carries a status caveat (EXPERIMENTAL or DEVELOPMENT-ONLY); see section 5 |
+| **~** | Shipped, but carries a status caveat (EXPERIMENTAL, DEVELOPMENT-ONLY or RESTRICTED); see section 5 |
 | **o** | Not built. Open work, or simply unwired; no decision bars it |
 | **X** | Barred by a closed decision (scientific, estimand, or structural); see section 4 |
 | **-** | Not applicable: the axis is meaningless for this cell |
@@ -92,9 +92,9 @@ The residual-coupling axis does not apply: there is only one event.
 | one | group | dynamic | 11 | @ | @ | @ | @ | @ | X [b] |
 | one | subject | dynamic | 26 | @ | @ | @ | @ | o [c] | X [b] |
 | two | group | static | 5 | @ | @ | X [a] | @ | @ | @ |
-| two | subject | static | 25 | @ | @ | @ | @ | o [c] | X [b] |
-| two | group | dynamic | 14 | @ | @ | @ | @ | @ | X [b] |
-| two | subject | dynamic | 27 | @ | @ | @ | @ | o [c] | X [b] |
+| two | subject | static | 25 | @ | ~ [t] | ~ [t] | @ | o [c] | X [b] |
+| two | group | dynamic | 14 | @ | ~ [t] | ~ [t] | @ | @ | X [b] |
+| two | subject | dynamic | 27 | @ | ~ [t] | ~ [t] | @ | o [c] | X [b] |
 
 ### 3B. Two-event difference score: 24 cells, 16 shipped
 
@@ -219,6 +219,9 @@ Neither offers a D-study projection, because they are observed designs.
 - **[s]** The gamma family models **single-trial** dispersion (Var = 2*mu^2/nu). A split
   score is the MEAN of n_i items, so the scaled-chi-square mean-variance relationship does
   not hold on split means. **Closed decision, not a deferral. Do not reopen.**
+- **[t]** **RESTRICTED** (2026-09-21): the six gamma arms of analyses 14, 25 and 27 report their
+  variance components and pooled residual as posterior means that are not recovered at level
+  with few occasions; coefficients usable with a caveat. See section 5.
 
 ---
 
@@ -280,8 +283,9 @@ Design cells with no implementation in Gaussian **or** gamma, rejected upstream:
 
 ## 5. Status flags
 
-Four shipped cells carry a caveat that a bare availability mark would hide: the gamma
-concurrent arms of analyses 7, 8 and 10, and analysis 20. They fall into three kinds.
+Ten shipped cells carry a caveat that a bare availability mark would hide: the gamma
+concurrent arms of analyses 7, 8 and 10, analysis 20, and the six gamma two-facet arms of
+analyses 14, 25 and 27. They fall into four kinds.
 
 **EXPERIMENTAL: per-person log-nu copula (`dispersion=1`), analyses 7, 8, 10 concurrent.**
 Convergence has **not** been established in this repository: one in-repo subject-level fit
@@ -300,6 +304,38 @@ gamma location-scale).** The two-facet configuration has no empirical anchor: th
 reference bundle's own two-facet runs were prepared against a simulated second occasion
 and were never sampled, so unlike the one-facet design there is no completed external fit
 to replay against. **This status currently has no user-facing carrier.**
+
+**RESTRICTED: three gamma two-facet designs, analyses 14, 25 and 27, g-nu and g-LS alike
+(owner rulings 2-4, 2026-09-21; queue rows 3a and 29).** Not a convergence status: the five
+scope captures, the retained control and the first prospective fit converged (the second prospective fit did not, R-hat
+1.1351, ESS 12, recorded beside the finding). With three or four occasion levels in each
+reviewed capture of these designs, the population variance components and the pooled residual
+reported as posterior means are not recovered at level. As variance-scale ratios of posterior
+mean to planted value, the five re-evaluated scope captures put the occasion component at 2.4
+to 12.1 times, the highest-order remainder at 2.2 to 7.2 times and the pooled residual at 1.1 to
+1.9 times, with several 95% intervals excluding the truth; the retained analysis-27 LS capture,
+reviewed as a control, read 1.42, 1.66 and 1.02, which is not a new pass. Two prospective
+analysis-27 fits: occasion component 60.1 and 2.45 times, highest-order remainder 31.6 and 3.35
+times, pooled residual 1.83 and 2.95 times. The pattern is consistent with raw-scale components
+that are exponentials of squared log-scale SDs whose posteriors are right-skewed with few
+occasions. G and D stay within about .03 and .06 for 14 and 25; for 27 both G and D are biased
+downward in the converged fits (medians across participants of the posterior-mean coefficient
+minus its planted value: G about -.05 LS at four occasions and -.10 log-nu at three, D -.13 in
+the converged prospective fit, -.10 log-nu and -.02 in the retained capture; the non-converged
+second prospective fit gave D +.08) with ordering kept (r >= .86).
+Wherever production was compared with an independent enumeration it agreed to 2e-12 or better,
+which shows implementation consistency, not recovery, calibration, identifiability or sampling
+validation. The one-facet gamma dynamic designs
+(11, 26) do not show it. Disclosed on four surfaces from one text source
+(`psyrat_gamma_twofacet_restriction`): a modal notice at Analyze before the save dialog, an
+on-screen note in `psyrat_startview_dynrel` (14, 27) and `psyrat_startview_trt` (25), a note
+above the panels of the saved surface figure (14, 27) and subject plots (25) with a
+`design_maturity` record in the FIG (`psyrat_restricted_figure_note`), and a
+`Design maturity: RESTRICTED` line in every export header. The predeclared LS27 recovery
+assertion (`tests/integration/TestGammaTwoFacetDynrelSserrLsRecovery.m:215`) keeps its
+recorded FAIL as the adjudicated outcome. **The first of the maturity labels with an on-screen
+carrier** (the cut-posterior disclosure below already had one, under the dynrel viewer's
+variance-components table).
 
 **CUT POSTERIOR: analyses 19 and 20 under gamma.** The modular cut-copula workflow fits
 the margins without the copula and estimates the residual coupling post hoc, so the result

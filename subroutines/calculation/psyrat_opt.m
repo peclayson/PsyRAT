@@ -8,7 +8,7 @@ function value = psyrat_opt(args,name,default)
 % shared form of the find(strcmpi(...))-with-default idiom used across the
 % calculation functions. See psyrat_req for the required-argument counterpart.
 %
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

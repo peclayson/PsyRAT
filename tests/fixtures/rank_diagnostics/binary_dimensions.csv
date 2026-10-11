@@ -1,0 +1,15 @@
+name,rows,columns
+antithetic,1000,4
+autocorrelated,1000,4
+different_constants,100,4
+different_means,2000,4
+different_scale,2000,4
+heavy_tail_cauchy,1000,4
+iid,2000,4
+mixed_one_constant,100,4
+nonfinite,100,4
+odd_middle_outlier,101,4
+one_chain,100,1
+same_constant,100,4
+short_six,6,4
+ties,1000,4

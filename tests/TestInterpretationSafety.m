@@ -12,21 +12,25 @@ classdef TestInterpretationSafety < PsyRATTestBase
 
         % ---- Item 1: psyrat_convergence_notice ---------------------------
 
-        function testNoticeEmptyForConvergedNoDivergences(testCase)
+        function testNoticeBoundsConvergedNoDivergences(testCase)
             rel = local_rel(1, 0);
-            testCase.verifyEmpty(psyrat_convergence_notice(rel));
+            [msg,ack]=psyrat_convergence_notice(rel);
+            testCase.verifySubstring(msg,'Final-inference readiness: unassessed');
+            testCase.verifyFalse(ack);
         end
 
         function testNoticeFlagsNonConvergence(testCase)
             rel = local_rel(0, 0);
-            msg = psyrat_convergence_notice(rel);
+            [msg,ack] = psyrat_convergence_notice(rel);
+            testCase.verifyTrue(ack);
             testCase.verifyNotEmpty(msg);
-            testCase.verifyTrue(contains(lower(msg), 'did not converge'));
+            testCase.verifyTrue(contains(lower(msg), 'diagnostic check failed'));
         end
 
         function testNoticeFlagsDivergences(testCase)
             rel = local_rel(1, 7);
-            msg = psyrat_convergence_notice(rel);
+            [msg,ack] = psyrat_convergence_notice(rel);
+            testCase.verifyTrue(ack);
             testCase.verifyNotEmpty(msg);
             testCase.verifyTrue(contains(lower(msg), 'divergent'));
             testCase.verifyTrue(contains(msg, '7'));
@@ -34,16 +38,71 @@ classdef TestInterpretationSafety < PsyRATTestBase
 
         function testNoticeFlagsBothWhenBothApply(testCase)
             rel = local_rel(0, 3);
-            msg = psyrat_convergence_notice(rel);
-            testCase.verifyTrue(contains(lower(msg), 'did not converge'));
+            [msg,ack] = psyrat_convergence_notice(rel);
+            testCase.verifyTrue(ack);
+            testCase.verifyTrue(contains(lower(msg), 'diagnostic check failed'));
             testCase.verifyTrue(contains(lower(msg), 'divergent'));
         end
 
         function testNoticeNaNDivergencesSilent(testCase)
             %NaN means "not assessed" (native engines / unavailable): no notice
-            %about divergences, and a converged run stays silent overall.
+            %about divergences; assessment-scope information remains visible.
             rel = local_rel(1, NaN);
-            testCase.verifyEmpty(psyrat_convergence_notice(rel));
+            testCase.verifySubstring(psyrat_convergence_notice(rel),'Final-inference readiness: unassessed');
+        end
+
+        function testNoticeListsExcludedConstants(testCase)
+            % Q6b (post-beta review PBA-02): the parameters psyrat_checkconv
+            % excluded as constants are named in the notice, even on a
+            % converged run; an empty list adds nothing
+            rel = local_rel(1, 0);
+            rel.out.conv.excluded = {'cor_id[1,1]'; 'rescor[1]'};
+            [msg,ack] = psyrat_convergence_notice(rel);
+            testCase.verifyTrue(ack);
+            testCase.verifyTrue(contains(msg, 'cor_id[1,1], rescor[1]'));
+            testCase.verifyTrue(contains(msg, 'excluded from the convergence check'));
+            testCase.verifyTrue(contains(msg, '2 parameter'));
+            rel.out.conv.excluded = cell(0, 1);
+            testCase.verifySubstring(psyrat_convergence_notice(rel),'Final-inference readiness: unassessed');
+        end
+
+        function testNoticeSourceQualityAcknowledgment(testCase)
+            rel=local_rel(1,0);
+            m=psyrat_diagnostic_metadata({});
+            rel.out.conv.diagnostics={m};
+            [msg,ack]=psyrat_convergence_notice(rel);
+            testCase.verifyFalse(ack);
+            testCase.verifySubstring(msg,'unrecorded');
+            m.format='modern_text'; m.precision_significant_digits=2;
+            rel.out.conv.diagnostics={m};
+            [~,ack]=psyrat_convergence_notice(rel);
+            testCase.verifyTrue(ack);
+            m.format='modern_csv'; m.degraded=false;
+            rel.out.conv.diagnostics={m};
+            [~,ack]=psyrat_convergence_notice(rel);
+            testCase.verifyFalse(ack);
+        end
+
+        function testLegacyExclusionsAreNotRetrospectivelyCertified(testCase)
+            rel=local_rel(1,0); rel.out.conv.excluded={'sig_id'};
+            [msg,ack]=psyrat_convergence_notice(rel);
+            testCase.verifyTrue(ack);
+            testCase.verifySubstring(msg,'recorded as excluded');
+            testCase.verifyFalse(contains(msg,'model-backed constants'));
+        end
+
+        function testProvenanceListsExcludedConstants(testCase)
+            % Q6b: the export header carries the same list, only when non-empty
+            rel = local_rel(1, 0);
+            rel.out.conv.excluded = {'cor_id[1,1]'; 'rescor[1]'};
+            lines = psyrat_provenance_lines(struct('rel', rel));
+            testCase.verifyTrue(any(strcmp(lines, ...
+                'Recorded diagnostic exclusions: 2 (cor_id[1,1], rescor[1])')));
+            rel.out.conv.excluded = cell(0, 1);
+            lines0 = psyrat_provenance_lines(struct('rel', rel));
+            testCase.verifyFalse(any(startsWith(lines0, 'Recorded diagnostic exclusions')));
+            lines1 = psyrat_provenance_lines(struct('rel', local_rel(1, 0)));
+            testCase.verifyFalse(any(startsWith(lines1, 'Recorded diagnostic exclusions')));
         end
 
         function testNoticeLegacyStructNoError(testCase)

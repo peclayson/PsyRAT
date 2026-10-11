@@ -554,6 +554,34 @@ classdef TestPreflightValidation < PsyRATTestBase
             testCase.verifyFalse(any(strcmp(ids, 'preflight:splitsNoVariation')));
         end
 
+        function testPreflightSplitsWarnsUnequalCountsPerPerson(testCase)
+            % Q7 (post-beta review PBA-06): nonparallel splits with different
+            % split counts per participant warn and name the range; the
+            % coefficients then use each participant's own counts.
+            tbl = buildSplitsTable(6, [8 30 60 100]);
+            tbl(end, :) = [];                     % the last participant loses a split
+            report = psyrat_preflight_validate('datatable', tbl, 'splits', 3);
+            testCase.verifyTrue(report.ok);
+            ids = {report.warnings.id};
+            testCase.verifyTrue(any(strcmp(ids, 'preflight:splitsUnequalCounts')));
+            w = report.warnings(strcmp(ids, 'preflight:splitsUnequalCounts'));
+            testCase.verifyTrue(contains(w(1).what, '3') && contains(w(1).what, '4'));
+        end
+
+        function testPreflightSplitsEqualCountsDoNotWarn(testCase)
+            % balanced counts stay silent; parallel splits are not checked here
+            % (their per-person counts are the one-facet machinery's business)
+            tbl = buildSplitsTable(6, [8 30 60 100]);
+            report = psyrat_preflight_validate('datatable', tbl, 'splits', 3);
+            ids = {report.warnings.id};
+            testCase.verifyFalse(any(strcmp(ids, 'preflight:splitsUnequalCounts')));
+            tbl2 = buildSplitsTable(6, [20 20 20 20]);
+            tbl2(end, :) = [];
+            report2 = psyrat_preflight_validate('datatable', tbl2, 'splits', 2);
+            ids2 = {report2.warnings.id};
+            testCase.verifyFalse(any(strcmp(ids2, 'preflight:splitsUnequalCounts')));
+        end
+
         function testPreflightSplitsWarnsParallelUnequalWeights(testCase)
             % Parallel splits (splits=2) declared with unequal n_i is a
             % non-fatal warning (the nonparallel model may fit better).

@@ -29,7 +29,7 @@ function ok = psyrat_require_min_cmdstan(minver,mode)
 % ok - logical scalar; true if the installed CmdStan meets the minimum or the
 %  version could not be determined, false if it was found to be too old.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

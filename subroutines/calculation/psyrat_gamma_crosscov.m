@@ -44,11 +44,11 @@ function cov = psyrat_gamma_crosscov(alpha_f, s_p_f, s_i_f, ...
 % see cov_e_obs above), that makes this function parameterization-invariant, so it
 % is reused unchanged rather than duplicated. Both halves are load-bearing: under
 % a CONCURRENT variant the arguments would still all be mean-submodel, but
-% cov_e_obs = 0 would be wrong. See gamma_scale_submodel_decision.md section I.3.
+% cov_e_obs = 0 would be wrong. See the scale-submodel decision record, section I.3.
 %
 % See also PSYRAT_GAMMA_VARCOMPS, PSYRAT_GAMMA_VARCOMPS_LS, PSYRAT_DIFFREL.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

@@ -19,7 +19,7 @@ function [project, run_report] = psyrat_project_score(varargin)
 % run_report - summary struct with fields run_id, spec_id, n_trials,
 %  n_failed, n_included, and a human-readable message.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

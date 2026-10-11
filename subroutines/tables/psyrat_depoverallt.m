@@ -6,14 +6,14 @@ function overalltable = psyrat_depoverallt(varargin)
 %
 %
 %Inputs
-% psyrat_data - PsyRAT Toolbox data structure array. 
+% psyrat_data - PsyRAT data structure array. 
 % gui - 0 for off, 1 for on
 %
 %Outputs
 % overalltable - table displaying dependability information
 % a gui will also be shown if desired
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ if ~isempty(varargin)
     else 
         error('varargin:psyrat_data',... %Error code and associated error
             strcat('WARNING: psyrat_data not specified \n\n',... 
-            'Please input psyrat_data (PsyRAT Toolbox data structure array).\n',...
+            'Please input psyrat_data (PsyRAT data structure array).\n',...
             'See help psyrat_depvtrialsplot for more information \n'));
     end
     
@@ -157,6 +157,16 @@ if ~any(strcmp(psyrat_data.rel.analysis,{'ic_sserrvar','ic_diff_sserrvar'}))
             %pull good and bad ns
             goodn{end+1} = psyrat_data.relsummary.group(gloc).event(eloc).goodn;
             badn{end+1} = length(psyrat_data.relsummary.group(gloc).badids);
+            %G44/G84: there is no retained-population summary at n Included 0.
+            %Keep the raw reference and its population provenance in relsummary.
+            if isempty(psyrat_data.relsummary.group(gloc).goodids)
+                overalldep{end} = '---';
+                mintrl{end} = '---'; maxtrl{end} = '---';
+                meantrl{end} = '---'; medtrl{end} = '---'; stdtrl{end} = '---';
+            elseif isfield(psyrat_data.relsummary.group(gloc).event(eloc),'summary_population') && ...
+                    strcmp(psyrat_data.relsummary.group(gloc).event(eloc).summary_population,'full_sample_reference')
+                overalldep{end} = [overalldep{end} ' (full-sample reference)'];
+            end
             
         end
         
@@ -175,9 +185,15 @@ if ~any(strcmp(psyrat_data.rel.analysis,{'ic_sserrvar','ic_diff_sserrvar'}))
         medtrl{end+1} = '---';
         stdtrl{end+1} = '---';
         
-        %pull good and bad ns
+        %pull good and bad ns. eloc here is the loop variable LEAKED from the
+        %per-event loop that closed above; it is safe only because per-event
+        %goodn is the GROUP-level retained count (G39), the same on every
+        %event row. badn is the complement over the observed roster, as the
+        %per-event rows of this table (and of the test-retest overall table)
+        %print it (G97, beta-tester report 2026-09-16: it was a '---'
+        %inherited from the ERA port, with no recorded rationale).
         goodn{end+1} = psyrat_data.relsummary.group(gloc).event(eloc).goodn;
-        badn{end+1} = '---';
+        badn{end+1} = length(psyrat_data.relsummary.group(gloc).badids);
         
         %create a string with the dependability point estimate and credible
         %interval for cutoff data
@@ -185,6 +201,10 @@ if ~any(strcmp(psyrat_data.rel.analysis,{'ic_sserrvar','ic_diff_sserrvar'}))
             psyrat_data.relsummary.group(gloc).diffscore.pt,...
             psyrat_data.relsummary.group(gloc).diffscore.ll,...
             psyrat_data.relsummary.group(gloc).diffscore.ul);
+        if isfield(psyrat_data.relsummary.group(gloc).diffscore,'summary_population') && ...
+                strcmp(psyrat_data.relsummary.group(gloc).diffscore.summary_population,'full_sample_reference')
+            overalldep{end} = [overalldep{end} ' (full-sample reference)'];
+        end
     end
     end
     
@@ -228,8 +248,9 @@ elseif any(strcmp(psyrat_data.rel.analysis,{'ic_sserrvar','ic_diff_sserrvar'}))
                     %summary cells out instead, reusing the '---' MARKER the
                     %diff rows in the non-sserr branch already print. WHICH
                     %cells dash differs between the two by design, not by
-                    %accident: the diff rows dash badn and keep their
-                    %coefficient cell (it is a real draw-based value there),
+                    %accident: the diff rows dash their trial cells (badn is
+                    %numeric since G97) and keep their coefficient cell (it
+                    %is a real draw-based value there),
                     %whereas here the coefficient summary is a mean over zero
                     %retained rows (undefined, dashed) and the counts below
                     %(0 included / N excluded) are real, informative values
@@ -283,6 +304,13 @@ elseif any(strcmp(psyrat_data.rel.analysis,{'ic_sserrvar','ic_diff_sserrvar'}))
                     psyrat_data.relsummary.group(gloc).goodids);
 
                 badn{end+1} = height(idtable_raw(badid_rows,:));
+                %Strict event qualification uses the observed group universe.
+                %G53's difference-score event-table convention remains separate.
+                if strcmp(psyrat_data.rel.analysis,'ic_sserrvar') && ...
+                        isfield(psyrat_data.relsummary.group(gloc),'observedids')
+                    goodn{end} = numel(psyrat_data.relsummary.group(gloc).goodids);
+                    badn{end} = numel(psyrat_data.relsummary.group(gloc).badids);
+                end
 
             end
         end
@@ -361,7 +389,24 @@ overalltable.Properties.VariableNames = {'Label', ...
 if gui == 1
     
     %define parameters for figure size
-    figwidth = 815;
+    %G98 (beta-tester report 2026-09-16): the Label column had no width of
+    %its own ('auto' sizes to the header), so 'GroupA - inc_err' rendered
+    %truncated; a fixed Label width and the room for it.
+    %F5 (2026-09-16): every column has a width (the list had eight entries for
+    %nine columns, so 'Max # of Trials' fell back to a default and clipped),
+    %and the window holds the widths plus the 2 x 25 px margins, 20 px of grid
+    %slack and an 18 px vertical scrollbar: 1035 px of columns, or 1215 when the
+    %full-sample reference annotation needs the 350 px coefficient column.
+    %G104 (2026-09-17): the n Included / n Excluded columns are 90 px for their
+    %two-line headers, and the window is capped at the display width, where
+    %the table scrolls.
+    fullsample = any(contains(overalldep,'full-sample reference'));
+    if fullsample
+        figwidth = 1310;
+    else
+        figwidth = 1130;
+    end
+    figwidth = psyrat_fitfigwidth(figwidth);   %G104: capped at the display width (the table scrolls when capped)
     figheight = 500;
     
     %define space between rows and first row location
@@ -376,6 +421,7 @@ if gui == 1
         'name',[rel_name ' Analyses'],...
         'numbertitle','off',...
         'resize','off');
+    movegui(psyrat_overall,'onscreen');   %G104: slide the window inside the display, never off it
     
     %Print the name of the loaded dataset
     uicontrol(psyrat_overall,'Style','text','fontsize',16,...
@@ -389,16 +435,20 @@ if gui == 1
         'Data',table2cell(overalltable));
     
     if ~any(strcmp(psyrat_data.rel.analysis,{'ic_sserrvar','ic_diff_sserrvar'}))
-        set(t,'ColumnName',{'Label' 'n Included' 'n Excluded' ...
+        set(t,'ColumnName',psyrat_uitable_headers({'Label' 'n Included' 'n Excluded' ...
             rel_name ['Mean ' L.NumSymbol] ['Med ' L.NumSymbol]...
-            ['Std Dev of ' L.Units] ['Min ' L.NumSymbol] ['Max ' L.NumSymbol]});
+            ['Std Dev of ' L.Units] ['Min ' L.NumSymbol] ['Max ' L.NumSymbol]}));   %G104: two-line headers on screen
     elseif any(strcmp(psyrat_data.rel.analysis,{'ic_sserrvar','ic_diff_sserrvar'}))
-        set(t,'ColumnName',{'Label' 'n Included' 'n Excluded' ...
+        set(t,'ColumnName',psyrat_uitable_headers({'Label' 'n Included' 'n Excluded' ...
             ['Subject Level ' rel_name] ['Mean ' L.NumSymbol] ['Med ' L.NumSymbol]...
-            ['Std Dev of ' L.Units] ['Min ' L.NumSymbol] ['Max ' L.NumSymbol]});
+            ['Std Dev of ' L.Units] ['Min ' L.NumSymbol] ['Max ' L.NumSymbol]}));   %G104: two-line headers on screen
     end
     
-    set(t,'ColumnWidth',{'auto' 'auto' 'auto' 110 'auto' 'auto' 'auto' 'auto'});
+    if fullsample
+        set(t,'ColumnWidth',{150 90 90 350 110 110 115 100 100});
+    else
+        set(t,'ColumnWidth',{150 90 90 170 110 110 115 100 100});
+    end
     set(t,'RowName',[]);
     
     %Create a save button that will take save the table
@@ -449,14 +499,20 @@ end
     'Comma-Separated Value File (.csv)'},...
     'Where would you like to save table?');
 
+%bail out if the user cancelled the save dialog (F3: every table Save site guards this
+%the same way; psyrat_criterionfigures and psyrat_savesscoeffs were the precedents)
+if isequal(savename,0) || isequal(savepath,0)
+    return;
+end
+
 [~,~,ext] = fileparts(fullfile(savepath,savename));
 
 %save either an excel or csv file
-if strcmp(ext,'.xlsx')
+if strcmpi(ext,'.xlsx')   %F3: case-insensitive like every sibling save site
     
     %print header information about the dataset
     filehead = {[rel_name ' Table Generated on']; datestr(clock);''}; 
-    filehead{end+1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+    filehead{end+1} = sprintf('PsyRAT v%s',psyrat_data.ver);
     filehead{end+1} = '';
     filehead{end+1} = sprintf('Dataset: %s',psyrat_data.rel.filename);
     %B36: %0.4f, NOT %0.2f. The cutoff is a recorded analytic INPUT, not an
@@ -488,18 +544,19 @@ if strcmp(ext,'.xlsx')
     filehead{end+1}='';
     filehead{end+1}='';
 
-    %write table
-    writecell(filehead,fullfile(savepath,savename));
-    writetable(overalltable,fullfile(savepath,savename),...
-        'Range',strcat('A',num2str(length(filehead))));
+    %write table: the same header and table rows into a fresh workbook, checked
+    %cell by cell before it replaces the chosen file (G110; writing into an
+    %existing workbook kept its old rows and sheets)
+    psyrat_replace_workbook(fullfile(savepath,savename),filehead,overalltable,...
+        length(filehead));
     
-elseif strcmp(ext,'.csv')
+elseif strcmpi(ext,'.csv')
     
     %print header information about dataset
     fid = fopen(fullfile(savepath,savename),'w');
     fprintf(fid,'%s',[rel_name ' Table Generated on ']);
     fprintf(fid,'%s\n',datestr(clock));
-    fprintf(fid,'PsyRAT Toolbox v%s\n',psyrat_data.ver);
+    fprintf(fid,'PsyRAT v%s\n',psyrat_data.ver);
     fprintf(fid,' \n');
     fprintf(fid,'%s\n',psyrat_quote_csv_header(...
         sprintf('Dataset: %s',psyrat_data.rel.filename)));
@@ -520,8 +577,8 @@ elseif strcmp(ext,'.csv')
     fprintf(fid,' \n');
     
     %write the table information.
-    %G47: the diff rows (ic_diff/trt_diff) carry '---' in the badn and
-    %trial-summary cells, and a zeroed sserr group's row (G44) dashes its
+    %G47: the diff rows (ic_diff/trt_diff) carry '---' in the trial-summary
+    %cells (badn is numeric since G97), and a zeroed sserr group's row (G44) dashes its
     %COEFFICIENT and trial-summary cells while keeping both counts numeric
     %(the two dash patterns differ by design; see the builder's G44 comment
     %above). The old fixed formatspec pushed any such char cell through %d,
@@ -558,6 +615,15 @@ elseif strcmp(ext,'.csv')
     
     fclose(fid);
     
+else
+
+    %F3: a name that ends in neither .xlsx nor .csv (a typed extension the
+    %dialog's filter did not supply) used to fall through this chain silently,
+    %so nothing was written and nothing said so.
+    errordlg({sprintf('The file name "%s" does not end in .xlsx or .csv; nothing was saved.',savename);...
+        'How to fix: choose the Excel or CSV file type in the save dialog, or type a name ending in .xlsx or .csv, then save again.'},...
+        'Unsupported File Type','modal');
+
 end
 
 end
@@ -587,14 +653,20 @@ end
     'Comma-Separated Value File (.csv)'},...
     'Where would you like to save the data?');
 
+%bail out if the user cancelled the save dialog (F3: every table Save site guards this
+%the same way; psyrat_criterionfigures and psyrat_savesscoeffs were the precedents)
+if isequal(savename,0) || isequal(savepath,0)
+    return;
+end
+
 [~,~,ext] = fileparts(fullfile(savepath,savename));
 
 %save the information in either an excel or csv format
-if strcmp(ext,'.xlsx')
+if strcmpi(ext,'.xlsx')   %F3: case-insensitive like every sibling save site
     
     datap{1,1} = 'Data Generated on';
     datap{end+1,1} = datestr(clock); 
-    datap{end+1,1} = sprintf('PsyRAT Toolbox v%s',psyrat_data.ver);
+    datap{end+1,1} = sprintf('PsyRAT v%s',psyrat_data.ver);
     datap{end+1,1} = '';
     datap{end+1,1} = sprintf('Dataset: %s',psyrat_data.rel.filename);
     datap{end+1,1} = sprintf('%s Cutoff: %0.4f',rel_name,...
@@ -605,32 +677,41 @@ if strcmp(ext,'.xlsx')
     datap{end+1,1}='';
     datap{end+1,1}='';
     datap{end+1,1} = 'Good IDs'; datap{end,2} = 'Bad IDs';
+    datap{end,3} = 'Good Group'; datap{end,4} = 'Bad Group';
     
     gids = [];
     bids = [];
+    ggroups = cell(0,1); bgroups = cell(0,1);
     srow = length(datap);
     
     for j=1:length(psyrat_data.relsummary.group)
         gids = [gids;psyrat_data.relsummary.group(j).goodids(:)];
         bids = [bids;psyrat_data.relsummary.group(j).badids(:)];
+        groupname = psyrat_data.relsummary.group(j).name;
+        if isempty(groupname); groupname = 'none'; end
+        ggroups = [ggroups;repmat({groupname},numel(psyrat_data.relsummary.group(j).goodids),1)];
+        bgroups = [bgroups;repmat({groupname},numel(psyrat_data.relsummary.group(j).badids),1)];
     end
     
     for i = 1:length(gids)
         datap{i+srow,1}=char(gids(i));
+        datap{i+srow,3}=ggroups{i};
     end
 
     for i = 1:length(bids)
         datap{i+srow,2}=char(bids(i));
+        datap{i+srow,4}=bgroups{i};
     end
 
-    writecell(datap,fullfile(savepath,savename));
+    %a fresh, checked workbook replaces the chosen file (G110)
+    psyrat_replace_workbook(fullfile(savepath,savename),datap);
     
-elseif strcmp(ext,'.csv')
+elseif strcmpi(ext,'.csv')
     
     fid = fopen(fullfile(savepath,savename),'w');
     fprintf(fid,'%s\n','Data Generated on');
     fprintf(fid,'%s\n',datestr(clock));
-    fprintf(fid,'PsyRAT Toolbox v%s\n',psyrat_data.ver);
+    fprintf(fid,'PsyRAT v%s\n',psyrat_data.ver);
     fprintf(fid,' \n');
     fprintf(fid,'%s\n',psyrat_quote_csv_header(...
         sprintf('Dataset: %s',psyrat_data.rel.filename)));
@@ -642,38 +723,50 @@ elseif strcmp(ext,'.csv')
     fprintf(fid,'%s\n',psyrat_quote_csv_header(...
         psyrat_iterline(psyrat_data.rel)));
     fprintf(fid,' \n');
-    fprintf(fid,'%s\n','Good IDs,Bad IDs');
+    fprintf(fid,'%s\n','Good IDs,Bad IDs,Good Group,Bad Group');
     
     gids = [];
     bids = [];
+    ggroups = cell(0,1); bgroups = cell(0,1);
     
     for j=1:length(psyrat_data.relsummary.group)
         gids = [gids;psyrat_data.relsummary.group(j).goodids(:)];
         bids = [bids;psyrat_data.relsummary.group(j).badids(:)];
+        groupname = psyrat_data.relsummary.group(j).name;
+        if isempty(groupname); groupname = 'none'; end
+        ggroups = [ggroups;repmat({groupname},numel(psyrat_data.relsummary.group(j).goodids),1)];
+        bgroups = [bgroups;repmat({groupname},numel(psyrat_data.relsummary.group(j).badids),1)];
     end
 
     maxlength = max([length(gids) length(bids)]);
-    minlength = min([length(gids) length(bids)]);
-    
-    if minlength == length(gids)
-        whichlonger = 1;
-    elseif maxlength == length(gids)
-        whichlonger = 2;
-    end
-    
     for i = 1:maxlength
-        if i <= minlength
-            fprintf(fid,'%s,%s\n',gids{i},bids{i});
-        elseif i > minlength && whichlonger == 1
-            fprintf(fid,',%s\n',bids{i});
-        elseif i > minlength && whichlonger == 2
-            fprintf(fid,'%s,\n',gids{i});
-        end
+        fields = {'','','',''};
+        if i <= length(gids); fields([1 3]) = {gids{i},ggroups{i}}; end
+        if i <= length(bids); fields([2 4]) = {bids{i},bgroups{i}}; end
+        fields = cellfun(@local_id_csv_field,fields,'UniformOutput',false);
+        fprintf(fid,'%s\n',strjoin(fields,','));
     end
     
     fclose(fid);
     
+else
+
+    %F3: a name that ends in neither .xlsx nor .csv (a typed extension the
+    %dialog's filter did not supply) used to fall through this chain silently,
+    %so nothing was written and nothing said so.
+    errordlg({sprintf('The file name "%s" does not end in .xlsx or .csv; nothing was saved.',savename);...
+        'How to fix: choose the Excel or CSV file type in the save dialog, or type a name ending in .xlsx or .csv, then save again.'},...
+        'Unsupported File Type','modal');
+
 end
 
 
+end
+
+function value = local_id_csv_field(value)
+%One identity field, not a whole CSV row.
+value = char(string(value));
+if contains(value,',') || contains(value,'"') || contains(value,newline) || contains(value,char(13))
+    value = ['"' strrep(value,'"','""') '"'];
+end
 end

@@ -4,11 +4,11 @@ The Psychophysiologist's Reliability Analysis Toolbox (PsyRAT) uses generalizabi
 
 See the [user manual](documentation/manual/index.md) for full documentation of the toolbox. It can be read as chapters on GitHub, starting from the contents page, or as [one PDF](documentation/manual/psyrat_manual.pdf).
 
-The current release is `0.1.0-beta`. The beta label means that the interface and the shape of the outputs are still moving; it is not a statement that the estimates are provisional. [`CHANGELOG.md`](CHANGELOG.md) records, design by design, what has been verified in this repository and what has not.
+The current version is `0.1.1-beta`. The beta label means that the interface and the shape of the outputs are still moving; it is not a statement that the estimates are provisional. [`CHANGELOG.md`](CHANGELOG.md) records, design by design, what has been verified in this repository and what has not.
 
 ## Getting started
 
-1. **Get the toolbox.** Download `PsyRAT.zip` from the [Releases page](https://github.com/peclayson/PsyRAT/releases) and unzip it, or clone this repository, into a folder whose full path contains no spaces (CmdStan does not accept whitespace in paths). In MATLAB, change into the PsyRAT folder and run `psyrat_start`. The launcher adds the toolbox to your MATLAB path and saves the path, so later sessions find it from anywhere. Do not `addpath(genpath(...))` the whole repository; the launcher adds exactly the folders it needs.
+1. **Get the toolbox.** Download `PsyRAT.zip` from the [Releases page](https://github.com/peclayson/PsyRAT/releases) and unzip it, or clone this repository, into a folder whose full path contains no spaces (CmdStan does not accept whitespace in paths). In MATLAB, change into the PsyRAT folder and run `psyrat_start`. The launcher adds the toolbox to your MATLAB path and saves the path, so later sessions find it from anywhere. Do not `addpath(genpath(...))` the whole repository; the launcher adds exactly the folders it needs. The dependency and release checks run once per MATLAB session; later launches in the same session reuse them and say so, and `psyrat_startgate_cache('clear')` followed by `psyrat_start` repeats them.
 2. **Install CmdStan.** If the Stan dependencies are missing, `psyrat_start` stops before the home screen and offers the guided installer, which you can also run directly:
 
    ```matlab
@@ -36,6 +36,7 @@ The current release is `0.1.0-beta`. The beta label means that the interface and
 - [documentation/model_availability_matrix.md](documentation/model_availability_matrix.md): which designs can be fitted under which likelihood family and estimation engine.
 - [documentation/priors_and_sensitivity.md](documentation/priors_and_sensitivity.md): the variance-component priors, with a sensitivity analysis of the test-retest occasion priors.
 - [documentation/native_engine_validation.md](documentation/native_engine_validation.md): the validation record for the native MATLAB engines against CmdStan.
+- [documentation/validation_and_testing.md](documentation/validation_and_testing.md): the four test suites that gate a release, how to run them, and what a green run of each accuracy-suite class does and does not prove.
 
 ## Scripted use
 
@@ -48,7 +49,7 @@ Please report bugs and ask questions on the [issue tracker](https://github.com/p
 
 ## How to cite
 
-For now, cite Rocha et al. (2026), the source of the estimators the toolbox implements (its Tables 2, 3 and 6 give the one-facet, test-retest, and difference-score expressions), together with the GitHub release of the toolbox version you ran. Report the version returned by `psyrat_defineversion`, which is printed in the startup banner and written into every exported table header and `*_runconfig.json` sidecar; with the source revision recorded in the sidecar, it identifies the code that produced your estimates. The current version is `0.1.0-beta`. Machine-readable metadata is in [`CITATION.cff`](CITATION.cff).
+For now, cite Rocha et al. (2026), the source of the estimators the toolbox implements (its Tables 2, 3 and 6 give the one-facet, test-retest, and difference-score expressions), together with the GitHub release of the toolbox version you ran. Report the version returned by `psyrat_defineversion`, which is printed in the startup banner and written into every exported table header and `*_runconfig.json` sidecar; with the source revision recorded in the sidecar, it identifies the code that produced your estimates. The current version is `0.1.1-beta`. Machine-readable metadata is in [`CITATION.cff`](CITATION.cff).
 
 &nbsp;
 
@@ -90,7 +91,7 @@ Development of PsyRAT was supported by the National Institute of Mental Health o
 
 ***
 
-Copyright (C) 2026 Peter E. Clayson
+Copyright (C) 2016-2026 Peter E. Clayson
  
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by

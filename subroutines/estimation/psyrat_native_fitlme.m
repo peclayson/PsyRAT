@@ -36,7 +36,7 @@ function fit = psyrat_native_fitlme(design,data,seed,nchains,opts)
 %
 %See also: psyrat_run_native, PsyRATNativeFit, psyrat_rel_sing
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -68,6 +68,9 @@ if B < 2
         'How to fix: pass a larger ''bootstrap_reps''.'],B);
 end
 
+[oldmsg,oldid] = lastwarn;
+warncleanup = onCleanup(@()lastwarn(oldmsg,oldid)); %#ok<NASGU>
+
 %reproducibility: the native engine uses the MATLAB RNG seeded with the run seed
 rng(double(seed),'twister');
 
@@ -86,6 +89,8 @@ switch key
         error('PsyRAT:fitlmeUnsupportedDesign',['The native fitlme engine ' ...
             'does not implement design ''%s''.'],key);
 end
+fit.meta.seed = double(seed);
+fit.meta.design = key;
 end
 
 % ------------------------------------------------------------------------------
@@ -150,7 +155,8 @@ if NOCC < 5
         'With few occasions this component is weakly identified and the ' ...
         'stability/test-retest reliability can differ MATERIALLY from the ' ...
         'Bayesian CmdStan estimate. Treat the result as a rough approximation; ' ...
-        'use CmdStan/HMC for a definitive test-retest analysis.'],NOCC);
+        'final-inference readiness is unassessed. A CmdStan/HMC run also ' ...
+        'requires diagnostic and uncertainty validation.'],NOCC);
 end
 
 formula = ['meas ~ 1 + (1|id) + (1|occ) + (1|trl) + (1|trlxid) + ' ...
@@ -159,16 +165,21 @@ Tbl = table(meas,categorical(idI),categorical(occI),categorical(trlI), ...
     categorical(txiI),categorical(oxiI),categorical(txoI), ...
     'VariableNames',{'meas','id','occ','trl','trlxid','occxid','trlxocc'});
 
+%REML is requested EXPLICITLY at every fitlme call in this file (original fits
+%and bootstrap refits alike): fitlme's default FitMethod is ML, and until
+%2026-09-11 (post-beta review PBA-04, work queue Q1) every call here omitted the
+%option, so the engine fitted by ML under its REML label.
 lastwarn('');   % clear so we capture only this fit's warnings (REML convergence)
 try
-    lme = fitlme(Tbl,formula);
+    lme = fitlme(Tbl,formula,'FitMethod','REML');
 catch err
     error('PsyRAT:fitlmeFailed',['fitlme failed to fit the test-retest ' ...
         'model: %s'],err.message);
 end
-[~,fitwarn] = lastwarn;
+[fitmsg,fitwarn] = lastwarn;
 hat = local_extract_trt(lme);
-converged = local_fitlme_converged(fitwarn,hat);
+original = psyrat_fitlme_validity(hat,fitwarn,fitmsg);
+converged = original.valid;
 
 %grouping index vectors and the matching point-estimate SDs, in formula order
 idx = {idI,occI,trlI,txiI,oxiI,txoI};
@@ -178,7 +189,8 @@ sds = [hat.sig_id,hat.sig_occ,hat.sig_trl,hat.sig_trlxid,hat.sig_occxid, ...
 %parametric bootstrap: simulate y from the fitted crossed model, refit, collect
 P = zeros(B,1); sid = zeros(B,1); socc = zeros(B,1); strl = zeros(B,1);
 stxi = zeros(B,1); soxi = zeros(B,1); stxo = zeros(B,1); serr = zeros(B,1);
-nfail = 0;
+ok = true(B,1); failids = {};
+records = repmat(psyrat_fitlme_validity(struct(),'',''),B,1);
 for b = 1:B
     y = hat.pop_int + hat.sig_err*randn(NOBS,1);
     for g = 1:6
@@ -188,23 +200,37 @@ for b = 1:B
     Tb = Tbl;
     Tb.meas = y;
     try
-        hb = local_extract_trt(fitlme(Tb,formula));
+        lastwarn('');
+        lb = fitlme(Tb,formula,'FitMethod','REML');
+        [wmsg,wid] = lastwarn;
+        hb = local_extract_trt(lb);
+        records(b) = psyrat_fitlme_validity(hb,wid,wmsg);
+        if ~records(b).valid
+            ok(b) = false; failids{end+1} = records(b).error_id; %#ok<AGROW>
+            continue;
+        end
         P(b)=hb.pop_int; sid(b)=hb.sig_id; socc(b)=hb.sig_occ; strl(b)=hb.sig_trl;
         stxi(b)=hb.sig_trlxid; soxi(b)=hb.sig_occxid; stxo(b)=hb.sig_trlxocc; serr(b)=hb.sig_err;
-    catch
-        %a failed bootstrap refit reuses the point estimate for this draw
-        nfail = nfail + 1;
-        P(b)=hat.pop_int; sid(b)=hat.sig_id; socc(b)=hat.sig_occ; strl(b)=hat.sig_trl;
-        stxi(b)=hat.sig_trlxid; soxi(b)=hat.sig_occxid; stxo(b)=hat.sig_trlxocc; serr(b)=hat.sig_err;
+    catch err
+        %a failed refit is DROPPED, not replaced by the point estimate (Q3)
+        ok(b) = false; failids{end+1} = err.identifier; %#ok<AGROW>
+        [wmsg,wid] = lastwarn;
+        records(b) = psyrat_fitlme_validity(struct(),wid,wmsg);
+        records(b).valid = false;
+        records(b).error_id = err.identifier; records(b).error_message = err.message;
     end
 end
-local_fitlme_bootwarn(nfail,B,'test-retest');
+local_fitlme_bootcheck(ok,B,'test-retest');
+[P,sid,socc,strl,stxi,soxi,stxo,serr] = local_keepok(ok,P,sid,socc,strl,stxi,soxi,stxo,serr);
 
 draws = struct('pop_int',P,'sig_id',sid,'sig_occ',socc,'sig_trl',strl, ...
     'sig_trlxid',stxi,'sig_occxid',soxi,'sig_trlxocc',stxo,'sig_err',serr);
 conv = local_fitlme_conv(converged,B,nchains);
 meta = struct('method','fitlme_reml_parametric_bootstrap','formula',formula, ...
-    'bootstrap_reps',B,'point',hat);
+    'bootstrap_reps',B,'point',hat,'bootstrap_ok',nnz(ok), ...
+    'bootstrap_failed',nnz(~ok),'bootstrap_fail_ids',{unique(failids)}, ...
+    'original',original,'bootstrap_success_mask',ok,'bootstrap_draw_indices',find(ok), ...
+    'bootstrap_records',records);
 fit = PsyRATNativeFit(draws,conv,'fitlme',meta);
 end
 
@@ -274,14 +300,15 @@ Tbl = table(meas,categorical(idI),categorical(occI),categorical(trlI), ...
 
 lastwarn('');   % clear so we capture only this fit's warnings (REML convergence)
 try
-    lme = fitlme(Tbl,formula,'Weights',w);
+    lme = fitlme(Tbl,formula,'Weights',w,'FitMethod','REML');
 catch err
     error('PsyRAT:fitlmeFailed',['fitlme failed to fit the splits test-retest ' ...
         'model: %s'],err.message);
 end
-[~,fitwarn] = lastwarn;
+[fitmsg,fitwarn] = lastwarn;
 hat = local_extract_splits_trt(lme);
-converged = local_fitlme_converged(fitwarn,hat);
+original = psyrat_fitlme_validity(hat,fitwarn,fitmsg);
+converged = original.valid;
 
 idx = {idI,occI,trlI,txiI,oxiI,txoI,posI};
 sds = [hat.sig_id,hat.sig_occ,hat.sig_trl,hat.sig_trlxid,hat.sig_occxid, ...
@@ -289,7 +316,8 @@ sds = [hat.sig_id,hat.sig_occ,hat.sig_trl,hat.sig_trlxid,hat.sig_occxid, ...
 
 P=zeros(B,1); sid=zeros(B,1); socc=zeros(B,1); strl=zeros(B,1);
 stxi=zeros(B,1); soxi=zeros(B,1); stxo=zeros(B,1); spos=zeros(B,1); serr=zeros(B,1);
-nfail = 0;
+ok = true(B,1); failids = {};
+records = repmat(psyrat_fitlme_validity(struct(),'',''),B,1);
 for b = 1:B
     y = hat.pop_int + (hat.sig_err ./ sqrt(w)) .* randn(NOBS,1);
     for g = 1:7
@@ -298,25 +326,38 @@ for b = 1:B
     end
     Tb = Tbl; Tb.meas = y;
     try
-        hb = local_extract_splits_trt(fitlme(Tb,formula,'Weights',w));
+        lastwarn('');
+        lb = fitlme(Tb,formula,'Weights',w,'FitMethod','REML');
+        [wmsg,wid] = lastwarn;
+        hb = local_extract_splits_trt(lb);
+        records(b) = psyrat_fitlme_validity(hb,wid,wmsg);
+        if ~records(b).valid
+            ok(b) = false; failids{end+1} = records(b).error_id; %#ok<AGROW>
+            continue;
+        end
         P(b)=hb.pop_int; sid(b)=hb.sig_id; socc(b)=hb.sig_occ; strl(b)=hb.sig_trl;
         stxi(b)=hb.sig_trlxid; soxi(b)=hb.sig_occxid; stxo(b)=hb.sig_trlxocc;
         spos(b)=hb.sig_posxid; serr(b)=hb.sig_err;
-    catch
-        nfail = nfail + 1;
-        P(b)=hat.pop_int; sid(b)=hat.sig_id; socc(b)=hat.sig_occ; strl(b)=hat.sig_trl;
-        stxi(b)=hat.sig_trlxid; soxi(b)=hat.sig_occxid; stxo(b)=hat.sig_trlxocc;
-        spos(b)=hat.sig_posxid; serr(b)=hat.sig_err;
+    catch err
+        ok(b) = false; failids{end+1} = err.identifier; %#ok<AGROW>
+        [wmsg,wid] = lastwarn;
+        records(b) = psyrat_fitlme_validity(struct(),wid,wmsg);
+        records(b).valid = false;
+        records(b).error_id = err.identifier; records(b).error_message = err.message;
     end
 end
-local_fitlme_bootwarn(nfail,B,'splits test-retest');
+local_fitlme_bootcheck(ok,B,'splits test-retest');
+[P,sid,socc,strl,stxi,soxi,stxo,spos,serr] = local_keepok(ok,P,sid,socc,strl,stxi,soxi,stxo,spos,serr);
 
 draws = struct('pop_int',P,'sig_id',sid,'sig_occ',socc,'sig_trl',strl, ...
     'sig_trlxid',stxi,'sig_occxid',soxi,'sig_trlxocc',stxo,'sig_posxid',spos, ...
     'sig_err',serr);
 conv = local_fitlme_conv(converged,B,nchains);
 meta = struct('method','fitlme_reml_parametric_bootstrap','formula',formula, ...
-    'bootstrap_reps',B,'point',hat);
+    'bootstrap_reps',B,'point',hat,'bootstrap_ok',nnz(ok), ...
+    'bootstrap_failed',nnz(~ok),'bootstrap_fail_ids',{unique(failids)}, ...
+    'original',original,'bootstrap_success_mask',ok,'bootstrap_draw_indices',find(ok), ...
+    'bootstrap_records',records);
 fit = PsyRATNativeFit(draws,conv,'fitlme',meta);
 end
 
@@ -378,18 +419,20 @@ Tbl = table(meas,categorical(idI),categorical(trlI),categorical(sxiI), ...
 
 lastwarn('');   % clear so we capture only this fit's warnings (REML convergence)
 try
-    lme = fitlme(Tbl,formula,'Weights',w);
+    lme = fitlme(Tbl,formula,'Weights',w,'FitMethod','REML');
 catch err
     error('PsyRAT:fitlmeFailed',['fitlme failed to fit the splits model: %s'], ...
         err.message);
 end
-[~,fitwarn] = lastwarn;
+[fitmsg,fitwarn] = lastwarn;
 hat = local_extract_splits(lme);
-converged = local_fitlme_converged(fitwarn,hat);
+original = psyrat_fitlme_validity(hat,fitwarn,fitmsg);
+converged = original.valid;
 
 %bootstrap: simulate with the weighted (split-mean) residual var = sig_err^2/n_i
 mu = zeros(B,1); su = zeros(B,1); st = zeros(B,1); ssx = zeros(B,1); se = zeros(B,1);
-nfail = 0;
+ok = true(B,1); failids = {};
+records = repmat(psyrat_fitlme_validity(struct(),'',''),B,1);
 for b = 1:B
     ub  = hat.sig_u        * randn(NSUB,1);
     tb  = hat.sig_trl      * randn(NTRL,1);
@@ -399,19 +442,34 @@ for b = 1:B
     Tb = Tbl;
     Tb.meas = y;
     try
-        hb = local_extract_splits(fitlme(Tb,formula,'Weights',w));
+        lastwarn('');
+        lb = fitlme(Tb,formula,'Weights',w,'FitMethod','REML');
+        [wmsg,wid] = lastwarn;
+        hb = local_extract_splits(lb);
+        records(b) = psyrat_fitlme_validity(hb,wid,wmsg);
+        if ~records(b).valid
+            ok(b) = false; failids{end+1} = records(b).error_id; %#ok<AGROW>
+            continue;
+        end
         mu(b)=hb.mu; su(b)=hb.sig_u; st(b)=hb.sig_trl; ssx(b)=hb.sig_splitxid; se(b)=hb.sig_err;
-    catch
-        nfail = nfail + 1;
-        mu(b)=hat.mu; su(b)=hat.sig_u; st(b)=hat.sig_trl; ssx(b)=hat.sig_splitxid; se(b)=hat.sig_err;
+    catch err
+        ok(b) = false; failids{end+1} = err.identifier; %#ok<AGROW>
+        [wmsg,wid] = lastwarn;
+        records(b) = psyrat_fitlme_validity(struct(),wid,wmsg);
+        records(b).valid = false;
+        records(b).error_id = err.identifier; records(b).error_message = err.message;
     end
 end
-local_fitlme_bootwarn(nfail,B,'splits');
+local_fitlme_bootcheck(ok,B,'splits');
+[mu,su,st,ssx,se] = local_keepok(ok,mu,su,st,ssx,se);
 
 draws = struct('mu',mu,'sig_u',su,'sig_trl',st,'sig_splitxid',ssx,'sig_err',se);
 conv = local_fitlme_conv(converged,B,nchains);
 meta = struct('method','fitlme_reml_parametric_bootstrap','formula',formula, ...
-    'bootstrap_reps',B,'point',hat);
+    'bootstrap_reps',B,'point',hat,'bootstrap_ok',nnz(ok), ...
+    'bootstrap_failed',nnz(~ok),'bootstrap_fail_ids',{unique(failids)}, ...
+    'original',original,'bootstrap_success_mask',ok,'bootstrap_draw_indices',find(ok), ...
+    'bootstrap_records',records);
 fit = PsyRATNativeFit(draws,conv,'fitlme',meta);
 end
 
@@ -434,10 +492,15 @@ function fit = local_fit_sing(data,B,nchains)
 %One-facet internal consistency (case 1): meas ~ 1 + (1|id) + (1|trl). Draws are
 %named mu/sig_u/sig_trl/sig_e, matching the case-1 extraction.
 core = local_fit_sing_core(data.id,data.trl,data.meas,B);
+local_fitlme_bootcheck(core.ok,B,'one-facet');
+draws = local_maskdraws(core.draws,core.ok);
 conv = local_fitlme_conv(core.converged,B,nchains);
 meta = struct('method','fitlme_reml_parametric_bootstrap','formula',core.formula, ...
-    'bootstrap_reps',B,'point',core.point);
-fit = PsyRATNativeFit(core.draws,conv,'fitlme',meta);
+    'bootstrap_reps',B,'point',core.point,'bootstrap_ok',nnz(core.ok), ...
+    'bootstrap_failed',nnz(~core.ok),'bootstrap_fail_ids',{unique(core.failids)}, ...
+    'original',core.original,'bootstrap_success_mask',core.ok, ...
+    'bootstrap_draw_indices',find(core.ok),'bootstrap_records',core.records);
+fit = PsyRATNativeFit(draws,conv,'fitlme',meta);
 end
 
 % ------------------------------------------------------------------------------
@@ -459,22 +522,35 @@ n = design.nstrata;
 draws = struct();
 points = cell(n,1);
 allconverged = true;
+%Each stratum is fitted and simulated independently. Apply only its own mask.
+%Component vectors within that fit retain a common replicate index.
+fits = struct([]);
 for i = 1:n
     id   = data.(sprintf('id_%s%d',S,i));
     trl  = data.(sprintf('trl_%s%d',S,i));
     meas = data.(sprintf('meas_%s%d',S,i));
     core = local_fit_sing_core(id,trl,meas,B);
-    draws.(sprintf('mu_%s%d',S,i))      = core.draws.mu;
-    draws.(sprintf('sig_u_%s%d',S,i))   = core.draws.sig_u;
-    draws.(sprintf('sig_trl_%s%d',S,i)) = core.draws.sig_trl;
-    draws.(sprintf('sig_e_%s%d',S,i))   = core.draws.sig_e;
+    local_fitlme_bootcheck(core.ok,B,sprintf('%s%d one-facet',S,i));
+    kept = local_maskdraws(core.draws,core.ok);
+    names = fieldnames(kept);
+    for k = 1:numel(names)
+        draws.(sprintf('%s_%s%d',names{k},S,i)) = kept.(names{k});
+    end
     points{i} = core.point;
     allconverged = allconverged && core.converged;
+    record = struct('label',sprintf('%s%d',S,i),'formula',core.formula, ...
+        'point',core.point,'original',core.original,'bootstrap_reps',B, ...
+        'bootstrap_ok',nnz(core.ok),'bootstrap_failed',nnz(~core.ok), ...
+        'bootstrap_success_mask',core.ok,'bootstrap_draw_indices',find(core.ok), ...
+        'bootstrap_records',core.records,'bootstrap_fail_ids',{unique(core.failids)});
+    if isempty(fits); fits = record; else; fits(end+1) = record; end %#ok<AGROW>
 end
 
 conv = local_fitlme_conv(allconverged,B,nchains);
 meta = struct('method','fitlme_reml_parametric_bootstrap', ...
-    'suffix',S,'nstrata',n,'bootstrap_reps',B,'points',{points});
+    'suffix',S,'nstrata',n,'bootstrap_reps',B,'points',{points}, ...
+    'bootstrap_ok',[fits.bootstrap_ok],'bootstrap_failed',[fits.bootstrap_failed], ...
+    'fits',fits);
 fit = PsyRATNativeFit(draws,conv,'fitlme',meta);
 end
 
@@ -504,18 +580,20 @@ Tbl = table(meas,categorical(idIdx),categorical(trlIdx), ...
 %fit the observed data once for the point estimates that drive the bootstrap
 lastwarn('');   % clear so we capture only this fit's warnings (REML convergence)
 try
-    lme = fitlme(Tbl,formula);
+    lme = fitlme(Tbl,formula,'FitMethod','REML');
 catch err
     error('PsyRAT:fitlmeFailed',['fitlme failed to fit the one-facet model: ' ...
         '%s'],err.message);
 end
-[~,fitwarn] = lastwarn;
+[fitmsg,fitwarn] = lastwarn;
 hat = local_extract_sing(lme);
-converged = local_fitlme_converged(fitwarn,hat);
+original = psyrat_fitlme_validity(hat,fitwarn,fitmsg);
+converged = original.valid;
 
 %parametric bootstrap: simulate from the fitted model, refit, collect draws
 mu = zeros(B,1); su = zeros(B,1); st = zeros(B,1); se = zeros(B,1);
-nfail = 0;
+ok = true(B,1); failids = {};
+records = repmat(psyrat_fitlme_validity(struct(),'',''),B,1);
 for b = 1:B
     ub = hat.sig_u   * randn(NSUB,1);
     tb = hat.sig_trl * randn(NTRL,1);
@@ -524,19 +602,32 @@ for b = 1:B
     Tb = Tbl;
     Tb.meas = yb;
     try
-        hb = local_extract_sing(fitlme(Tb,formula));
+        lastwarn('');
+        lb = fitlme(Tb,formula,'FitMethod','REML');
+        [wmsg,wid] = lastwarn;
+        hb = local_extract_sing(lb);
+        records(b) = psyrat_fitlme_validity(hb,wid,wmsg);
+        if ~records(b).valid
+            ok(b) = false; failids{end+1} = records(b).error_id; %#ok<AGROW>
+            continue;
+        end
         mu(b) = hb.mu; su(b) = hb.sig_u; st(b) = hb.sig_trl; se(b) = hb.sig_e;
-    catch
-        %a failed bootstrap refit reuses the point estimate for this draw
-        %rather than aborting the whole run
-        nfail = nfail + 1;
-        mu(b) = hat.mu; su(b) = hat.sig_u; st(b) = hat.sig_trl; se(b) = hat.sig_e;
+    catch err
+        %a failed refit is DROPPED, not replaced by the point estimate (Q3,
+        %2026-09-11): the replacement was an artificial point mass that
+        %narrowed the interval (post-beta review PBA-05). The callers apply
+        %the mask and enforce the adequacy floor (local_fitlme_bootcheck).
+        ok(b) = false; failids{end+1} = err.identifier; %#ok<AGROW>
+        [wmsg,wid] = lastwarn;
+        records(b) = psyrat_fitlme_validity(struct(),wid,wmsg);
+        records(b).valid = false;
+        records(b).error_id = err.identifier; records(b).error_message = err.message;
     end
 end
-local_fitlme_bootwarn(nfail,B,'one-facet');
-
+%The caller enforces the floor on each independent fit before dropping rows.
 core = struct('draws',struct('mu',mu,'sig_u',su,'sig_trl',st,'sig_e',se), ...
-    'point',hat,'converged',converged,'formula',formula);
+    'point',hat,'converged',converged,'formula',formula,'ok',ok,'failids',{failids}, ...
+    'original',original,'records',records);
 end
 
 % ------------------------------------------------------------------------------
@@ -577,68 +668,58 @@ end
 end
 
 % ------------------------------------------------------------------------------
-function converged = local_fitlme_converged(fitwarn,hat)
-%Infer whether a REML fitlme fit converged. fitlme exposes no public convergence
-%flag, so convergence is inferred from two locale-independent signals:
-% (1) no optimizer/singularity warning was raised during the fit, and
-% (2) every point estimate is finite and real.
-%A failed REML fit (iteration limit, singular/ill-conditioned Hessian, perfect
-%fit) raises a recognizable warning and/or yields non-finite estimates. Reporting
-%such a fit as converged would let local_fitlme_conv emit r_hat = 1 / large n_eff
-%so psyrat_checkconv passes a bad variance-component estimate as trustworthy; the
-%two checks below prevent that. On a clean fit no warning fires and all estimates
-%are finite, so converged stays true (existing well-conditioned runs are
-%unaffected).
-converged = ~local_fitlme_isconvwarn(fitwarn) && local_fitlme_allfinite(hat);
+function local_fitlme_bootcheck(ok,B,label)
+%Enforce the parametric-bootstrap adequacy floor and disclose every failed refit
+%(Q3, 2026-09-11; post-beta review PBA-05). A failed refit is dropped, never
+%replaced by the point estimate: the replacement put an artificial point mass
+%at the point fit and narrowed the interval. Below the floor the run is refused
+%with an error rather than a "not converged" verdict, because the automatic
+%reruns of the warp driver double iterations that this engine ignores and would
+%repeat the same failures. The floor is the owner's ruling: at least 90% of the
+%requested replicates must succeed, and at least 200 when 200 or more were
+%requested (smaller requests keep only the 90% rule, so a small test-size
+%bootstrap stays usable).
+nok = nnz(ok);
+nfail = B - nok;
+nmin = ceil(0.9*B);
+if B >= 200
+    nmin = max(nmin,200);
 end
-
-% ------------------------------------------------------------------------------
-function tf = local_fitlme_isconvwarn(wid)
-%True if a captured warning IDENTIFIER names an optimizer/singularity problem
-%from a mixed-model fit. Matching on the identifier (not the message text) is
-%locale-independent. Because lastwarn is cleared immediately before the fit, only
-%warnings raised by that fit are seen, so a match is a genuine fitting problem.
-tf = false;
-if isempty(wid)
-    return;
+if nok < nmin
+    error('PsyRAT:fitlmeBootstrapFloor',['%d of %d parametric-bootstrap refits ' ...
+        'of the native fitlme %s model failed; at least %d successful refits ' ...
+        'are required (90%% of the requested count, and 200 when 200 or more are ' ...
+        'requested), so no interval was formed from the %d surviving replicates. ' ...
+        'How to fix: use CmdStan or the native HMC engine, request more ' ...
+        'replicates, or simplify the design.'],nfail,B,label,nmin,nok);
 end
-markers = {'Singular','IllConditioned','rankDeficient','PerfectFit', ...
-    'Converg','Unable','NonConverg'};
-for k = 1:numel(markers)
-    if contains(wid,markers{k},'IgnoreCase',true)
-        tf = true;
-        return;
-    end
-end
-end
-
-% ------------------------------------------------------------------------------
-function tf = local_fitlme_allfinite(hat)
-%True if every numeric field of the point-estimate struct is finite and real. A
-%non-finite or complex variance-component estimate is an unambiguous sign the
-%REML fit blew up, independent of any warning.
-tf = true;
-f = fieldnames(hat);
-for k = 1:numel(f)
-    v = hat.(f{k});
-    if isnumeric(v) && (~all(isfinite(v(:))) || ~isreal(v))
-        tf = false;
-        return;
-    end
-end
-end
-
-% ------------------------------------------------------------------------------
-function local_fitlme_bootwarn(nfail,B,label)
-%Warn when a large fraction of parametric-bootstrap refits failed and fell back
-%to the point estimate. A high failure rate signals a weakly identified /
-%ill-conditioned model whose bootstrap interval is artificially narrow (the
-%failed draws collapse onto the point estimate), so the interval is unreliable.
-if nfail > 0 && nfail/B > 0.10
+if nfail > 0
     warning('PsyRAT:fitlmeBootstrapFailures', ...
         ['%d of %d (%.0f%%) parametric-bootstrap refits of the native fitlme ' ...
-        '%s model failed and were replaced by the point estimate. The bootstrap ' ...
-        'interval is unreliable (artificially narrow); treat the result as ' ...
-        'approximate and prefer CmdStan/HMC.'],nfail,B,100*nfail/B,label);
+        '%s model failed and were dropped; the interval uses the %d successful ' ...
+        'replicates. Failed refits can signal a weakly identified model; treat ' ...
+        'the interval as approximate and prefer CmdStan/HMC.'], ...
+        nfail,B,100*nfail/B,label,nok);
+end
+end
+
+% ------------------------------------------------------------------------------
+function varargout = local_keepok(ok,varargin)
+%Keep the rows of every draw vector whose replicate succeeded (same mask for
+%all of them, so the vectors stay aligned for the calculation layer).
+varargout = cell(1,numel(varargin));
+for k = 1:numel(varargin)
+    v = varargin{k};
+    varargout{k} = v(ok);
+end
+end
+
+% ------------------------------------------------------------------------------
+function d = local_maskdraws(d,ok)
+%Apply one success mask to every field of a draws struct.
+f = fieldnames(d);
+for k = 1:numel(f)
+    v = d.(f{k});
+    d.(f{k}) = v(ok);
 end
 end

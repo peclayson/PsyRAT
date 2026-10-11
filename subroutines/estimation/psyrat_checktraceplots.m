@@ -17,7 +17,7 @@ function psyrat_checktraceplots(REL,varargin)
 % No output generated. The user's choice will be checked in psyrat_startproc
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -61,6 +61,16 @@ if ~isempty(varargin)
     end
 else
     askuser = 0;
+end
+
+%Bootstrap replicates are independent refits, not MCMC chains. In particular,
+%unequal successful counts must never be reshaped using the sampling setting.
+if isfield(REL,'engine') && strcmpi(REL.engine,'fitlme')
+    msg = ['MCMC trace plots do not apply to REML parametric-bootstrap refits. ' ...
+        psyrat_engine_notice(REL)];
+    warning('PsyRAT:bootstrapTraceUnavailable','%s',msg);
+    if askuser; warndlg(msg,'Bootstrap diagnostics'); end
+    return;
 end
 
 if isfield(REL,'nsampling') && ~isempty(REL.nsampling)
@@ -438,4 +448,3 @@ elseif strcmp(analysis,'trt')
     end
 end
 end
-

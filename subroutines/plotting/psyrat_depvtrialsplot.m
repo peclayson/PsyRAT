@@ -7,7 +7,7 @@ function depplot = psyrat_depvtrialsplot(varargin)
 %
 %
 %Inputs
-% psyrat_data - PsyRAT Toolbox data structure array. Variance components should
+% psyrat_data - PsyRAT data structure array. Variance components should
 %  be included.
 % trials - range of trials to plot
 % depcutoff - dependality threshold for deeming data reliable (used for
@@ -30,7 +30,7 @@ function depplot = psyrat_depvtrialsplot(varargin)
 %  number of trials retained for averaging stratified by group and
 %  condition
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 % 
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -67,7 +67,7 @@ if ~isempty(varargin)
     else 
         error('varargin:psyrat_data',... %Error code and associated error
             strcat('WARNING: psyrat_data not specified \n\n',... 
-            'Please input psyrat_data (PsyRAT Toolbox data structure array).\n',...
+            'Please input psyrat_data (PsyRAT data structure array).\n',...
             'See help psyrat_depvtrialsplot for more information \n'));
     end
     
@@ -295,13 +295,15 @@ for eloc=1:nevents
         switch depline
             case 1 %lower limit
                 plotrel(1:numel(x),gloc) = llv;
-                plottitle = 'Lower Limit of 95% Credible Interval';
+                plottitle = sprintf('Lower Limit of %g%% %s',100*ciperc, ...
+                    psyrat_interval_label(psyrat_data.rel,'title'));
             case 2 %point estimate
                 plotrel(1:numel(x),gloc) = mv;
                 plottitle = 'Point Estimate';
             case 3 %upper limit
                 plotrel(1:numel(x),gloc) = ulv;
-                plottitle = 'Upper Limit of 95% Credible Interval';
+                plottitle = sprintf('Upper Limit of %g%% %s',100*ciperc, ...
+                    psyrat_interval_label(psyrat_data.rel,'title'));
         end
     end
     

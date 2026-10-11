@@ -27,7 +27,7 @@ classdef TestDiffEventOrderAlignment < PsyRATTestBase
     %
     %THE FIVE DYNAMIC CASES (12/13/17/19/21) ARE PINNED BY SOURCE SCAN ONLY,
     %and deliberately so. The 2026-08-16 trace (B23's closing bullet in
-    %PSYRAT_AUDIT_FINDINGS.md) established that REL.events is WRITE-ONLY on the
+    %the findings ledger) established that REL.events is WRITE-ONLY on the
     %dynamic difference family -- no viewer, export, report, provenance, plot,
     %or summary path reads it -- so no behavioral differential through any
     %production surface is POSSIBLE for them: there is nothing reachable whose

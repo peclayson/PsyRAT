@@ -7,7 +7,7 @@ function [psyrat_data,relerr] = psyrat_relsummary(varargin)
 %
 %
 %Inputs
-% psyrat_data - PsyRAT Toolbox data structure array. Variance components should
+% psyrat_data - PsyRAT data structure array. Variance components should
 %  be included
 % analysis - dispatch key selecting the summary path. Accepted values:
 %   'sing' single-occasion; 'sing_sserr' single-occasion subject-level error;
@@ -71,7 +71,7 @@ function [psyrat_data,relerr] = psyrat_relsummary(varargin)
 %  dataset
 %
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -140,13 +140,11 @@ function [psyrat_data,relerr] = psyrat_relsummary(varargin)
 %retained sample depend on which events happened to die (retention could
 %INCREASE at a stricter threshold), and it disagreed with the trt_diff branch,
 %which always intersected strictly. Under strict semantics the per-event rows
-%stay informative (a dead event's row carries the -1 sentinels), goodn is the
-%group-level count on every row, and n Included + n Excluded complement -- over
-%the participants present in every event's data. An id with zero rows in some
-%event lands in neither carrier only when that event is the first: the fold
-%is seeded from event 1's roster, so an id present in event 1 but absent from a
-%later event is folded into badids, while an id absent from event 1 never enters
-%the fold at all (audit 2026-09-05; the asymmetry is filed, not fixed here). One
+%stay informative (uncalculable cutoffs carry -1; projections are labeled),
+%goodn is the
+%group-level count on every row. G84 (2026-09-13) defines the roster as the
+%union of observed IDs within the group, independently of event order; excluded
+%IDs are this union minus the strict retained intersection. One
 %carve-out to the "group-level goodn" clause (adversarial wave, 2026-08-29):
 %the sing_diff_sserr helper's per-event fields carry an EVENT-level goodn
 %(the sum of that event's inclusion indicator); no shipped consumer reads
@@ -200,7 +198,7 @@ if ~isempty(varargin)
     else
         error('varargin:psyrat_data',... %Error code and associated error
             strcat('WARNING: psyrat_data not specified \n\n',...
-            'Please input psyrat_data (PsyRAT Toolbox data structure array).\n',...
+            'Please input psyrat_data (PsyRAT data structure array).\n',...
             'See help psyrat_relsummary for more information \n'));
     end
     
@@ -784,10 +782,10 @@ switch relanalysis
                 eloc = 1;
 
                 data.g(gloc).e(eloc).label = REL.out.labels(gloc);
-                data.g(gloc).e(eloc).mu.raw = REL.out.mu(:,gloc);
-                data.g(gloc).e(eloc).sig_u.raw = REL.out.sig_u(:,gloc);
-                data.g(gloc).e(eloc).sig_e.raw = REL.out.sig_e(:,gloc);
-                data.g(gloc).e(eloc).sig_trl.raw = REL.out.sig_trl(:,gloc);
+                data.g(gloc).e(eloc).mu.raw = psyrat_draw_column(REL.out.mu,gloc);
+                data.g(gloc).e(eloc).sig_u.raw = psyrat_draw_column(REL.out.sig_u,gloc);
+                data.g(gloc).e(eloc).sig_e.raw = psyrat_draw_column(REL.out.sig_e,gloc);
+                data.g(gloc).e(eloc).sig_trl.raw = psyrat_draw_column(REL.out.sig_trl,gloc);
                 data.g(gloc).e(eloc).elabel = cellstr('none');
                 data.g(gloc).glabel = gnames(gloc);
                 
@@ -798,10 +796,10 @@ switch relanalysis
                 for gloc=1:length(REL.out.labels)
 
                     data.g(gloc).e(eloc).label = REL.out.labels(gloc);
-                    data.g(gloc).e(eloc).mu.raw = REL.out.mu(:,gloc);
-                    data.g(gloc).e(eloc).sig_u.raw = REL.out.sig_u(:,gloc);
-                    data.g(gloc).e(eloc).sig_e.raw = REL.out.sig_e(:,gloc);
-                    data.g(gloc).e(eloc).sig_trl.raw = REL.out.sig_trl(:,gloc);
+                    data.g(gloc).e(eloc).mu.raw = psyrat_draw_column(REL.out.mu,gloc);
+                    data.g(gloc).e(eloc).sig_u.raw = psyrat_draw_column(REL.out.sig_u,gloc);
+                    data.g(gloc).e(eloc).sig_e.raw = psyrat_draw_column(REL.out.sig_e,gloc);
+                    data.g(gloc).e(eloc).sig_trl.raw = psyrat_draw_column(REL.out.sig_trl,gloc);
                     data.g(gloc).e(eloc).elabel = cellstr('none');
                     data.g(gloc).glabel = gnames(gloc);
                     
@@ -814,10 +812,10 @@ switch relanalysis
                 for eloc=1:length(REL.out.labels)
                     
                     data.g(gloc).e(eloc).label = REL.out.labels(eloc);
-                    data.g(gloc).e(eloc).mu.raw = REL.out.mu(:,eloc);
-                    data.g(gloc).e(eloc).sig_u.raw = REL.out.sig_u(:,eloc);
-                    data.g(gloc).e(eloc).sig_e.raw = REL.out.sig_e(:,eloc);
-                    data.g(gloc).e(eloc).sig_trl.raw = REL.out.sig_trl(:,eloc);
+                    data.g(gloc).e(eloc).mu.raw = psyrat_draw_column(REL.out.mu,eloc);
+                    data.g(gloc).e(eloc).sig_u.raw = psyrat_draw_column(REL.out.sig_u,eloc);
+                    data.g(gloc).e(eloc).sig_e.raw = psyrat_draw_column(REL.out.sig_e,eloc);
+                    data.g(gloc).e(eloc).sig_trl.raw = psyrat_draw_column(REL.out.sig_trl,eloc);
                     data.g(gloc).e(eloc).elabel = enames(eloc);
                     data.g(gloc).glabel = gnames(gloc);
                     
@@ -834,10 +832,10 @@ switch relanalysis
                     gloc = find(ismember(gnames,lblstr(2)));
                     
                     data.g(gloc).e(eloc).label = REL.out.labels(i);
-                    data.g(gloc).e(eloc).mu.raw = REL.out.mu(:,i);
-                    data.g(gloc).e(eloc).sig_u.raw = REL.out.sig_u(:,i);
-                    data.g(gloc).e(eloc).sig_e.raw = REL.out.sig_e(:,i);
-                    data.g(gloc).e(eloc).sig_trl.raw = REL.out.sig_trl(:,i);
+                    data.g(gloc).e(eloc).mu.raw = psyrat_draw_column(REL.out.mu,i);
+                    data.g(gloc).e(eloc).sig_u.raw = psyrat_draw_column(REL.out.sig_u,i);
+                    data.g(gloc).e(eloc).sig_e.raw = psyrat_draw_column(REL.out.sig_e,i);
+                    data.g(gloc).e(eloc).sig_trl.raw = psyrat_draw_column(REL.out.sig_trl,i);
                     data.g(gloc).e(eloc).elabel = enames(eloc);
                     data.g(gloc).glabel = gnames(gloc);
                     
@@ -909,6 +907,8 @@ switch relanalysis
                 end
                 
                 %compute dependability
+                relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                    local_observed_trial_info(REL,gloc,eloc);
                 ntrials = max(trltable.GroupCount(:)) + 1000;
                 
                 [llrel,mrel,ulrel] = psyrat_rel_sing('gcoeff',gcoeff,'metric','global',...
@@ -1106,16 +1106,12 @@ switch relanalysis
                     relsummary.group(gloc).event(eloc).trlinfo.med = trlmed;
                     relsummary.group(gloc).event(eloc).goodn = height(goodids);
                     
-                    %just in case a cutoff was extrapolated, the dependability
-                    %information will be overwritten
+                    %Mark a projection against the original observed support.
                     if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                            relsummary.group(gloc).event(eloc).trlinfo.max
+                            relsummary.group(gloc).event(eloc).observed_trlinfo.max
                         
                         relerr.trlmax = 1;
-                        relsummary.group(gloc).event(eloc).rel.m = -1;
-                        relsummary.group(gloc).event(eloc).rel.ll = -1;
-                        relsummary.group(gloc).event(eloc).rel.ul = -1;
-                        
+                        %G88: retain the valid D-study projection; label its support.
                     end
                     
                     
@@ -1170,6 +1166,8 @@ switch relanalysis
                             'GroupingVariables',{'id'});
                     end
                     
+                    relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                        local_observed_trial_info(REL,gloc,eloc);
                     ntrials = max(trltable.GroupCount(:)) + 1000;
                     
                     %compute dependability
@@ -1336,16 +1334,12 @@ switch relanalysis
                     relsummary.group(gloc).event(eloc).trlinfo.std = std(trltable.GroupCount);
                     relsummary.group(gloc).event(eloc).trlinfo.med = trlmed;
                     
-                    %just in case a cutoff was extrapolated, the dependability
-                    %information will be overwritten
+                    %Mark a projection against the original observed support.
                     if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                            relsummary.group(gloc).event(eloc).trlinfo.max
+                            relsummary.group(gloc).event(eloc).observed_trlinfo.max
                         
                         relerr.trlmax = 1;
-                        relsummary.group(gloc).event(eloc).rel.m = -1;
-                        relsummary.group(gloc).event(eloc).rel.ll = -1;
-                        relsummary.group(gloc).event(eloc).rel.ul = -1;
-                        
+                        %G88: retain the valid D-study projection; label its support.
                     end
                     
                     if ~isempty(relsummary.group(gloc).goodids)
@@ -1403,6 +1397,8 @@ switch relanalysis
                         'GroupingVariables',{'id'});
                     
                     %compute dependability
+                    relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                        local_observed_trial_info(REL,gloc,eloc);
                     ntrials = max(trltable.GroupCount(:)) + 1000;
                     
                     
@@ -1500,7 +1496,8 @@ switch relanalysis
                 
                 %store information about participants with good/bad ids
                 relsummary.group(gloc).goodids = tempids{1};
-                relsummary.group(gloc).badids = unique(badids);
+                [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+                    local_observed_partition(REL,gloc,relsummary.group(gloc).goodids);
                 %STRICT-fold consequence (G39): a group can retain nobody while
                 %its per-event rows stay informative, so warn on the console and
                 %continue. Deliberately NOT local_relsummary_notice: its modal
@@ -1570,16 +1567,12 @@ switch relanalysis
                     relsummary.group(gloc).event(eloc).trlinfo.std = std(trltable.GroupCount);
                     relsummary.group(gloc).event(eloc).trlinfo.med = trlmed;
                     
-                    %just in case a cutoff was extrapolated, the dependability
-                    %information will be overwritten
+                    %Mark a projection against the original observed support.
                     if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                            relsummary.group(gloc).event(eloc).trlinfo.max
+                            relsummary.group(gloc).event(eloc).observed_trlinfo.max
                         
                         relerr.trlmax = 1;
-                        relsummary.group(gloc).event(eloc).rel.m = -1;
-                        relsummary.group(gloc).event(eloc).rel.ll = -1;
-                        relsummary.group(gloc).event(eloc).rel.ul = -1;
-                        
+                        %G88: retain the valid D-study projection; label its support.
                     end
                     
                     if iscell(relsummary.group(gloc).goodids) && ~isempty(relsummary.group(gloc).goodids)
@@ -1633,6 +1626,8 @@ switch relanalysis
                             'GroupingVariables',{'id'});
                         
                         %compute dependability
+                        relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                            local_observed_trial_info(REL,gloc,eloc);
                         ntrials = max(trltable.GroupCount(:)) + 1000;
                         
                         
@@ -1735,7 +1730,8 @@ switch relanalysis
                     end
                     
                     relsummary.group(gloc).goodids = tempids{1};
-                    relsummary.group(gloc).badids = unique(badids);
+                    [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+                        local_observed_partition(REL,gloc,relsummary.group(gloc).goodids);
                     %STRICT-fold consequence (G39): a group can retain nobody while
                     %its per-event rows stay informative, so warn on the console and
                     %continue. Deliberately NOT local_relsummary_notice: its modal
@@ -1813,13 +1809,10 @@ switch relanalysis
                         %check if trial cutoff for an event exceeded the total
                         %number of trials for any subjects
                         if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                                relsummary.group(gloc).event(eloc).trlinfo.max
+                                relsummary.group(gloc).event(eloc).observed_trlinfo.max
                             
                             relerr.trlmax = 1;
-                            relsummary.group(gloc).event(eloc).rel.m = -1;
-                            relsummary.group(gloc).event(eloc).rel.ll = -1;
-                            relsummary.group(gloc).event(eloc).rel.ul = -1;
-                            
+                            %G88: retain the valid D-study projection; label its support.
                         end
                         
                         %goodn is the GROUP-level retained count (G39
@@ -2047,6 +2040,8 @@ switch relanalysis
                     trltable = trltable(strcmp(trltable.event,enames{eloc}),:);
                     
                     %compute dependability
+                    relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                        local_observed_trial_info(REL,gloc,eloc);
                     ntrials = max(trltable.GroupCount(:)) + 1000;
                     
 
@@ -2149,7 +2144,8 @@ switch relanalysis
                 
                 %store information about participants with good/bad ids
                 relsummary.group(gloc).goodids = tempids{1};
-                relsummary.group(gloc).badids = unique(badids);
+                [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+                    local_observed_partition(REL,gloc,relsummary.group(gloc).goodids);
                 %STRICT-fold consequence (G39): a group can retain nobody while
                 %its per-event rows stay informative, so warn on the console and
                 %continue. Deliberately NOT local_relsummary_notice: its modal
@@ -2221,16 +2217,12 @@ switch relanalysis
                     relsummary.group(gloc).event(eloc).trlinfo.std = std(trltable.GroupCount);
                     relsummary.group(gloc).event(eloc).trlinfo.med = trlmed;
                     
-                    %just in case a cutoff was extrapolated, the dependability
-                    %information will be overwritten
+                    %Mark a projection against the original observed support.
                     if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                            relsummary.group(gloc).event(eloc).trlinfo.max
+                            relsummary.group(gloc).event(eloc).observed_trlinfo.max
                         
                         relerr.trlmax = 1;
-                        relsummary.group(gloc).event(eloc).rel.m = -1;
-                        relsummary.group(gloc).event(eloc).rel.ll = -1;
-                        relsummary.group(gloc).event(eloc).rel.ul = -1;
-                        
+                        %G88: retain the valid D-study projection; label its support.
                     end
                     
                     if iscell(relsummary.group(gloc).goodids) && ~isempty(relsummary.group(gloc).goodids)
@@ -2291,6 +2283,8 @@ switch relanalysis
                             & strcmp(trltable.group,gnames{gloc}),:);
                         
                         %compute dependability
+                        relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                            local_observed_trial_info(REL,gloc,eloc);
                         ntrials = max(trltable.GroupCount(:)) + 1000;
                         
                         
@@ -2392,7 +2386,8 @@ switch relanalysis
                     end
                     
                     relsummary.group(gloc).goodids = tempids{1};
-                    relsummary.group(gloc).badids = unique(badids);
+                    [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+                        local_observed_partition(REL,gloc,relsummary.group(gloc).goodids);
                     %STRICT-fold consequence (G39): a group can retain nobody while
                     %its per-event rows stay informative, so warn on the console and
                     %continue. Deliberately NOT local_relsummary_notice: its modal
@@ -2473,13 +2468,10 @@ switch relanalysis
                         %check if trial cutoff for an event exceeded the total
                         %number of trials for any subjects
                         if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                                relsummary.group(gloc).event(eloc).trlinfo.max
+                                relsummary.group(gloc).event(eloc).observed_trlinfo.max
                             
                             relerr.trlmax = 1;
-                            relsummary.group(gloc).event(eloc).rel.m = -1;
-                            relsummary.group(gloc).event(eloc).rel.ll = -1;
-                            relsummary.group(gloc).event(eloc).rel.ul = -1;
-                            
+                            %G88: retain the valid D-study projection; label its support.
                         end
                         
                         %goodn is the GROUP-level retained count (G39
@@ -2598,8 +2590,8 @@ switch relanalysis
             %
             %Search range mirrors the per-event convention above: the largest
             %observed trial count, plus room to extrapolate beyond it.
-            ntrlsearch = max([relsummary.group(gloc).event(1).trlinfo.max ...
-                relsummary.group(gloc).event(2).trlinfo.max]) + 1000;
+            ntrlsearch = max([relsummary.group(gloc).event(1).observed_trlinfo.max ...
+                relsummary.group(gloc).event(2).observed_trlinfo.max]) + 1000;
 
             [diffcutoff,diffcutscore] = psyrat_diffrel_trlcutoff(...
                 'bp',cell2mat(REL.out.id_varcov{:,gloc}),...
@@ -2640,8 +2632,8 @@ switch relanalysis
                 end
                 relerr.trlcutoff = 1;
 
-            elseif diffcutoff > min([relsummary.group(gloc).event(1).trlinfo.max ...
-                    relsummary.group(gloc).event(2).trlinfo.max])
+            elseif diffcutoff > min([relsummary.group(gloc).event(1).observed_trlinfo.max ...
+                    relsummary.group(gloc).event(2).observed_trlinfo.max])
 
                 %the derived count is a COMMON n', so it needs that many trials
                 %in BOTH conditions. It is therefore an extrapolation as soon
@@ -2663,6 +2655,9 @@ switch relanalysis
             %the derived count travels with the difference score so the cutoff
             %table can print it instead of suppressing it
             diffcutscore.ntrials = diffcutoff;
+            diffcutscore.cutoff_extrapolated = diffcutoff > 0 && ...
+                diffcutoff > min([relsummary.group(gloc).event(1).observed_trlinfo.max ...
+                    relsummary.group(gloc).event(2).observed_trlinfo.max]);
 
             relsummary.group(gloc).diffscore.trlcutoff = diffcutscore;
 
@@ -3249,7 +3244,8 @@ switch relanalysis
                 
                 %store information about participants with good/bad ids
                 relsummary.group(gloc).goodids = tempids{1};
-                relsummary.group(gloc).badids = unique(badids);
+                [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+                    local_observed_partition(REL,gloc,relsummary.group(gloc).goodids);
                 %STRICT-fold consequence (G39): a group can retain nobody while
                 %its per-event rows stay informative, so warn on the console and
                 %continue. Deliberately NOT local_relsummary_notice: its modal
@@ -3418,7 +3414,8 @@ switch relanalysis
                     end
                     
                     relsummary.group(gloc).goodids = tempids{1};
-                    relsummary.group(gloc).badids = unique(badids);
+                    [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+                        local_observed_partition(REL,gloc,relsummary.group(gloc).goodids);
                     %STRICT-fold consequence (G39): a group can retain nobody while
                     %its per-event rows stay informative, so warn on the console and
                     %continue. Deliberately NOT local_relsummary_notice: its modal
@@ -3625,7 +3622,8 @@ switch relanalysis
                 tempids{1} = cell(0,1);
             end
             relsummary.group(gloc).goodids = tempids{1};
-            relsummary.group(gloc).badids = unique(badids);
+            [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+                local_observed_partition(REL,gloc,relsummary.group(gloc).goodids);
             %STRICT-fold consequence (G39): a group can retain nobody while
             %its per-event rows stay informative, so warn on the console and
             %continue. Deliberately NOT local_relsummary_notice: its modal
@@ -3696,14 +3694,14 @@ switch relanalysis
                 eloc = 1;
 
                 data.g(gloc).e(eloc).label = REL.out.labels{gloc};
-                data.g(gloc).e(eloc).mu.raw = REL.out.mu(:,gloc);
-                data.g(gloc).e(eloc).sig_id.raw = REL.out.sig_id(:,gloc);
-                data.g(gloc).e(eloc).sig_occ.raw = REL.out.sig_occ(:,gloc);
-                data.g(gloc).e(eloc).sig_trl.raw = REL.out.sig_trl(:,gloc);
-                data.g(gloc).e(eloc).sig_trlxid.raw = REL.out.sig_trlxid(:,gloc);
-                data.g(gloc).e(eloc).sig_occxid.raw = REL.out.sig_occxid(:,gloc);
-                data.g(gloc).e(eloc).sig_trlxocc.raw = REL.out.sig_trlxocc(:,gloc);
-                data.g(gloc).e(eloc).sig_err.raw = REL.out.sig_err(:,gloc);
+                data.g(gloc).e(eloc).mu.raw = psyrat_draw_column(REL.out.mu,gloc);
+                data.g(gloc).e(eloc).sig_id.raw = psyrat_draw_column(REL.out.sig_id,gloc);
+                data.g(gloc).e(eloc).sig_occ.raw = psyrat_draw_column(REL.out.sig_occ,gloc);
+                data.g(gloc).e(eloc).sig_trl.raw = psyrat_draw_column(REL.out.sig_trl,gloc);
+                data.g(gloc).e(eloc).sig_trlxid.raw = psyrat_draw_column(REL.out.sig_trlxid,gloc);
+                data.g(gloc).e(eloc).sig_occxid.raw = psyrat_draw_column(REL.out.sig_occxid,gloc);
+                data.g(gloc).e(eloc).sig_trlxocc.raw = psyrat_draw_column(REL.out.sig_trlxocc,gloc);
+                data.g(gloc).e(eloc).sig_err.raw = psyrat_draw_column(REL.out.sig_err,gloc);
                 data.g(gloc).e(eloc).elabel = cellstr('none');
                 data.g(gloc).glabel = gnames(gloc);
                 
@@ -3714,14 +3712,14 @@ switch relanalysis
                 for gloc=1:length(REL.out.labels)
                     
                     data.g(gloc).e(eloc).label = REL.out.labels{gloc};
-                    data.g(gloc).e(eloc).mu.raw = REL.out.mu(:,gloc);
-                    data.g(gloc).e(eloc).sig_id.raw = REL.out.sig_id(:,gloc);
-                    data.g(gloc).e(eloc).sig_occ.raw = REL.out.sig_occ(:,gloc);
-                    data.g(gloc).e(eloc).sig_trl.raw = REL.out.sig_trl(:,gloc);
-                    data.g(gloc).e(eloc).sig_trlxid.raw = REL.out.sig_trlxid(:,gloc);
-                    data.g(gloc).e(eloc).sig_occxid.raw = REL.out.sig_occxid(:,gloc);
-                    data.g(gloc).e(eloc).sig_trlxocc.raw = REL.out.sig_trlxocc(:,gloc);
-                    data.g(gloc).e(eloc).sig_err.raw = REL.out.sig_err(:,gloc);
+                    data.g(gloc).e(eloc).mu.raw = psyrat_draw_column(REL.out.mu,gloc);
+                    data.g(gloc).e(eloc).sig_id.raw = psyrat_draw_column(REL.out.sig_id,gloc);
+                    data.g(gloc).e(eloc).sig_occ.raw = psyrat_draw_column(REL.out.sig_occ,gloc);
+                    data.g(gloc).e(eloc).sig_trl.raw = psyrat_draw_column(REL.out.sig_trl,gloc);
+                    data.g(gloc).e(eloc).sig_trlxid.raw = psyrat_draw_column(REL.out.sig_trlxid,gloc);
+                    data.g(gloc).e(eloc).sig_occxid.raw = psyrat_draw_column(REL.out.sig_occxid,gloc);
+                    data.g(gloc).e(eloc).sig_trlxocc.raw = psyrat_draw_column(REL.out.sig_trlxocc,gloc);
+                    data.g(gloc).e(eloc).sig_err.raw = psyrat_draw_column(REL.out.sig_err,gloc);
                     data.g(gloc).e(eloc).elabel = cellstr('none');
                     data.g(gloc).glabel = gnames(gloc);
                     
@@ -3734,14 +3732,14 @@ switch relanalysis
                 for eloc=1:length(REL.out.labels)
                     
                     data.g(gloc).e(eloc).label = REL.out.labels{eloc};
-                    data.g(gloc).e(eloc).mu.raw = REL.out.mu(:,eloc);
-                    data.g(gloc).e(eloc).sig_id.raw = REL.out.sig_id(:,eloc);
-                    data.g(gloc).e(eloc).sig_occ.raw = REL.out.sig_occ(:,eloc);
-                    data.g(gloc).e(eloc).sig_trl.raw = REL.out.sig_trl(:,eloc);
-                    data.g(gloc).e(eloc).sig_trlxid.raw = REL.out.sig_trlxid(:,eloc);
-                    data.g(gloc).e(eloc).sig_occxid.raw = REL.out.sig_occxid(:,eloc);
-                    data.g(gloc).e(eloc).sig_trlxocc.raw = REL.out.sig_trlxocc(:,eloc);
-                    data.g(gloc).e(eloc).sig_err.raw = REL.out.sig_err(:,eloc);
+                    data.g(gloc).e(eloc).mu.raw = psyrat_draw_column(REL.out.mu,eloc);
+                    data.g(gloc).e(eloc).sig_id.raw = psyrat_draw_column(REL.out.sig_id,eloc);
+                    data.g(gloc).e(eloc).sig_occ.raw = psyrat_draw_column(REL.out.sig_occ,eloc);
+                    data.g(gloc).e(eloc).sig_trl.raw = psyrat_draw_column(REL.out.sig_trl,eloc);
+                    data.g(gloc).e(eloc).sig_trlxid.raw = psyrat_draw_column(REL.out.sig_trlxid,eloc);
+                    data.g(gloc).e(eloc).sig_occxid.raw = psyrat_draw_column(REL.out.sig_occxid,eloc);
+                    data.g(gloc).e(eloc).sig_trlxocc.raw = psyrat_draw_column(REL.out.sig_trlxocc,eloc);
+                    data.g(gloc).e(eloc).sig_err.raw = psyrat_draw_column(REL.out.sig_err,eloc);
                     data.g(gloc).e(eloc).elabel = enames(eloc);
                     data.g(gloc).glabel = gnames(gloc);
                     
@@ -3758,14 +3756,14 @@ switch relanalysis
                     gloc = find(ismember(gnames,lblstr(1)));
                     
                     data.g(gloc).e(eloc).label = REL.out.labels{ii};
-                    data.g(gloc).e(eloc).mu.raw = REL.out.mu(:,ii);
-                    data.g(gloc).e(eloc).sig_id.raw = REL.out.sig_id(:,ii);
-                    data.g(gloc).e(eloc).sig_occ.raw = REL.out.sig_occ(:,ii);
-                    data.g(gloc).e(eloc).sig_trl.raw = REL.out.sig_trl(:,ii);
-                    data.g(gloc).e(eloc).sig_trlxid.raw = REL.out.sig_trlxid(:,ii);
-                    data.g(gloc).e(eloc).sig_occxid.raw = REL.out.sig_occxid(:,ii);
-                    data.g(gloc).e(eloc).sig_trlxocc.raw = REL.out.sig_trlxocc(:,ii);
-                    data.g(gloc).e(eloc).sig_err.raw = REL.out.sig_err(:,ii);
+                    data.g(gloc).e(eloc).mu.raw = psyrat_draw_column(REL.out.mu,ii);
+                    data.g(gloc).e(eloc).sig_id.raw = psyrat_draw_column(REL.out.sig_id,ii);
+                    data.g(gloc).e(eloc).sig_occ.raw = psyrat_draw_column(REL.out.sig_occ,ii);
+                    data.g(gloc).e(eloc).sig_trl.raw = psyrat_draw_column(REL.out.sig_trl,ii);
+                    data.g(gloc).e(eloc).sig_trlxid.raw = psyrat_draw_column(REL.out.sig_trlxid,ii);
+                    data.g(gloc).e(eloc).sig_occxid.raw = psyrat_draw_column(REL.out.sig_occxid,ii);
+                    data.g(gloc).e(eloc).sig_trlxocc.raw = psyrat_draw_column(REL.out.sig_trlxocc,ii);
+                    data.g(gloc).e(eloc).sig_err.raw = psyrat_draw_column(REL.out.sig_err,ii);
                     data.g(gloc).e(eloc).elabel = enames(eloc);
                     data.g(gloc).glabel = gnames(gloc);
                     
@@ -3849,6 +3847,8 @@ switch relanalysis
                 end
                 
                 %compute reliabiltiy
+                relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                    local_observed_trial_info(REL,gloc,eloc);
                 ntrials = max(trltable.GroupCount(:)) + 1000;
                 
                 
@@ -4079,16 +4079,12 @@ switch relanalysis
                     relsummary.group(gloc).event(eloc).trlinfo.med = trlmed;
                     relsummary.group(gloc).event(eloc).goodn = height(goodids);
                     
-                    %just in case a cutoff was extrapolated, the reliability
-                    %information will be overwritten
+                    %Mark a projection against the original observed support.
                     if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                            relsummary.group(gloc).event(eloc).trlinfo.max
+                            relsummary.group(gloc).event(eloc).observed_trlinfo.max
                         
                         relerr.trlmax = 1;
-                        relsummary.group(gloc).event(eloc).relcutoff.m = -1;
-                        relsummary.group(gloc).event(eloc).relcutoff.ll = -1;
-                        relsummary.group(gloc).event(eloc).relcutoff.ul = -1;
-                        
+                        %G88: retain the valid D-study projection; label its support.
                     end
                     
                 end
@@ -4157,6 +4153,8 @@ switch relanalysis
                     
                     
                     %compute reliabiltiy
+                    relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                        local_observed_trial_info(REL,gloc,eloc);
                     ntrials = max(trltable.GroupCount(:)) + 1000;
                     
                     
@@ -4408,16 +4406,12 @@ switch relanalysis
                     relsummary.group(gloc).event(eloc).trlinfo.std = std(trltable.GroupCount);
                     relsummary.group(gloc).event(eloc).trlinfo.med = trlmed;
                     
-                    %just in case a cutoff was extrapolated, the reliability
-                    %information will be overwritten
+                    %Mark a projection against the original observed support.
                     if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                            relsummary.group(gloc).event(eloc).trlinfo.max
+                            relsummary.group(gloc).event(eloc).observed_trlinfo.max
                         
                         relerr.trlmax = 1;
-                        relsummary.group(gloc).event(eloc).relcutoff.m = -1;
-                        relsummary.group(gloc).event(eloc).relcutoff.ll = -1;
-                        relsummary.group(gloc).event(eloc).relcutoff.ul = -1;
-                        
+                        %G88: retain the valid D-study projection; label its support.
                     end
                     
                     %same non-exhaustive guard as the goodids assignment above.
@@ -4493,6 +4487,8 @@ switch relanalysis
                     
                     
                     %compute reliabiltiy
+                    relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                        local_observed_trial_info(REL,gloc,eloc);
                     ntrials = max(trltable.GroupCount(:)) + 1000;
                     
                     
@@ -4600,7 +4596,8 @@ switch relanalysis
                 
                 %store information about participants with good/bad ids
                 relsummary.group(gloc).goodids = tempids{1};
-                relsummary.group(gloc).badids = unique(badids);
+                [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+                    local_observed_partition(REL,gloc,relsummary.group(gloc).goodids);
                 %STRICT-fold consequence (G39): a group can retain nobody while
                 %its per-event rows stay informative, so warn on the console and
                 %continue. Deliberately NOT local_relsummary_notice: its modal
@@ -4678,16 +4675,12 @@ switch relanalysis
                     relsummary.group(gloc).event(eloc).trlinfo.std = std(trltable.GroupCount);
                     relsummary.group(gloc).event(eloc).trlinfo.med = trlmed;
                     
-                    %just in case a cutoff was extrapolated, the reliability
-                    %information will be overwritten
+                    %Mark a projection against the original observed support.
                     if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                            relsummary.group(gloc).event(eloc).trlinfo.max
+                            relsummary.group(gloc).event(eloc).observed_trlinfo.max
                         
                         relerr.trlmax = 1;
-                        relsummary.group(gloc).event(eloc).relcutoff.m = -1;
-                        relsummary.group(gloc).event(eloc).relcutoff.ll = -1;
-                        relsummary.group(gloc).event(eloc).relcutoff.ul = -1;
-                        
+                        %G88: retain the valid D-study projection; label its support.
                     end
                     
                     if iscell(relsummary.group(gloc).goodids) && ~isempty(relsummary.group(gloc).goodids)
@@ -4753,6 +4746,8 @@ switch relanalysis
                             'GroupingVariables',{'id','time'});
                         
                         %compute reliability
+                        relsummary.group(gloc).event(eloc).observed_trlinfo = ...
+                            local_observed_trial_info(REL,gloc,eloc);
                         ntrials = max(trltable.GroupCount(:)) + 1000;
                         
                         
@@ -4881,7 +4876,8 @@ switch relanalysis
                     end
                     
                     relsummary.group(gloc).goodids = tempids{1};
-                    relsummary.group(gloc).badids = unique(badids);
+                    [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+                        local_observed_partition(REL,gloc,relsummary.group(gloc).goodids);
                     %STRICT-fold consequence (G39): a group can retain nobody while
                     %its per-event rows stay informative, so warn on the console and
                     %continue. Deliberately NOT local_relsummary_notice: its modal
@@ -4971,13 +4967,10 @@ switch relanalysis
                         %check if trial cutoff for an event exceeded the total
                         %number of trials for any subjects
                         if  relsummary.group(gloc).event(eloc).trlcutoff >...
-                                relsummary.group(gloc).event(eloc).trlinfo.max
+                                relsummary.group(gloc).event(eloc).observed_trlinfo.max
                             
                             relerr.trlmax = 1;
-                            relsummary.group(gloc).event(eloc).relcutoff.m = -1;
-                            relsummary.group(gloc).event(eloc).relcutoff.ll = -1;
-                            relsummary.group(gloc).event(eloc).relcutoff.ul = -1;
-                            
+                            %G88: retain the valid D-study projection; label its support.
                         end
                         
                         %goodn is the GROUP-level retained count (G39
@@ -5067,6 +5060,48 @@ end
 %early returns all sit above this line. Because that is an observation about the
 %current branches and not a guard, the contract is also pinned by
 %testRelsummaryPublishesOneGroupPerRelGroup.
+%G84/G88: keep source rosters and support with the summary. This also covers
+%the single-event and difference helpers; their qualification rules stay intact.
+for gloc = 1:numel(relsummary.group)
+    [relsummary.group(gloc).observedids, relsummary.group(gloc).badids] = ...
+        local_observed_partition(psyrat_data.rel,gloc,relsummary.group(gloc).goodids);
+    for eloc = 1:numel(relsummary.group(gloc).event)
+        ev = relsummary.group(gloc).event(eloc);
+        if isfield(ev,'observed_trlinfo') && ~isempty(ev.observed_trlinfo)
+            extrapolated = ev.trlcutoff > 0 && ...
+                ev.trlcutoff > ev.observed_trlinfo.max;
+            relsummary.group(gloc).event(eloc).cutoff_extrapolated = extrapolated;
+            relerr.trlmax = double(logical(relerr.trlmax) || extrapolated);
+        end
+        population = 'retained';
+        if strcmpi(psyrat_data.rel.analysis,'trt_diff')
+            %This helper evaluates event and difference references before filtering.
+            population = 'full_sample_reference';
+        elseif isempty(relsummary.group(gloc).goodids)
+            population = 'empty_retained';
+            if (isfield(ev,'dep') && isfield(ev.dep,'m') && isfinite(ev.dep.m)) || ...
+                    (isfield(ev,'rel') && isfield(ev.rel,'m') && isfinite(ev.rel.m) && ...
+                    strcmpi(psyrat_data.rel.analysis,'trt'))
+                population = 'full_sample_reference';
+            end
+        end
+        relsummary.group(gloc).event(eloc).summary_population = population;
+    end
+    if any(strcmpi(psyrat_data.rel.analysis,{'ic_diff','trt_diff'})) && ...
+            isfield(relsummary.group(gloc),'diffscore') && ...
+            ~isempty(relsummary.group(gloc).diffscore)
+        if strcmpi(psyrat_data.rel.analysis,'trt_diff') || ...
+                isempty(relsummary.group(gloc).goodids)
+            relsummary.group(gloc).diffscore.summary_population = 'full_sample_reference';
+        else
+            relsummary.group(gloc).diffscore.summary_population = 'retained';
+        end
+        if strcmpi(psyrat_data.rel.analysis,'trt_diff')
+            relsummary.group(gloc).diffscore.trlcutoff.cutoff_extrapolated = ...
+                any([relsummary.group(gloc).event.cutoff_extrapolated]);
+        end
+    end
+end
 %store relsummary information
 psyrat_data.relsummary = relsummary;
 psyrat_data.relsummary.data = data;
@@ -5270,6 +5305,21 @@ for gloc = 1:ngroups
         'est',diff_est,...
         'CI',ciperc);
     diffscore.ssrel_table = diff_table;
+    %G108. Record, beside the coefficient, the count basis it was just
+    %evaluated at, so the subject-level plot can say which group target its
+    %reference line is. obs, the central tendency and the retained-versus-full-
+    %roster fallback exist only as locals above, and trlinfo below always
+    %describes the full roster, so neither a consumer nor a later preference
+    %can recover them. Presentation metadata only: nothing reads it back into a
+    %calculation. (The ICC does not use obs; it is at one observation per event.)
+    centnames = {'mean','median'};
+    if any(included)
+        obspopulation = 'retained';
+    else
+        obspopulation = 'full_roster';
+    end
+    diffscore.obsbasis = struct('obs',obs,'centmeas',centnames{depcentmeas},...
+        'population',obspopulation,'nretained',sum(included));
     %The cutoff table's diff row on this route deliberately shows the
     %OBSERVED-design coefficient (this analysis runs no trial-cutoff search;
     %psyrat_depcutofft's placeholder contract prints '---' for the absent
@@ -5814,6 +5864,7 @@ for gloc = 1:ngroups
 
         ev = struct();
         ev.name = enames{eloc};
+        ev.observed_trlinfo = local_trial_info(percell);
 
         %per-condition reliability-vs-trials curve to locate the cutoff.
         %percell is a per-participant MEAN trial count across occasions, so it is
@@ -5979,7 +6030,7 @@ for gloc = 1:ngroups
     %plot time would work for the six covariance blocks but NOT for er_cov, which
     %comes from the local psyrat_trtdiff_ercov (concurrent vs non-concurrent vs
     %reconstructed-from-rescor); copying that resolution into a plot function
-    %would make a fourth undeclared twin of the kind CLAUDE.md warns about.
+    %would make a fourth undeclared twin that could drift out of step unseen.
     %
     %Memory-only: relsummary is rebuilt at view time and is never written into
     %the .psyrat file (psyrat_startproc saves before any summary exists), so this
@@ -6072,4 +6123,62 @@ function local_relsummary_notice(interactive, dlg)
 if interactive
     errordlg(dlg, 'Data do not meet reliability threshold','modal');
 end
+end
+
+function [observedids,badids] = local_observed_partition(REL,gloc,goodids)
+%Source union, not the first event or a derived subject table. Group-local
+%IDs remain distinct because each group is partitioned independently.
+blocks = REL.data;
+if istable(blocks); blocks = {blocks}; end
+observedids = cell(0,1);
+for k = 1:numel(blocks)
+    rows = blocks{k};
+    if ismember('group',rows.Properties.VariableNames) && ...
+            ~(ischar(REL.groups) && strcmpi(REL.groups,'none'))
+        names = cellstr(REL.groups);
+        rows = rows(strcmp(string(rows.group),string(names{gloc})),:);
+    end
+    observedids = union(observedids,cellstr(string(rows.id)));
+end
+badids = setdiff(observedids,goodids);
+end
+
+function info = local_trial_info(counts)
+%Retain original support separately from retained/reference summary counts.
+if isempty(counts)
+    info = struct('min',NaN,'max',NaN,'mean',NaN,'med',NaN,'std',NaN);
+else
+    info = struct('min',min(counts),'max',max(counts),'mean',mean(counts),...
+        'med',median(counts),'std',std(counts));
+end
+end
+
+function info = local_observed_trial_info(REL,gloc,eloc)
+%Count original source rows in this group/event, before any retention filter.
+%The search-grid table in older grouped branches can pool group-local IDs;
+%that table is therefore not an authoritative record of per-cell support.
+blocks = REL.data;
+if istable(blocks); blocks = {blocks}; end
+has_events = ~(ischar(REL.events) && strcmpi(REL.events,'none'));
+if numel(blocks) > 1 && has_events; blocks = blocks(eloc); end
+counts = [];
+for k = 1:numel(blocks)
+    rows = blocks{k};
+    if ismember('group',rows.Properties.VariableNames) && ...
+            ~(ischar(REL.groups) && strcmpi(REL.groups,'none'))
+        names = cellstr(REL.groups);
+        rows = rows(strcmp(string(rows.group),string(names{gloc})),:);
+    end
+    if has_events && ismember('event',rows.Properties.VariableNames)
+        names = cellstr(REL.events);
+        rows = rows(strcmp(string(rows.event),string(names{eloc})),:);
+    end
+    keys = {'id'};
+    if any(strcmpi(REL.analysis,{'trt','trt_diff','trt_sserrvar'}))
+        keys = {'id','time'};
+    end
+    tally = varfun(@length,rows,'GroupingVariables',keys);
+    counts = [counts;tally.GroupCount]; %#ok<AGROW>
+end
+info = local_trial_info(counts);
 end

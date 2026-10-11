@@ -22,9 +22,9 @@ classdef TestGammaDiffLsConversion < matlab.unittest.TestCase
     %the live-recovery lane's job (TestGammaDiffLsRecovery). It establishes that
     %the algebra the extractors rest on is what this repo believes it is.
     %
-    %See documentation/gamma_scale_submodel_decision.md section H and finding S16.
+    %See the scale-submodel decision record, section H, and finding S16.
 
-    % Copyright (C) 2016-2025 Peter E. Clayson
+    % Copyright (C) 2016-2026 Peter E. Clayson
     %
     %     This program is free software: you can redistribute it and/or modify
     %     it under the terms of the GNU General Public License as published by

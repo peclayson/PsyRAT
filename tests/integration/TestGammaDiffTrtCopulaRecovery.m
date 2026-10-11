@@ -49,7 +49,7 @@ classdef TestGammaDiffTrtCopulaRecovery < PsyRATTestBase
             % sqrt(2/(nocc-1)) occasion-identifiability law; ~16 occasions would be needed for a 0.08
             % point tolerance). D is therefore checked below by 95% CI-containment, not a point
             % tolerance; G (which excludes the occasion main effect) is still point-checked. See
-            % SCIENTIFIC_FORMULA_AUDIT.md section 22.
+            % development formula audit, section 22.
             dataTbl = localSimulateGammaDiffTrtCopula(nsub, nocc, ntrl, P);
 
             [trueG, trueD] = localTrueConcurrentDiffTrtRel(P, ntrl, nocc);

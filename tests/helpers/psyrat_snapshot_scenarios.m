@@ -359,7 +359,7 @@ dodDynrelTrt.isDoDDynrelTrt = true;
 scenarioMap.dynrel_gamma_ls_dodiff_sserr_trt_onefacet = dodDynrelTrt;
 
 % The GAUSSIAN arms of the same two analyses (owner ruling 2026-08-20;
-% SCIENTIFIC_FORMULA_AUDIT.md section 26): identical routing inputs minus the
+% development formula audit, section 26): identical routing inputs minus the
 % family/gammascale pair (Gaussian is the default family), reusing the
 % four-event + dimension tables. Golden names follow the Gaussian dynrel
 % convention (no family infix). Reaching the builder end-to-end is also the
@@ -607,7 +607,7 @@ scenarioMap.dynrel_gamma_diff_onefacet = dynreldiffGamma;
 % of the argument that psyrat_gamma_crosscov is reused unchanged: all eight of its
 % arguments are mean-submodel quantities, so if the mean submodel is byte-identical
 % the cross-event covariances cannot depend on the parameterization. See
-% gamma_scale_submodel_decision.md section I.3.
+% the scale-submodel decision record, section I.3.
 dynreldiffGammaLs = dynreldiffGamma;
 dynreldiffGammaLs.name = 'dynrel_gamma_ls_diff_onefacet';
 dynreldiffGammaLs.gammascale = 2;

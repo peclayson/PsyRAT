@@ -4,7 +4,7 @@ function out = psyrat_rel_dodiffdynrel(varargin)
 %standardized dimension predictor(s) (analysis 28, family = 'gaussian').
 %The Gaussian sibling of PSYRAT_REL_DODIFFDYNREL_GAMMA_LS (no family marker
 %in the name, the toolbox convention). Derivation:
-%SCIENTIFIC_FORMULA_AUDIT.md section 26.
+%development formula audit, section 26 (not shipped).
 %
 % out = psyrat_rel_dodiffdynrel('b',b,'b_sigma',b_sigma,...
 %   'b_dim',b_dim,'b_sigma_dim',b_sigma_dim,'sd_id',sd_id,'cor_id',cor_id,...

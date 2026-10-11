@@ -20,7 +20,7 @@ function vc = psyrat_gamma_varcomps_ls(alpha, s_p, s_i, log_sigma, s_sd)
 % dispersion effect and cannot be read as a statement about precision alone.
 % Here the residual is decoupled from the mean surface entirely, so b_sigma is a
 % pure residual-SD slope. That separation is the reason this parameterization
-% exists; see documentation/gamma_scale_submodel_decision.md.
+% exists; see manual section 15.4.
 %
 % The log-nu sibling is NOT invalid -- it is a coherent constant-CV
 % (proportional-error) model. The difference is what the scale parameter means:
@@ -43,7 +43,7 @@ function vc = psyrat_gamma_varcomps_ls(alpha, s_p, s_i, log_sigma, s_sd)
 % log sigma = log mu + 0.5*log(2) - 0.5*log(nu), every log-nu contrast blends
 % amplitude with absolute residual SD -- whether indexed by a covariate (dynamic
 % designs), by an event or cell (static difference designs), or by a person
-% (subject-level designs). See gamma_scale_submodel_decision.md section H.
+% (subject-level designs). See manual section 15.4 and owner ruling H.
 %
 % ESTIMAND. e_cond_var is the MARGINAL expected conditional variance
 % E[sigma_p^2] over the population of person residual SDs, so the components sum
@@ -89,7 +89,7 @@ function vc = psyrat_gamma_varcomps_ls(alpha, s_p, s_i, log_sigma, s_sd)
 %
 % See also PSYRAT_GAMMA_VARCOMPS, PSYRAT_GAMMA_CROSSCOV, PSYRAT_REL_SING.
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by

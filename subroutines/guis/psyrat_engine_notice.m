@@ -5,9 +5,9 @@ function msg = psyrat_engine_notice(rel)
 %msg = psyrat_engine_notice(rel)
 %
 %Input:
-% rel - the reliability results struct (psyrat_data.rel). Only rel.engine is
-%  read: the provenance label stamped by the estimation core
-%  (psyrat_fit_engine): 'cmdstan' | 'hmc' | 'fitlme'.
+% rel - the reliability results struct (psyrat_data.rel). rel.engine is the
+%  provenance label stamped by psyrat_fit_engine: 'cmdstan' | 'hmc' | 'fitlme'.
+%  Optional engine_meta bootstrap records supply per-fit counts and layout.
 %
 %Output:
 % msg - a notice string to show the user (e.g. via warndlg or a viewer label),
@@ -18,7 +18,7 @@ function msg = psyrat_engine_notice(rel)
 %workflows are visually unchanged. Native runs are flagged as not bit-identical
 %to CmdStan (HMC) or as approximate frequentist intervals (fitlme).
 
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -46,18 +46,22 @@ switch lower(char(rel.engine))
     case 'hmc'
         msg = ['These results were estimated with the native HMC engine ' ...
             '(hmcSampler), not CmdStan. The draws are genuine Bayesian posterior ' ...
-            'samples, but they are NOT bit-identical to a CmdStan run. Re-run ' ...
-            'with CmdStan for a definitive analysis.'];
+            'samples, but they are NOT bit-identical to a CmdStan run.'];
     case 'fitlme'
         msg = ['These results were estimated with the native fitlme engine ' ...
             '(REML + parametric bootstrap), not CmdStan. Its intervals are ' ...
             'APPROXIMATE (frequentist), NOT Bayesian credible intervals, and may ' ...
-            'differ from a CmdStan run. Re-run with CmdStan for a definitive ' ...
-            'analysis.'];
+            'differ from a CmdStan run.'];
     otherwise
         msg = sprintf(['These results were estimated with the native ''%s'' ' ...
-            'engine, not CmdStan; treat them as approximate and re-run with ' ...
-            'CmdStan for a definitive analysis.'], char(rel.engine));
+            'engine, not CmdStan; treat them as approximate.'], char(rel.engine));
 end
+
+if ~isempty(msg)
+    msg = [msg ' Final-inference readiness is unassessed. A CmdStan run also ' ...
+        'requires diagnostic and uncertainty validation.'];
+end
+lines = psyrat_bootstrap_lines(rel);
+if ~isempty(lines); msg = strjoin([{msg} lines],' '); end
 
 end

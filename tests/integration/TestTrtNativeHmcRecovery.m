@@ -71,6 +71,7 @@ classdef TestTrtNativeHmcRecovery < PsyRATTestBase
 
             testCase.verifyEqual(rel.analysis, 'trt');
             testCase.verifyEqual(rel.engine, 'hmc');
+            psyrat_test_record_native_diagnostics(testCase,rel);
 
             % ---- extracted draws (one chunk: no group/event) ----
             sid  = rel.out.sig_id(:,1);

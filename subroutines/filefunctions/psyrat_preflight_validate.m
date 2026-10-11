@@ -5,12 +5,19 @@ function report = psyrat_preflight_validate(varargin)
 % report = psyrat_preflight_validate('savename','out.psyrat','savepath','/tmp', ...
 %     'requireSaveName',true,'requireSavePath',true)
 %
+% 'checkOutputNames',true (off by default) also checks, on the actual volume,
+% that every file the run derives from savename can be created in savepath
+% (psyrat_check_output_names). Only the routes about to estimate and save
+% turn it on: it briefly creates and removes a test folder in savepath or,
+% where MATLAB refuses that folder, an equal-length test file (plus a short
+% control file when a name's test file cannot be created either).
+%
 % Returns a struct with fields:
 %   ok       - true when no blocking validation errors were found
 %   errors   - struct array with id, what, howto, and message
 %   warnings - reserved for non-fatal diagnostics
 %
-% Copyright (C) 2016-2025 Peter E. Clayson
+% Copyright (C) 2016-2026 Peter E. Clayson
 %
 %     This program is free software: you can redistribute it and/or modify
 %     it under the terms of the GNU General Public License as published by
@@ -80,6 +87,8 @@ for i = 1:2:length(varargin)
             opts.requireSaveName = logical(val);
         case 'requiresavepath'
             opts.requireSavePath = logical(val);
+        case 'checkoutputnames'
+            opts.checkOutputNames = logical(val);
         case 'checkdiffpairs'
             % Legacy option accepted for compatibility. Standard
             % difference-score preflight no longer requires paired counts.
@@ -122,6 +131,7 @@ if ~isempty(opts.savepath)
             'Use a save path with no spaces (CmdStan does not support whitespace in paths).');
     end
 end
+savechecksok = isempty(report.errors);   %the output-name check below needs a usable target
 
 % Table/data validations.
 %
@@ -154,6 +164,21 @@ elseif ~isempty(opts.datatable)
         'Convert your dataset to a table before running estimation.');
 end
 
+% Output-name creatability (row 31, LA-2). A name the save folder cannot hold
+% (too long for this volume, or a folder already occupying the output or
+% sidecar path) used to pass every check and fail at the save AFTER the fit.
+% Opt-in, so only the routes about to estimate touch the save folder. It runs
+% AFTER the table validations so a data error keeps errors(1), which is the
+% identifier the GUI raises and its error report records, and only when the
+% save checks above found a usable target.
+if opts.checkOutputNames && savechecksok && ...
+        ~isempty(opts.savename) && ~isempty(opts.savepath)
+    problems = psyrat_check_output_names(opts.savepath, opts.savename);
+    for k = 1:numel(problems)
+        report = localAddError(report, problems(k).id, problems(k).what, problems(k).howto);
+    end
+end
+
 report.ok = isempty(report.errors);
 
 end
@@ -176,6 +201,7 @@ opts.savename = '';
 opts.savepath = '';
 opts.requireSaveName = false;
 opts.requireSavePath = false;
+opts.checkOutputNames = false;
 end
 
 function report = localValidateTable(report, opts)
@@ -279,16 +305,48 @@ for lc = 1:numel(labelcols)
 end
 
 hasMissing = false;
+missmat = [];
 try
-    hasMissing = any(any(ismissing(tbl)));
+    missmat = ismissing(tbl);
+    hasMissing = any(any(missmat));
 catch
     % If ismissing is unavailable for a specific class, keep best-effort behavior.
     hasMissing = false;
 end
 if hasMissing
+    % G96 (beta-tester report 2026-09-16): the documented first sentence stays
+    % verbatim (the manual quotes it); the location is appended from the
+    % matrix the guard already computed, for every column with a missing
+    % cell. readtable imports NA, a lone '.', an empty field or a stray token
+    % in a score column as NaN, so a non-numeric entry surfaces here too, and
+    % the wording says so. A cellstr label column is covered as well: the
+    % loader's own located error exempts that class.
+    %
+    % The row is a row of the PREPARED table: on the GUI route this table is
+    % psyrat_loadfile's output, already reduced to the selected columns and
+    % to the Group/Event/Occasion subsets, so its row numbers are not the
+    % file's. The message says so and names the row's id, which the user can
+    % find in the file whatever was filtered out.
+    where = cell(1, 0);
+    hasIdCol = any(strcmp(colnames, 'id'));
+    for c = find(any(missmat, 1))
+        rows = find(missmat(:, c));
+        idnote = '';
+        if hasIdCol && ~strcmp(colnames{c}, 'id')
+            idval = localToStringColumn(tbl.id(rows(1)));
+            if ~ismissing(idval)
+                idnote = sprintf(' (id ''%s'')', char(idval));
+            end
+        end
+        where{end+1} = sprintf(['column ''%s'' has %d missing value(s); the first ', ...
+            'is in row %d of the prepared table%s'], ...
+            colnames{c}, numel(rows), rows(1), idnote); %#ok<AGROW>
+    end
     report = localAddError(report, 'varargin:missingcells', ...
-        'Input data include missing cells, which CmdStan cannot process.', ...
-        'Remove or impute missing rows so every row has id, measurement, and facet values before estimation.');
+        ['Input data include missing cells, which CmdStan cannot process. ', ...
+        strjoin(where, '; '), '.'], ...
+        ['Remove or impute missing rows so every row has id, measurement, and facet values before estimation. ', ...
+        'A value that cannot be read as a number (for example NA, text, or an empty cell) is imported as missing.']);
 end
 
 % Data-integrity guards (audit 2026-09-05). Each is a condition the loader and
@@ -567,6 +625,60 @@ if isequal(opts.splits, 3)
                 'interaction may be weakly identified.'], cv), ...
                 ['The run will still proceed; interpret the nonparallel-splits ' ...
                 'estimates with caution, or use splits with more variable n_i.']);
+        end
+    end
+    % Split counts per participant (Q7, 2026-09-11; post-beta review PBA-06):
+    % with unequal counts the summary uses each participant's own counts (the
+    % person-averaged error), so say so up front and name the range.
+    [hasID, idcol] = localFindColumn(colnames, opts.idheader);
+    [hasTime,timecol] = localFindColumn(colnames,'time');
+    if hasID && hasTime
+        % Case24 weights available occasion means; scalar harmonic person
+        % counts cannot represent its crossed split/occasion incidence.
+        [~,~,pid] = unique(tbl.(idcol));
+        [~,~,oid] = unique(tbl.(timecol));
+        facetCodes = ones(height(tbl),2);
+        facetNames = {opts.groupheader,opts.eventheader};
+        for fk = 1:2
+            [hasFacet,facetCol] = localFindColumn(colnames,facetNames{fk});
+            if hasFacet
+                [~,~,facetCodes(:,fk)] = unique(tbl.(facetCol));
+            end
+        end
+        [~,~,stratum] = unique(facetCodes,'rows');
+        [persons,~,personIndex] = unique([stratum pid],'rows');
+        [cells,~,cellIndex] = unique([personIndex oid],'rows');
+        counts = accumarray(cellIndex,1);
+        available = accumarray(cells(:,1),1);
+        irregular = false;
+        for sk = unique(stratum)'
+            pc = persons(:,1) == sk;
+            cc = pc(cells(:,1));
+            sc = counts(cc);
+            irregular = irregular || any(sc ~= sc(1)) || ...
+                any(available(pc) ~= numel(unique(oid(stratum == sk))));
+        end
+        if irregular
+            report = localAddWarning(report,'preflight:splitsUnequalCounts',...
+                sprintf(['Observed person/occasion cells contain %d to %d splits; '...
+                'participants have %d to %d available occasions within a stratum.'],...
+                min(counts),max(counts),min(available),max(available)),...
+                ['Case24 equally weights available occasion means and averages '...
+                'universe/error variances equally over participants. Reported scalar '...
+                'counts are reference counts; explicit count overrides select a '...
+                'balanced projection. Check that missing splits or occasions are intended.']);
+        end
+    elseif hasID
+        [~, ~, gid] = unique(tbl.(idcol));
+        counts = accumarray(gid(:), 1);
+        if numel(counts) > 1 && any(counts ~= counts(1))
+            report = localAddWarning(report, 'preflight:splitsUnequalCounts', ...
+                sprintf(['Participants contribute different numbers of splits ' ...
+                '(from %d to %d, median %g).'], min(counts), max(counts), median(counts)), ...
+                ['The coefficients will use each participant''s own split counts ' ...
+                '(the person-averaged error), and the reported number of splits ' ...
+                'is then the harmonic mean of the counts. Check that no ' ...
+                'participant lost splits unintentionally.']);
         end
     end
 elseif isequal(opts.splits, 2)
