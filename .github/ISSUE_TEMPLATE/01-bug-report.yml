@@ -1,0 +1,153 @@
+name: Bug report
+description: Report an error, a crash, or a result that looks wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check [Chapter 18 of the user manual](https://github.com/peclayson/PsyRAT/blob/main/documentation/manual/18_troubleshooting.md) first; it lists common error messages and their fixes.
+
+        **This issue tracker is public.** Do not paste or attach participant-level data, participant IDs, `.psyrat` result files, exported tables that list participants, or files from a leftover `psyrat_stan_*` folder. Error output, the `*_runconfig.json` sidecar, and the `_error.txt` report can contain local file paths and participant IDs; [SUPPORT.md](https://github.com/peclayson/PsyRAT/blob/main/SUPPORT.md) explains what to remove.
+  - type: input
+    id: version
+    attributes:
+      label: PsyRAT version
+      description: >-
+        The output of `psyrat_defineversion`, which the startup banner also prints
+        after "PsyRAT Version". For a clone of this repository, add the commit from
+        `git rev-parse --short HEAD`.
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How was PsyRAT installed?
+      options:
+        - Release zip (PsyRAT.zip from the Releases page)
+        - Clone of this repository
+        - Updated in place by the PsyRAT updater
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: matlab
+    attributes:
+      label: MATLAB release
+      description: The output of `version` in the MATLAB Command Window.
+      placeholder: 24.2.0.2712019 (R2024b)
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and processor
+      placeholder: macOS 15.3 on Apple silicon
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Dependency versions
+      description: >-
+        Paste the output of `psyrat_printversions`. If that command stops with an
+        error, paste the error instead. Also say whether the Statistics and Machine
+        Learning Toolbox and the Deep Learning Toolbox are installed. If you check with
+        `ver`, do not paste its output; it includes your MATLAB license number.
+      render: text
+  - type: dropdown
+    id: stage
+    attributes:
+      label: When did the problem occur?
+      options:
+        - Installation or startup
+        - Choosing or loading the data file
+        - After clicking Analyze
+        - During estimation
+        - Viewing or exporting results
+        - Import + Score ERP
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: route
+    attributes:
+      label: How was PsyRAT run?
+      description: Skip this for installation or startup problems.
+      options:
+        - GUI (psyrat_start)
+        - Script (psyrat_run or psyrat_report)
+        - Replay of a saved run configuration (psyrat_run with 'config')
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: >-
+        The GUI steps you took, or the exact `psyrat_run` call with file paths
+        shortened. Say whether the problem also occurs with one of the
+        `test_data/manual_*.csv` example files, and whether it worked in an earlier
+        PsyRAT version.
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error message or dialog text
+      description: >-
+        For a dialog, give its title and its full text. For an error in the Command
+        Window, paste the error and the lines just before it. Replace file paths and
+        participant IDs. If the output lists participant IDs (for example, a table of
+        IDs and event counts), delete the list and say how many participants it named.
+      render: text
+  - type: textarea
+    id: design
+    attributes:
+      label: Data and design
+      description: >-
+        Describe the data, not the values: the input type (long-format single-trial
+        table, splits table with an items-per-split column, or ERP files through
+        Import + Score), the columns you assigned (participant ID, measurement, group,
+        event, occasion, dimension), any difference scores, the likelihood family
+        (Gaussian or gamma), and the `Analysis:` line from an export header if you have
+        one. If the run saved no `*_runconfig.json` sidecar, or the result differs
+        from the manual or from an earlier run, also give the seed, the number of
+        chains, the warmup and sampling iterations, the estimation engine, whether
+        within-chain parallelization was on, and any setting on the Specify Processing
+        Preferences screen that you changed from its default. For Import + Score ERP,
+        give the source format (EEGLAB .set, ERPLAB .erp, or EP Toolkit .mat or .ept)
+        and the status-log lines around the problem, with file names replaced. Skip
+        this field for installation problems.
+  - type: textarea
+    id: run-files
+    attributes:
+      label: Run configuration or error report
+      description: >-
+        If the run saved results, attach its `*_runconfig.json` sidecar by dragging
+        the file into this box (pasted JSON loses its indentation). If a GUI run
+        failed after you chose where to save, attach its `_error.txt` report instead
+        (Section 7.6 of the user manual). First blank the `savepath` and `source_path`
+        values in the sidecar and replace any file name or label that names a study,
+        site, or person; in the error report, shorten each path so it starts at the
+        PsyRAT folder.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: "I removed participant-level data and participant IDs, and I removed or shortened local file paths, in everything I pasted or attached."
+          required: true

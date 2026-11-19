@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest an analysis, option, or output that PsyRAT does not provide.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Requests are weighed against PsyRAT's scope and the validation that a new analysis or option would require. Opening a request does not commit the maintainer to implementing it. Describe what you need; please do not attach code, because PsyRAT does not accept pull requests or other code contributions.
+
+        **This issue tracker is public.** Do not post participant-level data or participant IDs.
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you need to do?
+      description: >-
+        The measurement problem or analysis, the design, and why the current analyses
+        do not cover it.
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: What would you like PsyRAT to do?
+      description: >-
+        The analysis, option, or output you have in mind. If it involves a formula or an
+        estimator, cite the source (paper, table, and equation).
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: How you handle this now, if at all.
+  - type: input
+    id: version
+    attributes:
+      label: PsyRAT version
+      description: The version you use, if relevant.

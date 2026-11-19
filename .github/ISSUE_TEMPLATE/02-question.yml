@@ -1,0 +1,37 @@
+name: Usage question
+description: Ask how to run an analysis or read PsyRAT output, or report a documentation error.
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The [user manual](https://github.com/peclayson/PsyRAT/blob/main/documentation/manual/index.md) covers installation, every analysis, scripting with `psyrat_run`, reporting, and troubleshooting. Questions that recur become documentation. Use this form also to report an error in the manual, the README, or a function's help text.
+
+        **This issue tracker is public.** Do not post participant-level data, participant IDs, `.psyrat` result files, or local file paths; shorten any path in a command you paste.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question or documentation error
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Data and design
+      description: >-
+        If relevant, describe the data, not the values: the input type, the columns you
+        assigned (participant ID, measurement, group, event, occasion, dimension), any
+        difference scores, the likelihood family (Gaussian or gamma), and whether you
+        use the GUI or `psyrat_run`.
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you have read or tried
+      description: Manual sections you consulted and commands you ran.
+  - type: input
+    id: version
+    attributes:
+      label: PsyRAT version
+      description: >-
+        The output of `psyrat_defineversion`, which the startup banner also prints
+        after "PsyRAT Version".

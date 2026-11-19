@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: PsyRAT user manual
+    url: https://github.com/peclayson/PsyRAT/blob/main/documentation/manual/index.md
+    about: Installation, analyses, scripting, and reporting.
+  - name: Troubleshooting and FAQ (manual Chapter 18)
+    url: https://github.com/peclayson/PsyRAT/blob/main/documentation/manual/18_troubleshooting.md
+    about: Common error messages, convergence problems, and frequently asked questions.

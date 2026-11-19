@@ -43,9 +43,11 @@ The current version is `0.1.1-beta`. The beta label means that the interface and
 Every analysis available in the GUI can also be run from a script with `psyrat_run`, which uses the same estimation pipeline and reproducibility contract as the GUI: the same inputs and seed produce the same variance components when within-chain parallelization is off, its default (with it on, the threaded models' draws can differ in the trailing digits between runs; see [Chapter 18](documentation/manual/18_troubleshooting.md)). [Chapter 14 of the manual](documentation/manual/14_scripting.md) is the scripting reference, including an option table for `psyrat_run` and `psyrat_report`; `help psyrat_run` is the authoritative option list.
 
 
-## Bug reports, questions, and contributing
+## Bug reports and questions
 
-Please report bugs and ask questions on the [issue tracker](https://github.com/peclayson/PsyRAT/issues). Including the PsyRAT version string (printed in the startup banner and written into every exported table header) and, when possible, the `*_runconfig.json` sidecar saved with the analysis makes problems much faster to reproduce. [`CONTRIBUTING.md`](CONTRIBUTING.md) explains how this repository is maintained and what a proposed change needs. Be clear about what problem occurred and what you expected to happen.
+Please report bugs and ask questions on the [issue tracker](https://github.com/peclayson/PsyRAT/issues). Including the PsyRAT version string (printed in the startup banner and written into every exported table header) and, when possible, the `*_runconfig.json` sidecar saved with the analysis makes problems much faster to reproduce. Be clear about what problem occurred and what you expected to happen. [`SUPPORT.md`](SUPPORT.md) lists what to include in a report and what to leave out of a public issue.
+
+PsyRAT does not accept pull requests or other code contributions; it is developed in a separate repository and published here at each release.
 
 ## How to cite
 
