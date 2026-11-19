@@ -88,14 +88,15 @@ optional fallbacks for when CmdStan cannot be installed.
   Where: the five `psyrat_gamma_extract_diff_*copula*` local functions in
   `subroutines/estimation/psyrat_computevarcomp.m`. Non-concurrent gamma
   differences (`diffrescor=1`) do not reach them, and no other family does.
-- The failure mode is late and expensive: extraction runs **after** sampling has
-  completed, so a user without the toolbox loses the finished fit to
-  `MATLAB:UndefinedFunction` rather than being stopped up front. **There is no
-  CI to catch it: the GitHub Actions validation lane was retired 2026-08-20
-  (`2fbd5d7`), and Actions is disabled at the repo level.** While it ran it did
-  not catch this either, because the copula test classes skip via `assumeTrue`
-  when the toolbox is absent. A developer machine typically has the toolbox
-  installed, so a green local run is not evidence either.
+- Without the toolbox, preflight refuses these runs before CmdStan compiles
+  anything (`preflight:statisticsToolboxRequired`, since 0.1.0-beta). Before that
+  check, extraction ran **after** sampling had completed, so a user without the
+  toolbox lost the finished fit to `MATLAB:UndefinedFunction`. **There is no
+  CI to catch a regression: the GitHub Actions validation lane was retired
+  2026-08-20 (`2fbd5d7`), and Actions is disabled at the repo level.** While it
+  ran it did not catch this either, because the copula test classes skip via
+  `assumeTrue` when the toolbox is absent. A developer machine typically has
+  the toolbox installed, so a green local run is not evidence either.
 - Provenance: every run records the engine preference and the engine actually
   used in the `*_runconfig.json` sidecar (`psyrat_write_runconfig`), and the
   estimated `REL.engine` field.
